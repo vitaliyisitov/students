@@ -8,7 +8,8 @@ let data = {
   subjects: [
     {
       id: "sub_math",
-      title: "Математика",
+      catalogSlug: "oge_math",
+      title: "ОГЭ Математика",
       emoji: "📐",
       exam: {
         dateISO: "2026-06-02",
@@ -23,7 +24,8 @@ let data = {
     },
     {
       id: "sub_info",
-      title: "Информатика",
+      catalogSlug: "oge_info",
+      title: "ОГЭ Информатика",
       emoji: "💻",
       exam: {
         dateISO: "2026-06-15",
@@ -393,11 +395,7 @@ async function loadDataFromSupabase() {
       if (payloadOk) {
         const userRow = payload.user;
         if (userRow && typeof userRow === "object") {
-          data = buildDataFromPayload(
-            userRow,
-            payload.subjects,
-            payload.tasks,
-          );
+          data = buildDataFromPayload(userRow, payload.subjects, payload.tasks);
           setDashboardGate(null);
           return;
         }
@@ -419,7 +417,7 @@ async function loadDataFromSupabase() {
       const userId = userRes.data.id;
       const subjectsRes = await client
         .from(tables.subjects)
-        .select("*")
+        .select("*, subject_catalog(*)")
         .eq("user_id", userId);
 
       if (subjectsRes.error) {
@@ -444,11 +442,7 @@ async function loadDataFromSupabase() {
       }
 
       const { access_token: _omit, ...userForMap } = userRes.data;
-      data = buildDataFromPayload(
-        userForMap,
-        subjectsRes.data,
-        tasksRes.data,
-      );
+      data = buildDataFromPayload(userForMap, subjectsRes.data, tasksRes.data);
       setDashboardGate(null);
       return;
     }
@@ -485,16 +479,32 @@ function mapUser(row) {
 }
 
 function mapSubject(row) {
+  const cat = row.subject_catalog || null;
+  const rowTitle =
+    typeof row.title === "string" && row.title.trim() ? row.title.trim() : "";
+  const title = rowTitle || (cat && cat.title) || row.name || "Предмет";
+  const rowEmoji =
+    typeof row.emoji === "string" && row.emoji.trim() ? row.emoji.trim() : "";
+  const emoji = rowEmoji || (cat && cat.emoji) || "📘";
+  const tipsRow = Array.isArray(row.tips) ? row.tips : [];
+  const tipsCat =
+    cat && Array.isArray(cat.default_tips) ? cat.default_tips : [];
+  const tips = tipsRow.length > 0 ? tipsRow : tipsCat;
+  const durationFallback = Number(cat?.default_duration_minutes) || 235;
+
   return {
     id: row.id,
-    title: row.title || row.name || "Предмет",
-    emoji: row.emoji || "📘",
+    catalogSlug: cat?.slug || row.catalog_slug || null,
+    title,
+    emoji,
     exam: {
       dateISO: row.exam_date || row.date_iso || "2026-06-15",
-      durationMinutes: Number(row.duration_minutes || row.duration || 235),
+      durationMinutes: Number(
+        row.duration_minutes || row.duration || durationFallback,
+      ),
       tasksTotal: Number(row.tasks_total || row.task_count || 0),
     },
-    tips: Array.isArray(row.tips) ? row.tips : [],
+    tips,
   };
 }
 
@@ -502,16 +512,22 @@ function mapTask(row) {
   return {
     id: row.id,
     subjectId: row.subject_id || row.subjectId,
+    userId: row.user_id || row.userId || null,
+    templateId: row.template_id || row.templateId || null,
     title: row.title || "Задание",
     description: row.description || "",
     status: row.status || "not_started",
-    updatedAtISO: row.updated_at || row.updatedAtISO || new Date().toISOString(),
-    details: row.details && typeof row.details === "object" ? row.details : {
-      lessonNotes: "",
-      homework: [],
-      hints: [],
-      attachments: [],
-    },
+    updatedAtISO:
+      row.updated_at || row.updatedAtISO || new Date().toISOString(),
+    details:
+      row.details && typeof row.details === "object"
+        ? row.details
+        : {
+            lessonNotes: "",
+            homework: [],
+            hints: [],
+            attachments: [],
+          },
   };
 }
 
