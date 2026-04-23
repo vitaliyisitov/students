@@ -1,0 +1,24 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main  # если у тебя master — поменяй
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Клонируем репозиторий
+        uses: actions/checkout@v4
+
+      - name: Создаём admin-gate.config.js
+        run: |
+          echo "window.ADMIN_GATE = { password: '${{ secrets.ADMIN_PASSWORD }}' };" > admin-gate.config.js
+
+      - name: Деплой на GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
