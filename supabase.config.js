@@ -10,4 +10,6 @@ window.SUPABASE_CONFIG = {
   requirePersonalLink: true,
   /** Имя функции в Supabase (см. supabase-personal-links.sql). Пустая строка — только прямые select к таблицам. */
   rpcDashboardByToken: "dashboard_by_token",
+
+  adminGatePassword: "",
 };
