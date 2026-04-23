@@ -316,26 +316,11 @@ function isDashboardShellVisible() {
 
 function setDashboardGate(reason) {
   if (!els.appGate || !els.appShell) return;
-  if (!reason) {
-    els.appGate.hidden = true;
-    els.appShell.hidden = false;
-    return;
-  }
-  const copy = {
-    missing_token: {
-      title: "Нужна персональная ссылка",
-      text: "Откройте кабинет по ссылке от преподавателя. В адресе страницы должен быть параметр вида ?k=… (длинный набор букв и цифр).",
-    },
-    invalid_token: {
-      title: "Ссылка недействительна",
-      text: "Проверьте, что вы скопировали адрес полностью. Если сообщение повторяется, попросите преподавателя прислать ссылку ещё раз.",
-    },
-  };
-  const block = copy[reason] || copy.invalid_token;
-  els.appGateTitle.textContent = block.title;
-  els.appGateMessage.textContent = block.text;
-  els.appGate.hidden = false;
-  els.appShell.hidden = true;
+  void reason;
+  els.appGateTitle.textContent = "";
+  els.appGateMessage.textContent = "";
+  els.appGate.hidden = true;
+  els.appShell.hidden = false;
 }
 
 function sortDbTaskRows(rows) {
@@ -377,7 +362,7 @@ async function loadDataFromSupabase() {
   const token = DASHBOARD_ACCESS_TOKEN;
 
   if (requirePersonalLink && !token) {
-    setDashboardGate("missing_token");
+    setDashboardGate(null);
     return;
   }
 
@@ -400,6 +385,10 @@ async function loadDataFromSupabase() {
           return;
         }
       }
+      // Если RPC настроен, считаем его источником истины.
+      // Не делаем fallback к прямому select, чтобы уважать проверки доступа (например, архив).
+      setDashboardGate(null);
+      return;
     }
 
     if (token) {
@@ -410,7 +399,7 @@ async function loadDataFromSupabase() {
         .maybeSingle();
 
       if (userRes.error || !userRes.data?.id) {
-        setDashboardGate("invalid_token");
+        setDashboardGate(null);
         return;
       }
 
@@ -421,7 +410,7 @@ async function loadDataFromSupabase() {
         .eq("user_id", userId);
 
       if (subjectsRes.error) {
-        setDashboardGate("invalid_token");
+        setDashboardGate(null);
         return;
       }
 
@@ -437,7 +426,7 @@ async function loadDataFromSupabase() {
       }
 
       if (tasksRes.error) {
-        setDashboardGate("invalid_token");
+        setDashboardGate(null);
         return;
       }
 
@@ -463,7 +452,7 @@ async function loadDataFromSupabase() {
     );
     setDashboardGate(null);
   } catch {
-    if (requirePersonalLink && token) setDashboardGate("invalid_token");
+    if (requirePersonalLink && token) setDashboardGate(null);
   }
 }
 
@@ -498,17 +487,21 @@ function mapSubject(row) {
     title,
     emoji,
     exam: {
-      dateISO: row.exam_date || row.date_iso || "2026-06-15",
+      dateISO:
+        row.exam_date || row.date_iso || cat?.default_exam_date || "2026-06-15",
       durationMinutes: Number(
         row.duration_minutes || row.duration || durationFallback,
       ),
-      tasksTotal: Number(row.tasks_total || row.task_count || 0),
+      tasksTotal: Number(
+        row.tasks_total || row.task_count || cat?.default_tasks_total || 0,
+      ),
     },
     tips,
   };
 }
 
 function mapTask(row) {
+  const orderIndex = Number(row.order_index ?? row.orderIndex);
   return {
     id: row.id,
     subjectId: row.subject_id || row.subjectId,
@@ -517,6 +510,7 @@ function mapTask(row) {
     title: row.title || "Задание",
     description: row.description || "",
     status: row.status || "not_started",
+    orderIndex: Number.isFinite(orderIndex) ? orderIndex : 0,
     updatedAtISO:
       row.updated_at || row.updatedAtISO || new Date().toISOString(),
     details:
@@ -662,10 +656,18 @@ function renderExam() {
 function renderTasks() {
   setActiveFilterChip(state.filter);
 
-  const tasks = getTasksForSelectedSubject().map((t) => ({
-    ...t,
-    status: state.taskStatusById[t.id] || t.status,
-  }));
+  const tasks = getTasksForSelectedSubject()
+    .map((t) => ({
+      ...t,
+      status: state.taskStatusById[t.id] || t.status,
+    }))
+    .sort((a, b) => {
+      const pinDiff = Number(isTaskPinned(b)) - Number(isTaskPinned(a));
+      if (pinDiff !== 0) return pinDiff;
+      const orderDiff = getTaskOrderIndex(a) - getTaskOrderIndex(b);
+      if (orderDiff !== 0) return orderDiff;
+      return String(a.id).localeCompare(String(b.id));
+    });
 
   const filtered = filterTasks(tasks, state.filter);
   const subject = getSelectedSubject();
@@ -674,9 +676,7 @@ function renderTasks() {
     els.tasksGrid.innerHTML = `
       <div class="section" style="grid-column: 1 / -1;">
         <div class="section__title">Нет заданий</div>
-        <div class="section__body">По фильтру ничего не найдено для ${
-          subject ? escapeHtml(subject.title) : "этого предмета"
-        }.</div>
+        <div class="section__body">По фильтру ничего не найдено.</div>
       </div>
     `;
     return;
@@ -704,10 +704,9 @@ function openModal(task) {
 
   const details = task.details || {};
   els.modalContent.innerHTML = [
-    renderSection("Конспект", details.lessonNotes || "—"),
-    renderListSection("Домашнее задание", details.homework || []),
-    renderListSection("Подсказки", details.hints || []),
-    renderAttachments(details.attachments || []),
+    renderRichSection("Конспект", details.lessonNotes || ""),
+    renderRichSection("Домашнее задание", details.homework || []),
+    renderRichSection("Подсказки", details.hints || []),
   ].join("");
 
   els.modal.classList.add("is-open");
@@ -739,73 +738,129 @@ function isModalOpen() {
 
 function renderTaskCard(task) {
   const badgeClass = `badge badge--${task.status}`;
+  const pin = isTaskPinned(task) ? "📌 " : "";
+  const hideUpdated = task.status === "not_started";
   const updated = task.updatedAtISO ? new Date(task.updatedAtISO) : null;
   const updatedText = updated
     ? `Обновлено ${updated.toLocaleDateString("ru-RU", { year: "numeric", month: "short", day: "2-digit" })}`
     : "Обновлено —";
+  const metaLeft = hideUpdated
+    ? ""
+    : `<span class="meta">${escapeHtml(updatedText)}</span>`;
 
   return `
     <button class="task" type="button" data-task="${escapeAttr(task.id)}">
       <div class="task__top">
         <div>
-          <div class="task__title">${escapeHtml(task.title)}</div>
+          <div class="task__title">${escapeHtml(`${pin}${task.title}`)}</div>
         </div>
         <span class="${badgeClass}">${escapeHtml(formatStatus(task.status))}</span>
       </div>
       <div class="task__desc">${escapeHtml(task.description || "")}</div>
       <div class="task__meta">
-        <span class="meta">${escapeHtml(updatedText)}</span>
+        ${metaLeft}
         <span class="meta">Открыть детали →</span>
       </div>
     </button>
   `;
 }
 
-function renderSection(title, body) {
+function renderRichSection(title, rawValue) {
+  const lines = normalizeRichLines(rawValue);
+  const parsed = lines.reduce(
+    (acc, line) => {
+      const link = parseRichLink(line);
+      if (link) {
+        acc.links.push(link);
+      } else {
+        acc.texts.push(line);
+      }
+      return acc;
+    },
+    { texts: [], links: [] },
+  );
+
+  const bodyHtml = parsed.texts.length
+    ? `<div class="section__body">${parsed.texts.map((x) => escapeHtml(x)).join("<br />")}</div>`
+    : "";
+
   return `
     <div class="section">
       <div class="section__title">${escapeHtml(title)}</div>
-      <div class="section__body">${escapeHtml(body)}</div>
+      ${bodyHtml}
+      ${parsed.links.length ? renderLinks(parsed.links) : ""}
+      ${!parsed.texts.length && !parsed.links.length ? `<div class="section__body">—</div>` : ""}
     </div>
   `;
 }
 
-function renderListSection(title, items) {
-  const safeItems = Array.isArray(items) ? items : [];
-  return `
-    <div class="section">
-      <div class="section__title">${escapeHtml(title)}</div>
-      ${
-        safeItems.length
-          ? `<ul class="list">${safeItems.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul>`
-          : `<div class="section__body">—</div>`
-      }
-    </div>
-  `;
+function normalizeRichLines(rawValue) {
+  if (Array.isArray(rawValue)) {
+    return rawValue.map((x) => String(x || "").trim()).filter(Boolean);
+  }
+  return String(rawValue || "")
+    .split("\n")
+    .map((x) => x.trim())
+    .filter(Boolean);
 }
 
-function renderAttachments(attachments) {
-  const safe = Array.isArray(attachments) ? attachments : [];
-  return `
-    <div class="section">
-      <div class="section__title">Материалы</div>
-      ${
-        safe.length
-          ? `<div class="links">
-            ${safe
-              .map(
-                (a) =>
-                  `<a class="link" href="${escapeAttr(a.href || "#")}" target="_blank" rel="noreferrer">
-                    <span aria-hidden="true">↗</span>
-                    <span>${escapeHtml(a.label || "Ссылка")}</span>
-                  </a>`,
-              )
-              .join("")}
-          </div>`
-          : `<div class="section__body">—</div>`
-      }
-    </div>
-  `;
+function parseRichLink(line) {
+  const value = String(line || "").trim();
+  if (!value) return null;
+  if (value.includes("|")) {
+    const [labelRaw, hrefRaw] = value.split("|");
+    const href = String(hrefRaw || "").trim();
+    if (isValidHttpUrl(href)) {
+      return { label: String(labelRaw || "Ссылка").trim() || "Ссылка", href };
+    }
+  }
+  if (isValidHttpUrl(value)) {
+    return { label: "Ссылка", href: value };
+  }
+  return null;
+}
+
+function renderLinks(links) {
+  return `<div class="links">
+    ${links
+      .map(
+        (a) =>
+          `<a class="link" href="${escapeAttr(a.href || "#")}" target="_blank" rel="noreferrer">
+            <span aria-hidden="true">↗</span>
+            <span>${escapeHtml(a.label || "Ссылка")}</span>
+          </a>`,
+      )
+      .join("")}
+  </div>`;
+}
+
+function isValidHttpUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function isTaskPinned(task) {
+  return task?.details?.isPinned === true;
+}
+
+function getTaskOrderIndex(task) {
+  const raw = Number(task?.orderIndex ?? task?.order_index ?? 0);
+  if (Number.isFinite(raw) && raw > 0) return raw;
+  const fromTitle = taskOrderFromTitle(task?.title);
+  if (fromTitle > 0) return fromTitle;
+  return 9999;
+}
+
+function taskOrderFromTitle(title) {
+  const s = String(title || "");
+  const m1 = s.match(/задание\s*(\d+)/i);
+  if (m1) return Number(m1[1]) || 0;
+  const m2 = s.match(/(\d+)\s*$/);
+  return m2 ? Number(m2[1]) || 0 : 0;
 }
 
 function getSelectedSubject() {
