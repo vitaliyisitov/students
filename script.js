@@ -1,8 +1,8 @@
-/* Mock DB (backend-like shape) */
+/* Mock DB (backend-like shape) 
 let data = {
   user: {
     id: "u_001",
-    name: "Елизавета",
+    name: "Ученик",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "local",
   },
   subjects: [
@@ -204,7 +204,7 @@ let data = {
     },
   ],
 };
-
+*/
 /*
   Supabase settings:
   1) Create window.SUPABASE_CONFIG before script.js, or
