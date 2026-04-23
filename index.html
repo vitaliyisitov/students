@@ -33,142 +33,135 @@
     </header>
 
     <main class="container" id="main">
-      <div class="app-gate" id="appGate" hidden>
-        <div class="app-gate__card">
-          <div class="app-gate__title" id="appGateTitle">
-            Нужна персональная ссылка
-          </div>
-          <p class="app-gate__text" id="appGateMessage"></p>
-          <p class="app-gate__hint muted">
-            Если вы ученик и видите это сообщение, откройте ссылку, которую
-            прислал преподаватель.
-          </p>
-        </div>
-      </div>
-
       <div id="appShell">
-      <div
-        class="tabs"
-        id="subjectTabs"
-        aria-label="Переключение предмета"
-      ></div>
+        <div
+          class="tabs"
+          id="subjectTabs"
+          aria-label="Переключение предмета"
+        ></div>
 
-      <section class="bento" aria-label="Панель ученика">
-        <article class="card card--hero" id="cardGreeting">
-          <div class="card__header">
-            <div>
-              <div class="eyebrow" id="greetingEyebrow">Дашборд</div>
-              <h1 class="h1" id="greetingTitle">Привет —</h1>
+        <section class="bento" aria-label="Панель ученика">
+          <article class="card card--hero" id="cardGreeting">
+            <div class="card__header">
+              <div>
+                <div class="eyebrow" id="greetingEyebrow">Дашборд</div>
+                <h1 class="h1" id="greetingTitle">Привет —</h1>
+              </div>
+              <div class="pill" id="subjectPill" title="Выбранный предмет">
+                —
+              </div>
             </div>
-            <div class="pill" id="subjectPill" title="Выбранный предмет">—</div>
-          </div>
 
-          <div class="hero__body">
-            <div class="hero-grid">
-              <div class="hero-progress">
-                <div class="hero-progress__label">Прогресс</div>
-                <div class="hero-progress__value" id="progressValue">—</div>
-                <div
-                  class="progress__bar"
-                  role="progressbar"
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                >
+            <div class="hero__body">
+              <div class="hero-grid">
+                <div class="hero-progress">
+                  <div class="hero-progress__label">Прогресс</div>
+                  <div class="hero-progress__value" id="progressValue">—</div>
                   <div
-                    class="progress__fill"
-                    id="progressFill"
-                    style="width: 0%"
-                  ></div>
+                    class="progress__bar"
+                    role="progressbar"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                  >
+                    <div
+                      class="progress__fill"
+                      id="progressFill"
+                      style="width: 0%"
+                    ></div>
+                  </div>
+                  <div class="hero-progress__meta">
+                    <span id="progressMetaLeft">—</span>
+                    <span class="muted" id="progressMetaRight"></span>
+                  </div>
                 </div>
-                <div class="hero-progress__meta">
-                  <span id="progressMetaLeft">—</span>
-                  <span class="muted" id="progressMetaRight"></span>
+
+                <div class="hero-summary">
+                  <div class="kpi">
+                    <div class="kpi__label">Пройдено</div>
+                    <div class="kpi__value" id="heroCompleted">—</div>
+                  </div>
+                  <div class="kpi">
+                    <div class="kpi__label">В процессе</div>
+                    <div class="kpi__value" id="heroInProgress">—</div>
+                  </div>
+                  <div class="kpi">
+                    <div class="kpi__label">Сделать ДЗ</div>
+                    <div class="kpi__value" id="heroHomework">—</div>
+                  </div>
+                  <div class="kpi">
+                    <div class="kpi__label">Не начато</div>
+                    <div class="kpi__value" id="heroNotStarted">—</div>
+                  </div>
                 </div>
               </div>
+            </div>
+          </article>
 
-              <div class="hero-summary">
-                <div class="kpi">
-                  <div class="kpi__label">Пройдено</div>
-                  <div class="kpi__value" id="heroCompleted">—</div>
-                </div>
-                <div class="kpi">
-                  <div class="kpi__label">В процессе</div>
-                  <div class="kpi__value" id="heroInProgress">—</div>
-                </div>
-                <div class="kpi">
-                  <div class="kpi__label">Сделать ДЗ</div>
-                  <div class="kpi__value" id="heroHomework">—</div>
-                </div>
-                <div class="kpi">
-                  <div class="kpi__label">Не начато</div>
-                  <div class="kpi__value" id="heroNotStarted">—</div>
-                </div>
+          <article class="card card--exam" id="cardExam">
+            <div class="card__header">
+              <div>
+                <div class="eyebrow">Информация</div>
+                <h2 class="h2">Об экзамене</h2>
               </div>
             </div>
-          </div>
-        </article>
 
-        <article class="card card--exam" id="cardExam">
-          <div class="card__header">
-            <div>
-              <div class="eyebrow">Информация</div>
-              <h2 class="h2">Об экзамене</h2>
-            </div>
-          </div>
-
-          <div class="exam">
-            <div class="exam__row">
-              <div class="exam__label">Дата проведения</div>
-              <div class="exam__value" id="examDate">—</div>
-            </div>
-            <div class="exam__row">
-              <div class="exam__label">Осталось</div>
-              <div class="exam__value">
-                <span class="countdown" id="examCountdown">—</span>
-                <span class="muted" id="examCountdownSub">дней</span>
+            <div class="exam">
+              <div class="exam__row">
+                <div class="exam__label">Дата проведения</div>
+                <div class="exam__value" id="examDate">—</div>
+              </div>
+              <div class="exam__row">
+                <div class="exam__label">Осталось</div>
+                <div class="exam__value">
+                  <span class="countdown" id="examCountdown">—</span>
+                  <span class="muted" id="examCountdownSub">дней</span>
+                </div>
+              </div>
+              <div class="exam__row">
+                <div class="exam__label">Длительность</div>
+                <div class="exam__value" id="examDuration">—</div>
+              </div>
+              <div class="exam__row">
+                <div class="exam__label">Количество заданий</div>
+                <div class="exam__value" id="examTaskCount">—</div>
               </div>
             </div>
-            <div class="exam__row">
-              <div class="exam__label">Длительность</div>
-              <div class="exam__value" id="examDuration">—</div>
-            </div>
-            <div class="exam__row">
-              <div class="exam__label">Количество заданий</div>
-              <div class="exam__value" id="examTaskCount">—</div>
-            </div>
-          </div>
-        </article>
+          </article>
 
-        <article class="card card--tasks" id="cardTasks">
-          <div class="card__header">
-            <div>
-              <div class="eyebrow">План подготовки</div>
-              <h2 class="h2">Задания</h2>
+          <article class="card card--tasks" id="cardTasks">
+            <div class="card__header">
+              <div>
+                <div class="eyebrow">План подготовки</div>
+                <h2 class="h2">Задания</h2>
+              </div>
+              <div class="filters" aria-label="Фильтры заданий">
+                <button class="chip is-active" type="button" data-filter="all">
+                  Все
+                </button>
+                <button class="chip" type="button" data-filter="not_started">
+                  Не начато
+                </button>
+                <button class="chip" type="button" data-filter="in_progress">
+                  В процессе
+                </button>
+                <button class="chip" type="button" data-filter="homework">
+                  Сделать ДЗ
+                </button>
+                <button class="chip" type="button" data-filter="completed">
+                  Пройдено
+                </button>
+              </div>
             </div>
-            <div class="filters" aria-label="Фильтры заданий">
-              <button class="chip is-active" type="button" data-filter="all">
-                Все
-              </button>
-              <button class="chip" type="button" data-filter="not_started">
-                Не начато
-              </button>
-              <button class="chip" type="button" data-filter="in_progress">
-                В процессе
-              </button>
-              <button class="chip" type="button" data-filter="homework">
-                Сделать ДЗ
-              </button>
-              <button class="chip" type="button" data-filter="completed">
-                Пройдено
-              </button>
-            </div>
-          </div>
 
-          <div class="tasks-grid" id="tasksGrid" aria-label="Карточки заданий">
-            <!-- rendered by JS -->
-          </div>
-        </article>
-      </section>
+            <div
+              class="tasks-grid"
+              id="tasksGrid"
+              aria-label="Карточки заданий"
+            >
+              <!-- rendered by JS -->
+            </div>
+          </article>
+        </section>
       </div>
     </main>
 
