@@ -1,210 +1,14 @@
-/* Mock DB (backend-like shape) 
+/* Mock fallback (used until Supabase data is loaded) */
 let data = {
   user: {
     id: "u_001",
     name: "Ученик",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "local",
   },
-  subjects: [
-    {
-      id: "sub_math",
-      catalogSlug: "oge_math",
-      title: "ОГЭ Математика",
-      emoji: "📐",
-      exam: {
-        dateISO: "2026-06-02",
-        durationMinutes: 235,
-        tasksTotal: 25,
-      },
-      tips: [
-        "Сделай 1 задание на время, затем разберите ошибки по конспекту.",
-        "Если застрял на 6 минут — запиши, что знаешь, и переходи дальше.",
-        "Веди мини-журнал ошибок: тема → ошибка → правильный ход.",
-      ],
-    },
-    {
-      id: "sub_info",
-      catalogSlug: "oge_info",
-      title: "ОГЭ Информатика",
-      emoji: "💻",
-      exam: {
-        dateISO: "2026-06-15",
-        durationMinutes: 235,
-        tasksTotal: 27,
-      },
-      tips: [
-        "Чередуй: теория (20 мин) → практика (30 мин) → разбор (10 мин).",
-        "Сделай шаблоны для типовых задач (ввод/вывод, парсинг).",
-        "Тренируйся в условиях: лимит времени и без отвлечений.",
-      ],
-    },
-  ],
-  tasks: [
-    {
-      id: "t_math_01",
-      subjectId: "sub_math",
-      title: "Квадратные уравнения и факторизация",
-      description: "Ключевые шаблоны: дискриминант, Виет и быстрые приемы.",
-      status: "completed",
-      updatedAtISO: "2026-04-18T10:30:00.000Z",
-      details: {
-        lessonNotes:
-          "Focus on recognizing factorable forms quickly. Write 3 patterns you can spot instantly (difference of squares, perfect square, grouping).",
-        homework: [
-          "Solve 12 quadratic equations (mix: factoring/discriminant).",
-          "Make a 1-page summary: Vieta + typical pitfalls.",
-        ],
-        hints: [
-          "If coefficients are big: try Vieta first before expanding.",
-          "Check for common factor and sign errors.",
-        ],
-        attachments: [
-          { label: "Formula sheet (PDF)", href: "#" },
-          { label: "Practice set A", href: "#" },
-        ],
-      },
-    },
-    {
-      id: "t_math_02",
-      subjectId: "sub_math",
-      title: "Неравенства (метод интервалов)",
-      description: "Рациональные неравенства и таблицы знаков.",
-      status: "in_progress",
-      updatedAtISO: "2026-04-17T16:05:00.000Z",
-      details: {
-        lessonNotes:
-          "Always mark excluded points from denominator. Build a sign chart and verify with one test point per interval.",
-        homework: [
-          "Solve 10 rational inequalities (include repeated roots).",
-          "Rewrite solutions in correct interval notation.",
-        ],
-        hints: [
-          "Repeated roots do NOT flip sign.",
-          "Use a quick number line sketch: it reduces mistakes.",
-        ],
-        attachments: [{ label: "Worked examples", href: "#" }],
-      },
-    },
-    {
-      id: "t_math_03",
-      subjectId: "sub_math",
-      title: "Геометрия: окружности",
-      description: "Углы, хорды, касательные — теоремы для быстрых решений.",
-      status: "in_progress",
-      updatedAtISO: "2026-04-15T11:00:00.000Z",
-      details: {
-        lessonNotes:
-          "Collect 5 most-used circle facts. Practice identifying which one applies from a diagram.",
-        homework: [
-          "Solve 8 problems (2 tangent, 3 chord, 3 angle).",
-          "Write a cheat sheet of theorems with mini diagrams.",
-        ],
-        hints: ["Look for equal angles subtending equal chords."],
-        attachments: [
-          { label: "Diagram pack", href: "#" },
-          { label: "Theorems list", href: "#" },
-        ],
-      },
-    },
-    {
-      id: "t_math_04",
-      subjectId: "sub_math",
-      title: "Мини-пробник",
-      description: "Пробник на 45 минут для тренировки темпа.",
-      status: "completed",
-      updatedAtISO: "2026-04-19T18:40:00.000Z",
-      details: {
-        lessonNotes:
-          "After finishing, review the 3 slowest tasks and find the bottleneck: recall vs algebra vs reading.",
-        homework: [
-          "Re-solve wrong tasks without looking at solutions.",
-          "Write 3 rules for pacing (when to skip, when to double-check).",
-        ],
-        hints: ["Target accuracy first, speed second."],
-        attachments: [{ label: "Mock exam PDF", href: "#" }],
-      },
-    },
-    {
-      id: "t_info_01",
-      subjectId: "sub_info",
-      title: "Системы счисления и переводы",
-      description: "Основы двоичной/шестнадцатеричной и быстрые приемы.",
-      status: "completed",
-      updatedAtISO: "2026-04-12T09:15:00.000Z",
-      details: {
-        lessonNotes:
-          "Practice conversions until they are automatic. Use nibble grouping (4-bit) for hex.",
-        homework: [
-          "Convert 20 numbers between bases (2, 8, 10, 16).",
-          "Do 5 mixed tasks with constraints.",
-        ],
-        hints: ["Hex is just grouped binary: 0000–1111."],
-        attachments: [{ label: "Conversion table", href: "#" }],
-      },
-    },
-    {
-      id: "t_info_02",
-      subjectId: "sub_info",
-      title: "Алгоритмы: оценка сложности",
-      description: "Основы Big-O и распознавание медленных циклов.",
-      status: "in_progress",
-      updatedAtISO: "2026-04-18T20:10:00.000Z",
-      details: {
-        lessonNotes:
-          "Learn to estimate operations: nested loops, logarithms, linear scans. Focus on constraints and time limit.",
-        homework: [
-          "Classify 15 snippets by complexity.",
-          "Rewrite 2 slow snippets to faster ones (data structures).",
-        ],
-        hints: ["When \(n\) is 10^5, \(n^2\) is usually too slow."],
-        attachments: [
-          { label: "Snippet pack", href: "#" },
-          { label: "Cheatsheet", href: "#" },
-        ],
-      },
-    },
-    {
-      id: "t_info_03",
-      subjectId: "sub_info",
-      title: "Строки: парсинг и шаблоны",
-      description: "Индексация, split и проверка шаблонов.",
-      status: "homework",
-      updatedAtISO: "2026-04-16T13:25:00.000Z",
-      details: {
-        lessonNotes:
-          "Build a small checklist: input format → tokens → parse → compute → output. Most bugs are parsing bugs.",
-        homework: [
-          "Solve 6 parsing tasks (different input styles).",
-          "Write two helper functions you can reuse.",
-        ],
-        hints: ["Always test with minimal input and edge cases."],
-        attachments: [{ label: "Input formats (examples)", href: "#" }],
-      },
-    },
-    {
-      id: "t_info_04",
-      subjectId: "sub_info",
-      title: "Python: ввод/вывод из файла",
-      description: "Чтение из файлов, циклы и надежные вычисления.",
-      status: "not_started",
-      updatedAtISO: "2026-04-14T11:50:00.000Z",
-      details: {
-        lessonNotes:
-          "Practice a robust pattern: open → read → parse → compute → print. Focus on speed + correctness.",
-        homework: [
-          "Implement 3 templates: ints per line, CSV-ish, mixed tokens.",
-          "Solve 3 file-based tasks end-to-end.",
-        ],
-        hints: ["Use `split()` carefully; strip trailing newlines."],
-        attachments: [
-          { label: "File I/O template", href: "#" },
-          { label: "Sample datasets", href: "#" },
-        ],
-      },
-    },
-  ],
+  subjects: [],
+  tasks: [],
 };
-*/
+
 /*
   Supabase settings:
   1) Create window.SUPABASE_CONFIG before script.js, or
@@ -219,9 +23,31 @@ const SUPABASE_TABLES = {
 };
 
 function getDashboardAccessTokenFromUrl() {
+  const extractFromParams = (params) =>
+    (params.get("k") || params.get("key") || "").trim();
+
   try {
-    const params = new URLSearchParams(window.location.search);
-    return (params.get("k") || params.get("key") || "").trim();
+    const fromSearch = extractFromParams(
+      new URLSearchParams(window.location.search),
+    );
+    if (fromSearch) return fromSearch;
+
+    const rawHash = String(window.location.hash || "");
+    const hash = rawHash.startsWith("#") ? rawHash.slice(1) : rawHash;
+    if (!hash) return "";
+
+    if (hash.includes("?")) {
+      const hashQuery = hash.slice(hash.indexOf("?") + 1);
+      const fromHashQuery = extractFromParams(new URLSearchParams(hashQuery));
+      if (fromHashQuery) return fromHashQuery;
+    }
+
+    if (hash.includes("=")) {
+      const fromHash = extractFromParams(new URLSearchParams(hash));
+      if (fromHash) return fromHash;
+    }
+
+    return "";
   } catch {
     return "";
   }
@@ -315,12 +141,31 @@ function isDashboardShellVisible() {
 }
 
 function setDashboardGate(reason) {
-  if (!els.appGate || !els.appShell) return;
-  void reason;
-  els.appGateTitle.textContent = "";
-  els.appGateMessage.textContent = "";
-  els.appGate.hidden = true;
-  els.appShell.hidden = false;
+  if (!els.appShell) return;
+  if (!els.appGate || !els.appGateTitle || !els.appGateMessage) {
+    els.appShell.hidden = false;
+    return;
+  }
+  if (!reason) {
+    els.appGate.hidden = true;
+    els.appShell.hidden = false;
+    return;
+  }
+  const copy = {
+    missing_token: {
+      title: "Нужна персональная ссылка",
+      text: "Откройте кабинет по ссылке от преподавателя. В адресе должен быть параметр ?k=...",
+    },
+    invalid_token: {
+      title: "Ссылка недействительна",
+      text: "Проверьте ссылку целиком или запросите новую у преподавателя.",
+    },
+  };
+  const block = copy[reason] || copy.invalid_token;
+  els.appGateTitle.textContent = block.title;
+  els.appGateMessage.textContent = block.text;
+  els.appGate.hidden = false;
+  els.appShell.hidden = true;
 }
 
 function sortDbTaskRows(rows) {
@@ -362,7 +207,7 @@ async function loadDataFromSupabase() {
   const token = DASHBOARD_ACCESS_TOKEN;
 
   if (requirePersonalLink && !token) {
-    setDashboardGate(null);
+    setDashboardGate("missing_token");
     return;
   }
 
@@ -385,10 +230,7 @@ async function loadDataFromSupabase() {
           return;
         }
       }
-      // Если RPC настроен, считаем его источником истины.
-      // Не делаем fallback к прямому select, чтобы уважать проверки доступа (например, архив).
-      setDashboardGate(null);
-      return;
+      // RPC может быть недоступен в отдельных сетях; ниже пробуем fallback.
     }
 
     if (token) {
@@ -399,7 +241,7 @@ async function loadDataFromSupabase() {
         .maybeSingle();
 
       if (userRes.error || !userRes.data?.id) {
-        setDashboardGate(null);
+        setDashboardGate("invalid_token");
         return;
       }
 
@@ -410,7 +252,7 @@ async function loadDataFromSupabase() {
         .eq("user_id", userId);
 
       if (subjectsRes.error) {
-        setDashboardGate(null);
+        setDashboardGate("invalid_token");
         return;
       }
 
@@ -426,7 +268,7 @@ async function loadDataFromSupabase() {
       }
 
       if (tasksRes.error) {
-        setDashboardGate(null);
+        setDashboardGate("invalid_token");
         return;
       }
 
@@ -452,7 +294,7 @@ async function loadDataFromSupabase() {
     );
     setDashboardGate(null);
   } catch {
-    if (requirePersonalLink && token) setDashboardGate(null);
+    if (requirePersonalLink && token) setDashboardGate("invalid_token");
   }
 }
 
