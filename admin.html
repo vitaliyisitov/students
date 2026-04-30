@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Админка • Кабинет ученика</title>
+    <meta
+      name="description"
+      content="Админ-панель для создания и редактирования учеников в student-dashboard."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./admin.css" />
+  </head>
+  <body>
+    <div id="adminLoginOverlay" class="admin-login-overlay" hidden>
+      <div class="admin-login-card card">
+        <div class="card__header">
+          <div>
+            <div class="eyebrow">Защита</div>
+            <h2 class="h2">Вход в админку</h2>
+          </div>
+        </div>
+        <form id="adminLoginForm" class="admin-form">
+          <!-- <p class="muted" style="margin: 0; font-size: 13px">
+            Пароль в локальном файле <code>admin-gate.config.js</code> (не в git) —
+            см. <code>admin-gate.config.sample.js</code>.
+          </p> -->
+          <label class="admin-field">
+            <span>Пароль</span>
+            <input
+              id="adminGateInput"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+          </label>
+          <p id="adminGateError" class="admin-gate-error" hidden></p>
+          <button class="icon-btn" type="submit">Войти</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="adminAppRoot">
+      <a class="skip-link" href="#main">Перейти к содержимому</a>
+
+      <header class="topbar">
+        <div class="topbar__inner">
+          <div class="brand">
+            <div class="brand__mark" aria-hidden="true">ED</div>
+            <div class="brand__text">
+              <div class="brand__title">Админ-панель</div>
+              <div class="brand__subtitle">Управление учениками</div>
+            </div>
+          </div>
+          <div class="topbar__right">
+            <button class="icon-btn" id="adminLogoutBtn" type="button" hidden>
+              Выйти из админки
+            </button>
+            <a class="icon-btn" href="./index.html">Открыть дашборд</a>
+          </div>
+        </div>
+        <div class="topbar__status-bar">
+          <div id="statusBox" class="admin-status muted">Готово к работе</div>
+        </div>
+      </header>
+
+      <main class="container admin" id="main">
+        <section class="card admin__card">
+          <div class="card__header">
+            <div>
+              <div class="eyebrow">Новый ученик</div>
+              <h1 class="h2">Создание ученика</h1>
+            </div>
+          </div>
+          <form id="createStudentForm" class="admin-form">
+            <label class="admin-field">
+              <span>Имя</span>
+              <input
+                id="createName"
+                type="text"
+                placeholder="Например, Иван"
+                required
+              />
+            </label>
+            <p class="muted" style="margin: 0; font-size: 13px">
+              Время в кабинете у ученика берётся с его устройства.
+            </p>
+            <div class="admin-field">
+              <span>Предметы</span>
+              <div id="createSubjects" class="subject-checks"></div>
+            </div>
+            <button class="icon-btn" type="submit">Создать ученика</button>
+          </form>
+        </section>
+
+        <section class="card admin__card">
+          <div class="card__header">
+            <div>
+              <div class="eyebrow">Текущие ученики</div>
+              <h2 class="h2">Список</h2>
+            </div>
+          </div>
+          <div id="studentsList" class="students-list"></div>
+        </section>
+
+        <section class="card admin__card">
+          <div class="card__header">
+            <div>
+              <div class="eyebrow">Редактирование</div>
+              <h2 class="h2">Данные ученика</h2>
+            </div>
+          </div>
+          <form id="editStudentForm" class="admin-form" hidden>
+            <label class="admin-field">
+              <span>Имя</span>
+              <input id="editName" type="text" required />
+            </label>
+            <label class="admin-field">
+              <span>Статус доступа</span>
+              <select id="editActive">
+                <option value="true">Активен</option>
+                <option value="false">Архив (доступ закрыт)</option>
+              </select>
+            </label>
+            <div class="admin-field">
+              <span>Токен ссылки</span>
+              <div class="token-row">
+                <code id="editToken">—</code>
+                <button class="icon-btn" id="copyLinkBtn" type="button">
+                  Копировать ссылку
+                </button>
+              </div>
+            </div>
+
+            <div class="admin-field">
+              <span>Предметы ученика</span>
+              <div id="editSubjects" class="subject-checks"></div>
+            </div>
+
+            <div class="admin-field">
+              <span>Параметры экзамена по предметам</span>
+              <div id="subjectSettings" class="subject-settings"></div>
+            </div>
+
+            <button class="icon-btn" type="submit">Сохранить изменения</button>
+            <div class="danger-zone">
+              <button class="icon-btn danger" id="archiveBtn" type="button">
+                Переключить архив/активен
+              </button>
+              <button
+                class="icon-btn danger"
+                id="deleteStudentBtn"
+                type="button"
+              >
+                Удалить ученика
+              </button>
+            </div>
+          </form>
+          <p id="emptyEditHint" class="muted admin-empty">
+            Выбери ученика из списка, чтобы редактировать данные.
+          </p>
+        </section>
+
+        <section class="card admin__card">
+          <div class="card__header">
+            <div>
+              <div class="eyebrow">Задания</div>
+              <h2 class="h2">Редактирование по предметам</h2>
+            </div>
+          </div>
+          <div id="tasksEditor" class="tasks-editor">
+            <p class="muted admin-empty">
+              Выбери ученика, затем предмет — здесь появятся все задания для
+              редактирования.
+            </p>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <script src="./firebase.config.js"></script>
+    <script>
+      window.ADMIN_GATE = window.ADMIN_GATE || { password: "" };
+    </script>
+    <script src="./admin-gate.config.js"></script>
+    <script src="./admin.js" defer></script>
+  </body>
+</html>

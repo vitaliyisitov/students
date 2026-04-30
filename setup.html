@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Настройка Firebase • Student Dashboard</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./admin.css" />
+    <style>
+      .setup-log {
+        background: #0d1117;
+        color: #e6edf3;
+        border-radius: 8px;
+        padding: 16px;
+        font-family: monospace;
+        font-size: 13px;
+        line-height: 1.7;
+        max-height: 320px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        margin-top: 12px;
+      }
+      .log-ok  { color: #56d364; }
+      .log-err { color: #f85149; }
+      .log-inf { color: #79c0ff; }
+      .log-dim { color: #8b949e; }
+      .rules-block {
+        background: #0d1117;
+        color: #e6edf3;
+        border-radius: 8px;
+        padding: 16px;
+        font-family: monospace;
+        font-size: 12px;
+        line-height: 1.6;
+        white-space: pre;
+        overflow-x: auto;
+        user-select: all;
+        cursor: text;
+      }
+      .step-header { display: flex; align-items: center; margin-bottom: 12px; gap: 10px; }
+      .step-num {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 26px; height: 26px; border-radius: 50%;
+        background: #6c63ff; color: #fff;
+        font-size: 13px; font-weight: 700; flex-shrink: 0;
+      }
+      .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+      .tmpl-subject-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+      .tmpl-subject-tab {
+        appearance: none; padding: 7px 14px; border-radius: 999px; cursor: pointer;
+        border: 1px solid rgba(15,23,42,0.15); background: rgba(255,255,255,0.7);
+        font: inherit; font-size: 13px;
+      }
+      .tmpl-subject-tab.is-active {
+        border-color: rgba(0,122,255,0.35); background: rgba(0,122,255,0.12);
+      }
+      .tmpl-list { display: grid; gap: 8px; }
+      .tmpl-row {
+        border: 1px solid rgba(15,23,42,0.12); border-radius: 14px;
+        background: rgba(255,255,255,0.78); padding: 10px;
+      }
+      .tmpl-row summary {
+        display: flex; justify-content: space-between; align-items: center;
+        gap: 8px; cursor: pointer; list-style: none; font-size: 14px; font-weight: 600;
+      }
+      .tmpl-row summary::-webkit-details-marker { display: none; }
+      .tmpl-row__body { display: grid; gap: 8px; margin-top: 10px; }
+      .tmpl-row__grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      }
+      .tmpl-row label { display: grid; gap: 4px; font-size: 12px; color: rgba(18,20,23,.62); }
+      .tmpl-row input, .tmpl-row textarea {
+        width: 100%; appearance: none; border: 1px solid rgba(15,23,42,0.18);
+        border-radius: 10px; padding: 8px 10px; background: rgba(255,255,255,0.9); font: inherit;
+      }
+      .tmpl-save-status { font-size: 12px; color: rgba(18,20,23,.5); }
+      .tmpl-save-status.ok { color: #34c759; }
+      .tmpl-save-status.err { color: #ff3b30; }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar__inner">
+        <div class="brand">
+          <div class="brand__mark" aria-hidden="true">⚙️</div>
+          <div class="brand__text">
+            <div class="brand__title">Настройка Firebase</div>
+            <div class="brand__subtitle">Одноразовый запуск • Заполнение базы</div>
+          </div>
+        </div>
+        <div class="topbar__right">
+          <a class="icon-btn" href="./admin.html">Перейти в админку →</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="container admin">
+
+      <!-- Шаг 1 -->
+      <section class="card admin__card">
+        <div class="step-header">
+          <span class="step-num">1</span>
+          <div>
+            <div class="eyebrow">Firebase Console</div>
+            <h2 class="h2">Создай Firestore (если ещё нет)</h2>
+          </div>
+        </div>
+        <p class="muted" style="margin:0">
+          <strong>Build → Firestore Database → Create database → Start in test mode → eur3 → Enable</strong>.
+          Если Firestore уже создан — пропусти.
+        </p>
+      </section>
+
+      <!-- Шаг 2 -->
+      <section class="card admin__card">
+        <div class="step-header">
+          <span class="step-num">2</span>
+          <div>
+            <div class="eyebrow">Firebase Console → Firestore → Rules</div>
+            <h2 class="h2">Правила безопасности</h2>
+          </div>
+        </div>
+        <p class="muted" style="margin:0 0 12px">
+          Вставь эти правила и нажми <strong>Publish</strong>:
+        </p>
+        <div class="rules-block" id="rulesBlock">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}</div>
+        <button class="icon-btn" type="button" id="copyRulesBtn" style="margin-top:12px">
+          Скопировать правила
+        </button>
+      </section>
+
+      <!-- Шаг 3 -->
+      <section class="card admin__card">
+        <div class="step-header">
+          <span class="step-num">3</span>
+          <div>
+            <div class="eyebrow">Автоматически</div>
+            <h2 class="h2">Заполнить каталог предметов и шаблоны заданий</h2>
+          </div>
+        </div>
+        <p class="muted" style="margin:0 0 16px">
+          Создаст 4 предмета (<code>subject_catalog</code>) и шаблоны заданий (<code>task_templates</code>).
+          Если данные уже есть — не перезапишет.
+        </p>
+        <div class="btn-row">
+          <button class="icon-btn" type="button" id="checkBtn">Проверить состояние</button>
+          <button class="icon-btn" type="button" id="seedBtn">Заполнить базу</button>
+          <button class="icon-btn danger" type="button" id="resetBtn">Сбросить и пересоздать</button>
+        </div>
+        <div class="setup-log" id="setupLog">Нажми «Проверить состояние» чтобы начать…</div>
+      </section>
+
+      <!-- Шаг 4: редактор шаблонов -->
+      <section class="card admin__card">
+        <div class="step-header">
+          <span class="step-num">4</span>
+          <div>
+            <div class="eyebrow">Необязательно</div>
+            <h2 class="h2">Заполни шаблоны заданий</h2>
+          </div>
+        </div>
+        <p class="muted" style="margin:0 0 16px">
+          Здесь можно вписать описание, конспект, домашку и подсказки для каждого шаблона.
+          Данные подтянутся ко всем ученикам, которым будет добавлен этот предмет в дальнейшем.
+        </p>
+        <div class="btn-row">
+          <button class="icon-btn" type="button" id="loadTemplatesBtn">Загрузить шаблоны</button>
+        </div>
+        <div id="templatesEditor" style="margin-top:16px;"></div>
+      </section>
+
+      <!-- Шаг 5 -->
+      <section class="card admin__card">
+        <div class="step-header">
+          <span class="step-num">5</span>
+          <div>
+            <div class="eyebrow">Готово</div>
+            <h2 class="h2">Перейди в админку и создай первого ученика</h2>
+          </div>
+        </div>
+        <p class="muted" style="margin:0 0 16px">
+          После заполнения базы открой админку, создай ученика, выбери предмет — задания подтянутся автоматически.
+        </p>
+        <a class="icon-btn" href="./admin.html">Открыть админку →</a>
+      </section>
+
+    </main>
+
+    <!-- Firebase compat CDN — работает без ES-модулей -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+    <script>
+      // ─── Конфиг ─────────────────────────────────────────────────────────────
+      const FIREBASE_CONFIG = {
+        apiKey: "AIzaSyCOQ_-F1nyl6aWuIQDVcBuwehqWGDC19EY",
+        authDomain: "cabinet-students.firebaseapp.com",
+        projectId: "cabinet-students",
+        storageBucket: "cabinet-students.firebasestorage.app",
+        messagingSenderId: "161435193609",
+        appId: "1:161435193609:web:9caed63bdf677e2b3e83d8",
+      };
+
+      firebase.initializeApp(FIREBASE_CONFIG);
+      const db = firebase.firestore();
+
+      // ─── Каталог предметов (4 экзамена) ─────────────────────────────────────
+      const CATALOG = [
+        {
+          slug: "oge_math",
+          title: "ОГЭ Математика",
+          emoji: "📐",
+          sort_order: 1,
+          default_tasks_total: 25,
+          default_duration_minutes: 235,
+          default_exam_date: "2026-06-02",
+          default_exam_time: "10:00",
+          default_tips: [
+            "Сделай 1 задание на время, затем разбор по конспекту.",
+            "Веди журнал ошибок: тема → ошибка → правильный ход.",
+          ],
+        },
+        {
+          slug: "oge_info",
+          title: "ОГЭ Информатика",
+          emoji: "💻",
+          sort_order: 2,
+          default_tasks_total: 27,
+          default_duration_minutes: 235,
+          default_exam_date: "2026-06-15",
+          default_exam_time: "10:00",
+          default_tips: [
+            "Чередуй теорию и практику по таймеру.",
+            "Делай шаблоны кода под типовые задачи.",
+          ],
+        },
+        {
+          slug: "ege_math",
+          title: "ЕГЭ Математика",
+          emoji: "📐",
+          sort_order: 3,
+          default_tasks_total: 19,
+          default_duration_minutes: 235,
+          default_exam_date: "2026-05-31",
+          default_exam_time: "10:00",
+          default_tips: [
+            "Один блок за раз: первично точность, потом скорость.",
+            "Фиксируй типовые промахи по профилю.",
+          ],
+        },
+        {
+          slug: "ege_info",
+          title: "ЕГЭ Информатика",
+          emoji: "💻",
+          sort_order: 4,
+          default_tasks_total: 27,
+          default_duration_minutes: 235,
+          default_exam_date: "2026-06-10",
+          default_exam_time: "10:00",
+          default_tips: [
+            "Разбор ограничений и краевых случаев обязателен.",
+            "Тренируй ввод/вывод и устойчивость к мусору во вводе.",
+          ],
+        },
+      ];
+
+      // ─── Лог ────────────────────────────────────────────────────────────────
+      var logEl = document.getElementById("setupLog");
+
+      function logClear() {
+        logEl.innerHTML = "";
+      }
+
+      function log(msg, cls) {
+        var line = document.createElement("span");
+        if (cls) line.className = cls;
+        line.textContent = msg + "\n";
+        logEl.appendChild(line);
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      // ─── Проверка состояния ──────────────────────────────────────────────────
+      async function checkState() {
+        logClear();
+        log("🔍 Проверяю состояние Firestore...", "log-inf");
+        try {
+          var catSnap = await db.collection("subject_catalog").orderBy("sort_order").get();
+          log("📚 subject_catalog: " + catSnap.size + " документов", catSnap.size > 0 ? "log-ok" : "log-inf");
+
+          var tmplSnap = await db.collection("task_templates").get();
+          log("📝 task_templates: " + tmplSnap.size + " документов", tmplSnap.size > 0 ? "log-ok" : "log-inf");
+
+          var usersSnap = await db.collection("users").get();
+          log("👤 users: " + usersSnap.size + " документов", "log-dim");
+
+          if (catSnap.size > 0) {
+            log("", "");
+            log("Предметы в каталоге:", "log-inf");
+            catSnap.docs.forEach(function(d) {
+              var c = d.data();
+              log("  " + c.emoji + " " + c.title + " (" + c.default_tasks_total + " заданий)", "log-ok");
+            });
+          }
+
+          if (catSnap.size === 0) {
+            log("", "");
+            log("⚠️  База пустая — нажми «Заполнить базу»", "log-err");
+          } else if (catSnap.size > 0 && tmplSnap.size > 0) {
+            log("", "");
+            log("✅ Всё готово — можно переходить в админку", "log-ok");
+          }
+        } catch (err) {
+          log("❌ Ошибка: " + err.message, "log-err");
+          log("", "");
+          log("Возможные причины:", "log-inf");
+          log("  • Firestore ещё не создан в Firebase Console", "log-inf");
+          log("  • Правила запрещают чтение (применить правила из шага 2)", "log-inf");
+          log("  • Нет интернета (Firebase CDN недоступен)", "log-inf");
+        }
+      }
+
+      // ─── Заполнение базы ─────────────────────────────────────────────────────
+      async function seedDatabase(forceReset) {
+        logClear();
+
+        if (forceReset) {
+          log("⚠️  Сброс — удаляю старые данные...", "log-err");
+          await clearCollection("subject_catalog");
+          await clearCollection("task_templates");
+          log("✓ Старые данные удалены", "log-ok");
+          log("", "");
+        }
+
+        log("📚 Создаю subject_catalog...", "log-inf");
+
+        var existingCat = await db.collection("subject_catalog").get();
+        var existingSlugs = {};
+        var catalogIdBySlug = {};
+        existingCat.docs.forEach(function(d) {
+          existingSlugs[d.data().slug] = true;
+          catalogIdBySlug[d.data().slug] = d.id;
+        });
+
+        for (var i = 0; i < CATALOG.length; i++) {
+          var cat = CATALOG[i];
+          if (existingSlugs[cat.slug]) {
+            log("  ⏭  " + cat.emoji + " " + cat.title + " — уже есть, пропускаю", "log-dim");
+            continue;
+          }
+          var ref = await db.collection("subject_catalog").add(cat);
+          catalogIdBySlug[cat.slug] = ref.id;
+          log("  ✓ Создан: " + cat.emoji + " " + cat.title, "log-ok");
+        }
+
+        log("", "");
+        log("📝 Создаю task_templates...", "log-inf");
+
+        var existingTmpl = await db.collection("task_templates").get();
+        var existingByCatalog = {};
+        existingTmpl.docs.forEach(function(d) {
+          existingByCatalog[d.data().catalog_id] = true;
+        });
+
+        for (var j = 0; j < CATALOG.length; j++) {
+          var c = CATALOG[j];
+          var catalogId = catalogIdBySlug[c.slug];
+          if (!catalogId) {
+            log("  ⚠️  Нет ID для " + c.slug, "log-err");
+            continue;
+          }
+          if (existingByCatalog[catalogId]) {
+            var cnt = existingTmpl.docs.filter(function(d) { return d.data().catalog_id === catalogId; }).length;
+            log("  ⏭  " + c.emoji + " " + c.title + " — уже есть " + cnt + " шаблонов", "log-dim");
+            continue;
+          }
+
+          var batch = db.batch();
+          var now = new Date().toISOString();
+          for (var n = 1; n <= c.default_tasks_total; n++) {
+            var taskRef = db.collection("task_templates").doc();
+            batch.set(taskRef, {
+              catalog_id: catalogId,
+              order_index: n,
+              title: "Задание " + n,
+              description: "",
+              default_details: {
+                lessonNotes: "",
+                homework: [],
+                hints: [],
+                attachments: [],
+              },
+              created_at: now,
+            });
+          }
+          await batch.commit();
+          log("  ✓ " + c.emoji + " " + c.title + ": создано " + c.default_tasks_total + " шаблонов", "log-ok");
+        }
+
+        log("", "");
+        var finalCat = await db.collection("subject_catalog").get();
+        var finalTmpl = await db.collection("task_templates").get();
+        log("✅ Готово!", "log-ok");
+        log("   subject_catalog: " + finalCat.size + " | task_templates: " + finalTmpl.size, "log-ok");
+        log("   Открывай админку и создавай учеников →", "log-inf");
+      }
+
+      // ─── Очистка коллекции ───────────────────────────────────────────────────
+      async function clearCollection(name) {
+        var snap = await db.collection(name).get();
+        if (snap.empty) return;
+        var batch = db.batch();
+        snap.docs.forEach(function(d) { batch.delete(d.ref); });
+        await batch.commit();
+        log("  ✓ " + name + " очищена (" + snap.size + " документов)", "log-ok");
+      }
+
+      // ─── Обработчики кнопок ──────────────────────────────────────────────────
+      document.getElementById("checkBtn").addEventListener("click", function() {
+        checkState();
+      });
+
+      document.getElementById("seedBtn").addEventListener("click", function() {
+        seedDatabase(false);
+      });
+
+      document.getElementById("resetBtn").addEventListener("click", function() {
+        var ok = window.confirm(
+          "Это удалит все данные в subject_catalog и task_templates и создаст их заново.\n\nДанные учеников (users) не затрагиваются.\n\nПродолжить?"
+        );
+        if (ok) seedDatabase(true);
+      });
+
+      document.getElementById("copyRulesBtn").addEventListener("click", function() {
+        var text = document.getElementById("rulesBlock").textContent;
+        navigator.clipboard.writeText(text).then(function() {
+          var btn = document.getElementById("copyRulesBtn");
+          btn.textContent = "Скопировано ✓";
+          setTimeout(function() { btn.textContent = "Скопировать правила"; }, 2000);
+        }).catch(function() {
+          alert("Не удалось скопировать. Выдели текст вручную.");
+        });
+      });
+
+      // ─── Редактор шаблонов ───────────────────────────────────────────────────
+      var tmplCatalog = [];
+      var tmplData = [];
+      var activeTmplSubject = null;
+
+      document.getElementById("loadTemplatesBtn").addEventListener("click", function() {
+        loadTemplates();
+      });
+
+      async function loadTemplates() {
+        var editorEl = document.getElementById("templatesEditor");
+        editorEl.innerHTML = '<p style="color:rgba(18,20,23,.5);font-size:13px">Загружаю…</p>';
+        try {
+          var catSnap = await db.collection("subject_catalog").orderBy("sort_order").get();
+          tmplCatalog = catSnap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+
+          var tmplSnap = await db.collection("task_templates").get();
+          tmplData = tmplSnap.docs
+            .map(function(d) { return Object.assign({ id: d.id }, d.data()); })
+            .sort(function(a, b) { return (a.order_index || 0) - (b.order_index || 0); });
+
+          if (!tmplCatalog.length) {
+            editorEl.innerHTML = '<p style="color:#ff3b30;font-size:13px">Каталог пуст — сначала заполни базу (шаг 3).</p>';
+            return;
+          }
+
+          activeTmplSubject = tmplCatalog[0].id;
+          renderTemplatesEditor();
+        } catch (err) {
+          editorEl.innerHTML = '<p style="color:#ff3b30;font-size:13px">Ошибка загрузки: ' + esc(err.message) + '</p>';
+        }
+      }
+
+      function renderTemplatesEditor() {
+        var editorEl = document.getElementById("templatesEditor");
+
+        var tabs = tmplCatalog.map(function(c) {
+          var active = c.id === activeTmplSubject ? " is-active" : "";
+          return '<button class="tmpl-subject-tab' + active + '" type="button" data-tmpl-cat="' + esc(c.id) + '">' + esc(c.emoji || "📘") + " " + esc(c.title) + '</button>';
+        }).join("");
+
+        var blocks = tmplCatalog.map(function(c) {
+          var isActive = c.id === activeTmplSubject;
+          var templates = tmplData.filter(function(t) { return t.catalog_id === c.id; });
+
+          var rows = templates.length
+            ? templates.map(function(t) { return renderTmplRow(t); }).join("")
+            : '<p style="color:rgba(18,20,23,.5);font-size:13px">Шаблонов для этого предмета нет.</p>';
+
+          return '<div class="tmpl-list" data-tmpl-block="' + esc(c.id) + '" style="display:' + (isActive ? "grid" : "none") + '">' + rows + '</div>';
+        }).join("");
+
+        editorEl.innerHTML =
+          '<div class="tmpl-subject-tabs">' + tabs + '</div>' +
+          blocks;
+
+        editorEl.querySelectorAll("[data-tmpl-cat]").forEach(function(btn) {
+          btn.addEventListener("click", function() {
+            activeTmplSubject = btn.getAttribute("data-tmpl-cat");
+            editorEl.querySelectorAll("[data-tmpl-cat]").forEach(function(b) {
+              b.classList.toggle("is-active", b === btn);
+            });
+            editorEl.querySelectorAll("[data-tmpl-block]").forEach(function(block) {
+              block.style.display = block.getAttribute("data-tmpl-block") === activeTmplSubject ? "grid" : "none";
+            });
+          });
+        });
+
+        editorEl.querySelectorAll("[data-save-tmpl]").forEach(function(btn) {
+          btn.addEventListener("click", function() {
+            saveTmplRow(btn.closest("[data-tmpl-id]"));
+          });
+        });
+      }
+
+      function renderTmplRow(t) {
+        var details = (t.default_details && typeof t.default_details === "object") ? t.default_details : {};
+        var homework = Array.isArray(details.homework) ? details.homework.join("\n") : "";
+        var hints = Array.isArray(details.hints) ? details.hints.join("\n") : "";
+        var catEntry = tmplCatalog.find(function(c) { return c.id === t.catalog_id; });
+        var subjectLabel = catEntry ? (catEntry.emoji || "📘") + " " + catEntry.title : t.catalog_id;
+
+        return '<details class="tmpl-row" data-tmpl-id="' + esc(t.id) + '">' +
+          '<summary>' +
+            '<span>Задание ' + esc(t.order_index || "?") + ' — ' + esc(t.title || "") + '</span>' +
+            '<span style="font-size:11px;color:rgba(18,20,23,.45);">' + esc(subjectLabel) + '</span>' +
+          '</summary>' +
+          '<div class="tmpl-row__body">' +
+            '<div class="tmpl-row__grid">' +
+              '<label><span>Название</span><input data-f="title" value="' + esc(t.title || "") + '" /></label>' +
+              '<label><span>Описание</span><input data-f="description" value="' + esc(t.description || "") + '" /></label>' +
+            '</div>' +
+            '<label><span>Конспект (lessonNotes)</span><textarea data-f="lessonNotes" rows="3">' + escHtml(details.lessonNotes || "") + '</textarea></label>' +
+            '<label><span>Домашка (1 строка = 1 пункт)</span><textarea data-f="homework" rows="3">' + escHtml(homework) + '</textarea></label>' +
+            '<label><span>Подсказки (1 строка = 1 пункт)</span><textarea data-f="hints" rows="3">' + escHtml(hints) + '</textarea></label>' +
+            '<div style="display:flex;gap:8px;align-items:center;">' +
+              '<button class="icon-btn" type="button" data-save-tmpl="' + esc(t.id) + '">Сохранить</button>' +
+              '<span class="tmpl-save-status" data-save-status="' + esc(t.id) + '"></span>' +
+            '</div>' +
+          '</div>' +
+        '</details>';
+      }
+
+      async function saveTmplRow(row) {
+        if (!row) return;
+        var id = row.getAttribute("data-tmpl-id");
+        if (!id) return;
+        var statusEl = document.querySelector('[data-save-status="' + id + '"]');
+
+        var title = (row.querySelector('[data-f="title"]') || {}).value || "";
+        var description = (row.querySelector('[data-f="description"]') || {}).value || "";
+        var lessonNotes = (row.querySelector('[data-f="lessonNotes"]') || {}).value || "";
+        var homeworkRaw = (row.querySelector('[data-f="homework"]') || {}).value || "";
+        var hintsRaw = (row.querySelector('[data-f="hints"]') || {}).value || "";
+
+        var payload = {
+          title: title.trim() || "Задание",
+          description: description.trim(),
+          default_details: {
+            lessonNotes: lessonNotes.trim(),
+            homework: homeworkRaw.split("\n").map(function(s) { return s.trim(); }).filter(Boolean),
+            hints: hintsRaw.split("\n").map(function(s) { return s.trim(); }).filter(Boolean),
+            attachments: [],
+          },
+        };
+
+        if (statusEl) { statusEl.textContent = "Сохраняю…"; statusEl.className = "tmpl-save-status"; }
+        try {
+          await db.collection("task_templates").doc(id).update(payload);
+          if (statusEl) { statusEl.textContent = "✓ Сохранено"; statusEl.className = "tmpl-save-status ok"; }
+          var t = tmplData.find(function(x) { return x.id === id; });
+          if (t) { t.title = payload.title; t.description = payload.description; t.default_details = payload.default_details; }
+        } catch (err) {
+          if (statusEl) { statusEl.textContent = "Ошибка: " + esc(err.message); statusEl.className = "tmpl-save-status err"; }
+        }
+      }
+
+      function esc(v) {
+        return String(v == null ? "" : v)
+          .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+          .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+      }
+      function escHtml(v) {
+        return String(v == null ? "" : v)
+          .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      }
+    </script>
+  </body>
+</html>
