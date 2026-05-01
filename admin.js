@@ -1,7 +1,5 @@
 /* Использует window.db (Firebase compat), инициализированный в firebase.config.js */
 
-const ADMIN_SESSION_KEY = "student_dashboard_admin_gate_v1";
-
 const state = {
   catalog: [],
   users: [],
@@ -32,19 +30,7 @@ const els = {
   statusBox: document.getElementById("statusBox"),
 };
 
-// ─── Пароль на вход в админку ─────────────────────────────────────────────────
-
-function getAdminGatePassword() {
-  const fromLocal =
-    typeof window.ADMIN_GATE?.password === "string"
-      ? window.ADMIN_GATE.password.trim()
-      : "";
-  const fromConfig =
-    typeof window.FIREBASE_CONFIG?.adminGatePassword === "string"
-      ? window.FIREBASE_CONFIG.adminGatePassword.trim()
-      : "";
-  return fromLocal || fromConfig;
-}
+// ─── Google Auth Gate ─────────────────────────────────────────────────────────
 
 function getStudentDashboardBaseUrl() {
   const path = window.location.pathname || "";
@@ -53,66 +39,68 @@ function getStudentDashboardBaseUrl() {
   return `${window.location.origin}${dir}index.html`;
 }
 
-function isAdminGateUnlocked() {
-  return sessionStorage.getItem(ADMIN_SESSION_KEY) === "1";
-}
-
-function applyAdminGateUi() {
-  const overlay = document.getElementById("adminLoginOverlay");
-  const root = document.getElementById("adminAppRoot");
-  const logoutBtn = document.getElementById("adminLogoutBtn");
-  const pwd = getAdminGatePassword();
-  if (!overlay || !root) return;
-
-  if (!pwd) {
-    overlay.hidden = true;
-    root.hidden = false;
-    if (logoutBtn) logoutBtn.hidden = true;
-    return;
-  }
-
-  if (logoutBtn) logoutBtn.hidden = false;
-
-  if (isAdminGateUnlocked()) {
-    overlay.hidden = true;
-    root.hidden = false;
-    return;
-  }
-
-  overlay.hidden = false;
-  root.hidden = true;
-}
+let appInitialized = false;
 
 function setupAdminGate() {
-  const pwd = getAdminGatePassword();
-  document.getElementById("adminLogoutBtn")?.addEventListener("click", () => {
-    sessionStorage.removeItem(ADMIN_SESSION_KEY);
-    window.location.reload();
+  const adminEmail = (window.FIREBASE_CONFIG?.adminEmail || "").trim().toLowerCase();
+
+  // Кнопка выхода — подписываемся здесь, до появления приложения
+  document.getElementById("adminLogoutBtn")?.addEventListener("click", async () => {
+    await firebase.auth().signOut();
   });
 
-  applyAdminGateUi();
+  // Кнопка входа через Google
+  document.getElementById("googleSignInBtn")?.addEventListener("click", () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    // Принудительно показываем выбор аккаунта каждый раз
+    provider.setCustomParameters({ prompt: "select_account" });
+    firebase.auth().signInWithPopup(provider).catch((err) => {
+      const errorEl = document.getElementById("adminGateError");
+      if (errorEl) {
+        errorEl.textContent = "Ошибка входа: " + err.message;
+        errorEl.hidden = false;
+      }
+    });
+  });
 
-  if (!pwd || isAdminGateUnlocked()) {
-    void init();
-    return;
-  }
+  // Слушаем состояние авторизации
+  firebase.auth().onAuthStateChanged((user) => {
+    const overlay  = document.getElementById("adminLoginOverlay");
+    const root     = document.getElementById("adminAppRoot");
+    const logoutBtn = document.getElementById("adminLogoutBtn");
+    const errorEl  = document.getElementById("adminGateError");
 
-  const form = document.getElementById("adminLoginForm");
-  const err = document.getElementById("adminGateError");
-  form?.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const input = document.getElementById("adminGateInput");
-    const value = input?.value ?? "";
-    if (value === pwd) {
-      sessionStorage.setItem(ADMIN_SESSION_KEY, "1");
-      err.hidden = true;
-      err.textContent = "";
-      applyAdminGateUi();
+    if (!user) {
+      // Не авторизован — показываем оверлей входа
+      if (overlay) overlay.hidden = false;
+      if (root)    root.hidden = true;
+      if (errorEl) { errorEl.hidden = true; errorEl.textContent = ""; }
+      appInitialized = false;
+      return;
+    }
+
+    const userEmail = (user.email || "").trim().toLowerCase();
+    if (adminEmail && userEmail !== adminEmail) {
+      // Чужой аккаунт — сразу выходим и показываем ошибку
+      if (errorEl) {
+        errorEl.textContent = `Аккаунт ${user.email} не имеет доступа. Войди с нужным аккаунтом.`;
+        errorEl.hidden = false;
+      }
+      firebase.auth().signOut();
+      return;
+    }
+
+    // Правильный аккаунт — открываем приложение
+    if (overlay)   overlay.hidden = true;
+    if (root)      root.hidden = false;
+    if (logoutBtn) {
+      logoutBtn.textContent = `Выйти (${user.email})`;
+      logoutBtn.hidden = false;
+    }
+
+    if (!appInitialized) {
+      appInitialized = true;
       void init();
-    } else {
-      err.hidden = false;
-      err.textContent = "Неверный пароль.";
-      if (input) input.value = "";
     }
   });
 }
