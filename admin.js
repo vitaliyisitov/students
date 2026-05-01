@@ -117,6 +117,7 @@ async function init() {
   }
 
   initPageTabs();
+  initYadiskSync();
   bindEvents();
   await loadCatalog();
   await loadUsers();
@@ -129,6 +130,25 @@ function bindEvents() {
   els.copyLinkBtn.addEventListener("click", handleCopyLink);
   els.archiveBtn.addEventListener("click", handleToggleArchive);
   els.deleteStudentBtn.addEventListener("click", handleDeleteStudent);
+
+  // Делегирование для вложений — работает даже после перерендера tasksEditor
+  els.tasksEditor.addEventListener("click", (e) => {
+    // Добавить строку вложения
+    const addBtn = e.target.closest("[data-add-attachment]");
+    if (addBtn) {
+      const taskId = addBtn.getAttribute("data-add-attachment");
+      const editor = document.getElementById(`att-${taskId}`);
+      if (editor) {
+        const tmp = document.createElement("div");
+        tmp.innerHTML = attachmentRowHtml("", "");
+        editor.appendChild(tmp.firstElementChild);
+      }
+      return;
+    }
+    // Удалить строку вложения
+    const removeBtn = e.target.closest("[data-remove-attachment]");
+    if (removeBtn) removeBtn.closest(".attachment-row")?.remove();
+  });
 }
 
 function disableForms() {
@@ -709,11 +729,15 @@ function renderTaskRow(task) {
   const orderVal = getAdminTaskOrderValue(task);
   const updatedLocal = toDateTimeLocalValue(task.updated_at);
 
+  const attachmentRowsHtml = attachmentsRaw
+    .map((a) => { const p = parseStoredAttachment(a); return attachmentRowHtml(p.label, p.url); })
+    .join("");
+
   return `
-    <details class="task-row" data-task-id="${escapeAttr(task.id)}" data-subject-id-tr="${escapeAttr(task.subject_id || "")}" data-order-index="${escapeAttr(orderVal)}" data-attachments='${escapeAttr(JSON.stringify(attachmentsRaw))}'>
+    <details class="task-row" data-task-id="${escapeAttr(task.id)}" data-subject-id-tr="${escapeAttr(task.subject_id || "")}" data-order-index="${escapeAttr(orderVal)}">
       <summary class="task-row__summary">
         <span>${escapeHtml(task.title || "Задание")}</span>
-        <span class="muted">${escapeHtml(formatStatus(task.status))}</span>
+        <span class="muted">${escapeHtml(formatStatus(task.status))}${attachmentsRaw.length ? ` · 📎 ${attachmentsRaw.length}` : ""}</span>
       </summary>
       <div class="task-row__body">
         <div class="task-order-bar" role="group">
@@ -723,12 +747,11 @@ function renderTaskRow(task) {
         <div class="task-row__grid">
           <label><span>Порядок</span>
             <input data-f="order_index" type="number" min="1" step="1" value="${escapeAttr(orderVal)}" /></label>
-            <label><span>Закрепить</span>
+          <label><span>Закрепить</span>
             <select data-f="isPinned">
               <option value="false" ${!isPinned ? "selected" : ""}>Нет</option>
               <option value="true" ${isPinned ? "selected" : ""}>Да (📌)</option>
             </select></label>
-          
           <label><span>Статус</span>
             <select data-f="status">
               <option value="not_started" ${task.status === "not_started" ? "selected" : ""}>Не начато</option>
@@ -736,17 +759,23 @@ function renderTaskRow(task) {
               <option value="homework" ${task.status === "homework" ? "selected" : ""}>Сделать ДЗ</option>
               <option value="completed" ${task.status === "completed" ? "selected" : ""}>Пройдено</option>
             </select></label>
-             <label><span>Дата «Обновлено»</span>
+          <label><span>Дата «Обновлено»</span>
             <input data-f="updated_at" type="datetime-local" value="${task.status === "not_started" ? "" : escapeAttr(updatedLocal)}" /></label>
-            
         </div>
-                    <label><span>Название</span>
-            <input data-f="title" value="${escapeAttr(task.title || "")}" /></label>
-          <label><span>Описание</span>
-            <input data-f="description" value="${escapeAttr(task.description || "")}" /></label>
+        <label><span>Название</span>
+          <input data-f="title" value="${escapeAttr(task.title || "")}" /></label>
+        <label><span>Описание</span>
+          <input data-f="description" value="${escapeAttr(task.description || "")}" /></label>
         <label><span>Конспект</span><textarea data-f="lessonNotes" rows="3">${escapeHtml(details.lessonNotes || "")}</textarea></label>
         <label><span>Домашка (1 строка = 1 пункт)</span><textarea data-f="homework" rows="3">${escapeHtml(homework)}</textarea></label>
         <label><span>Подсказки (1 строка = 1 пункт)</span><textarea data-f="hints" rows="3">${escapeHtml(hints)}</textarea></label>
+
+        <div class="admin-field">
+          <span>Вложения (записи с урока, файлы)</span>
+          <div class="attachments-editor" id="att-${escapeAttr(task.id)}">${attachmentRowsHtml}</div>
+          <button class="icon-btn" type="button" data-add-attachment="${escapeAttr(task.id)}">+ Добавить вложение</button>
+        </div>
+
         <div class="task-actions">
           <button class="icon-btn" type="button" data-save-task="${escapeAttr(task.id)}">Сохранить задание</button>
           <button class="icon-btn danger" type="button" data-delete-task="${escapeAttr(task.id)}">Удалить задание</button>
@@ -788,7 +817,7 @@ async function saveTaskFromRow(row) {
         row.querySelector('[data-f="lessonNotes"]')?.value?.trim() || "",
       homework: splitLines(row.querySelector('[data-f="homework"]')?.value),
       hints: splitLines(row.querySelector('[data-f="hints"]')?.value),
-      attachments: parseAttachmentsJson(row.getAttribute("data-attachments")),
+      attachments: readAttachmentsFromRow(row),
       isPinned,
     },
   };
@@ -1046,6 +1075,43 @@ function escapeAttr(value) {
   return escapeHtml(value).replaceAll("`", "&#096;");
 }
 
+// ─── Вложения (attachments) ───────────────────────────────────────────────────
+
+/** Парсит элемент хранилища → {label, url}.
+ *  Форматы: "label|https://..." / "https://..." / {label, url} */
+function parseStoredAttachment(item) {
+  if (item && typeof item === "object") {
+    return { label: String(item.label || ""), url: String(item.url || "") };
+  }
+  const s = String(item || "").trim();
+  if (s.includes("|")) {
+    const idx = s.indexOf("|");
+    return { label: s.slice(0, idx).trim(), url: s.slice(idx + 1).trim() };
+  }
+  return { label: "", url: s };
+}
+
+/** HTML одной строки редактора вложений */
+function attachmentRowHtml(label, url) {
+  return `<div class="attachment-row">
+    <input class="att-label" type="text"  placeholder="Название (напр. Запись урока)" value="${escapeAttr(label)}" />
+    <input class="att-url"   type="url"   placeholder="https://disk.yandex.ru/…"     value="${escapeAttr(url)}" />
+    <button class="icon-btn danger" type="button" data-remove-attachment title="Удалить">✕</button>
+  </div>`;
+}
+
+/** Считывает все вложения из строк редактора → массив строк "label|url" */
+function readAttachmentsFromRow(row) {
+  return Array.from(row.querySelectorAll(".attachment-row"))
+    .map((r) => {
+      const label = (r.querySelector(".att-label")?.value || "").trim();
+      const url   = (r.querySelector(".att-url")?.value   || "").trim();
+      if (!url) return null;
+      return label ? `${label}|${url}` : url;
+    })
+    .filter(Boolean);
+}
+
 // ─── Вкладки страницы ─────────────────────────────────────────────────────────
 
 function initPageTabs() {
@@ -1079,6 +1145,182 @@ function initPageTabs() {
     }).catch(() => alert("Не удалось скопировать — выдели текст вручную."));
   });
   document.getElementById("loadTemplatesBtn")?.addEventListener("click", () => loadTemplates());
+}
+
+// ─── Яндекс Диск синхронизация ───────────────────────────────────────────────
+
+function initYadiskSync() {
+  const workerUrl   = (window.FIREBASE_CONFIG?.yadiskWorkerUrl || "").trim();
+  const rootFolder  = (window.FIREBASE_CONFIG?.yadiskRootFolder || "/Ученики").trim();
+  const btn = document.getElementById("yadiskSyncBtn");
+  const label = document.getElementById("yadiskRootLabel");
+  if (label) label.textContent = rootFolder;
+
+  if (!btn) return;
+
+  if (!workerUrl) {
+    btn.disabled = true;
+    btn.title = "Укажи yadiskWorkerUrl в firebase.config.js";
+    return;
+  }
+
+  btn.addEventListener("click", () => syncYadisk(workerUrl, rootFolder));
+}
+
+function yadiskLog(msg, cls) {
+  const el = document.getElementById("yadiskLog");
+  if (!el) return;
+  const line = document.createElement("span");
+  if (cls) line.className = cls;
+  line.textContent = msg + "\n";
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+function yadiskLogClear() {
+  const el = document.getElementById("yadiskLog");
+  if (el) el.innerHTML = "";
+}
+
+async function yadiskRequest(workerUrl, path) {
+  const url = workerUrl.replace(/\/$/, "") + "/v1/disk/resources?path=" + encodeURIComponent(path) + "&limit=100";
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`Яндекс API вернул ${r.status}`);
+  return r.json();
+}
+
+async function yadiskPublish(workerUrl, path) {
+  const url = workerUrl.replace(/\/$/, "") + "/v1/disk/resources/publish?path=" + encodeURIComponent(path);
+  const r = await fetch(url, { method: "PUT" });
+  if (!r.ok && r.status !== 409) throw new Error(`publish ${r.status}`);
+  // Получаем public_url
+  const meta = await yadiskRequest(workerUrl, path);
+  return meta.public_url || null;
+}
+
+async function syncYadisk(workerUrl, rootFolder) {
+  yadiskLogClear();
+  const btn = document.getElementById("yadiskSyncBtn");
+  if (btn) btn.disabled = true;
+
+  try {
+    yadiskLog(`📂 Сканирую ${rootFolder}…`, "log-inf");
+
+    // Список студентов на диске
+    const rootData = await yadiskRequest(workerUrl, `disk:${rootFolder}`);
+    const studentFolders = (rootData._embedded?.items || []).filter((i) => i.type === "dir");
+
+    if (!studentFolders.length) {
+      yadiskLog("⚠️  Папка пуста или не найдена", "log-err");
+      return;
+    }
+
+    // Загружаем всех учеников из Firestore
+    const usersSnap = await window.db.collection("users").get();
+    const users = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+    let totalAttached = 0;
+
+    for (const studentFolder of studentFolders) {
+      const studentName = studentFolder.name;
+      yadiskLog(`\n👤 ${studentName}`, "log-inf");
+
+      // Ищем совпадение по имени (регистронезависимо)
+      const user = users.find(
+        (u) => (u.name || "").trim().toLowerCase() === studentName.trim().toLowerCase()
+      );
+      if (!user) {
+        yadiskLog(`  ⚠️  Ученик «${studentName}» не найден в базе — пропускаю`, "log-err");
+        continue;
+      }
+
+      // Загружаем предметы ученика
+      const subjectsSnap = await window.db.collection("users").doc(user.id).collection("subjects").get();
+      const subjects = subjectsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+      // Папки предметов
+      const subjectDirsData = await yadiskRequest(workerUrl, `disk:${rootFolder}/${studentName}`);
+      const subjectFolders = (subjectDirsData._embedded?.items || []).filter((i) => i.type === "dir");
+
+      for (const subjectFolder of subjectFolders) {
+        const subjectName = subjectFolder.name;
+
+        // Ищем совпадение по названию предмета
+        const subject = subjects.find(
+          (s) => (s.title || "").trim().toLowerCase() === subjectName.trim().toLowerCase()
+        );
+        if (!subject) {
+          yadiskLog(`  ⚠️  Предмет «${subjectName}» не найден — пропускаю`, "log-dim");
+          continue;
+        }
+
+        // Файлы в папке предмета
+        const filesData = await yadiskRequest(workerUrl, `disk:${rootFolder}/${studentName}/${subjectName}`);
+        const files = (filesData._embedded?.items || []).filter((i) => i.type === "file");
+
+        // Загружаем задания
+        const tasksSnap = await window.db
+          .collection("users").doc(user.id)
+          .collection("subjects").doc(subject.id)
+          .collection("tasks").get();
+        const tasks = tasksSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+        for (const file of files) {
+          // Извлекаем номер задания из имени файла (напр. "Задание 3.pdf" → 3)
+          const match = file.name.match(/задание\s*(\d+)/i);
+          if (!match) {
+            yadiskLog(`    ⏭  ${file.name} — номер задания не распознан`, "log-dim");
+            continue;
+          }
+          const taskNum = Number(match[1]);
+          const task = tasks.find((t) => Number(t.order_index) === taskNum);
+          if (!task) {
+            yadiskLog(`    ⚠️  Задание ${taskNum} не найдено у ${studentName}`, "log-dim");
+            continue;
+          }
+
+          // Делаем файл публичным
+          const filePath = `disk:${rootFolder}/${studentName}/${subjectName}/${file.name}`;
+          const publicUrl = await yadiskPublish(workerUrl, filePath);
+          if (!publicUrl) {
+            yadiskLog(`    ⚠️  Нет публичной ссылки для ${file.name}`, "log-err");
+            continue;
+          }
+
+          // Обновляем attachments задания
+          const existingDetails = task.details || {};
+          const existingAtt     = Array.isArray(existingDetails.attachments) ? existingDetails.attachments : [];
+          const label = file.name.replace(/\.[^.]+$/, ""); // без расширения
+          const entry = `${label}|${publicUrl}`;
+
+          if (!existingAtt.includes(entry)) {
+            const newAtt = [...existingAtt.filter((a) => !String(a).includes(publicUrl)), entry];
+            await window.db
+              .collection("users").doc(user.id)
+              .collection("subjects").doc(subject.id)
+              .collection("tasks").doc(task.id)
+              .update({ "details.attachments": newAtt });
+            yadiskLog(`    ✓ ${file.name} → Задание ${taskNum}`, "log-ok");
+            totalAttached++;
+          } else {
+            yadiskLog(`    ⏭  ${file.name} — уже прикреплено`, "log-dim");
+          }
+        }
+      }
+    }
+
+    yadiskLog(`\n✅ Готово! Прикреплено файлов: ${totalAttached}`, "log-ok");
+    if (totalAttached > 0) {
+      await loadUsers(true, false);
+      if (state.selectedUserId) await loadUserSubjects(state.selectedUserId);
+      renderEditPanel();
+    }
+  } catch (err) {
+    yadiskLog("❌ Ошибка: " + err.message, "log-err");
+    console.error(err);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 // ─── Каталог предметов ────────────────────────────────────────────────────────
