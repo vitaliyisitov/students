@@ -463,10 +463,12 @@ function openModal(task) {
   els.modalBadge.className = `modal__badge badge--${task.status}`;
 
   const details = task.details || {};
+  const attachments = Array.isArray(details.attachments) ? details.attachments : [];
   els.modalContent.innerHTML = [
     renderRichSection("Конспект", details.lessonNotes || ""),
     renderRichSection("Домашнее задание", details.homework || []),
     renderRichSection("Подсказки", details.hints || []),
+    attachments.length ? renderAttachmentsSection(attachments) : "",
   ].join("");
 
   els.modal.classList.add("is-open");
@@ -557,6 +559,30 @@ function parseRichLink(line) {
   }
   if (isValidHttpUrl(value)) return { label: "Ссылка", href: value };
   return null;
+}
+
+function renderAttachmentsSection(attachments) {
+  const links = attachments.map((item) => {
+    const s = String(item || "").trim();
+    if (s.includes("|")) {
+      const idx = s.indexOf("|");
+      return { label: s.slice(0, idx).trim() || "Файл", href: s.slice(idx + 1).trim() };
+    }
+    try { new URL(s); return { label: "Открыть файл", href: s }; } catch { return null; }
+  }).filter(Boolean);
+
+  if (!links.length) return "";
+  return `
+    <div class="section section--attachments">
+      <div class="section__title">📎 Записи и файлы</div>
+      <div class="attachments-list">
+        ${links.map((a) => `
+          <a class="attachment-link" href="${escapeAttr(a.href)}" target="_blank" rel="noreferrer">
+            <span class="attachment-link__icon" aria-hidden="true">↗</span>
+            <span>${escapeHtml(a.label)}</span>
+          </a>`).join("")}
+      </div>
+    </div>`;
 }
 
 function renderLinks(links) {
