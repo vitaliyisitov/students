@@ -84,6 +84,44 @@
 .tmpl-save-status.ok  { color: var(--green); }
 .tmpl-save-status.err { color: var(--red);   }
 
+/* ─── Редактор вложений ──────────────────────────────────────────────────── */
+
+.attachments-editor {
+  display: grid;
+  gap: 6px;
+}
+
+.attachment-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.att-label,
+.att-url {
+  width: 100%;
+  appearance: none;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 10px;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.9);
+  font: inherit;
+  font-size: 13px;
+}
+
+.att-url {
+  border-color: rgba(0, 122, 255, 0.25);
+  background: rgba(0, 122, 255, 0.04);
+}
+
+@media (max-width: 640px) {
+  .attachment-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .att-label { display: none; }
+}
+
 /* ─── Основная сетка ─────────────────────────────────────────────────────── */
 
 .admin {
