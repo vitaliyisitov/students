@@ -734,7 +734,7 @@ function renderTaskRow(task) {
     .join("");
 
   return `
-    <details class="task-row" data-task-id="${escapeAttr(task.id)}" data-subject-id-tr="${escapeAttr(task.subject_id || "")}" data-order-index="${escapeAttr(orderVal)}">
+     <details class="task-row" open data-task-id="${escapeAttr(task.id)}" data-subject-id-tr="${escapeAttr(task.subject_id || "")}" data-order-index="${escapeAttr(orderVal)}">
       <summary class="task-row__summary">
         <span>${escapeHtml(task.title || "Задание")}</span>
         <span class="muted">${escapeHtml(formatStatus(task.status))}${attachmentsRaw.length ? ` · 📎 ${attachmentsRaw.length}` : ""}</span>
