@@ -350,3 +350,23 @@
   font-size: 13px;
   color: var(--red);
 }
+
+.google-signin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  color: #3c4043;
+  font-weight: 500;
+  font-size: 14px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+.google-signin-btn:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  background: #f8f9fa;
+}
