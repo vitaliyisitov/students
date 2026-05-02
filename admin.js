@@ -146,9 +146,16 @@ function bindEvents() {
       if (editor) { const tmp = document.createElement("div"); tmp.innerHTML = attachmentRowHtml("", ""); editor.appendChild(tmp.firstElementChild); }
       return;
     }
-    // Удалить строку вложения
+    // Удалить строку вложения (+ удалить файл из хранилища)
     const removeBtn = e.target.closest("[data-remove-attachment]");
-    if (removeBtn) removeBtn.closest(".attachment-row")?.remove();
+    if (removeBtn) {
+      const row = removeBtn.closest(".attachment-row");
+      if (row) {
+        const url = row.querySelector(".att-url")?.value?.trim() || "";
+        row.remove();
+        if (url.startsWith("https://storage.yandexcloud.net/")) void deleteFromStorage(url);
+      }
+    }
   });
 
   // Загрузка файла через кнопку 📎
@@ -1159,29 +1166,42 @@ async function uploadAttachmentToRow(file, row) {
 
   const origText = uploadBtn?.textContent || "📎";
   if (uploadBtn)  uploadBtn.textContent = "⏳";
-  if (urlInput) { urlInput.value = "Загружается…"; urlInput.disabled = true; }
+  if (urlInput) { urlInput.value = "Проверяю…"; urlInput.disabled = true; }
 
   try {
-    const path = `${userId}/${taskId}/${Date.now()}_${file.name}`;
-    const form = new FormData();
-    form.append("file", file);
-    form.append("path", path);
+    // Ключ без timestamp — для дедупликации по имени файла
+    const path   = `${userId}/${taskId}/${file.name}`;
+    const base   = workerUrl.replace(/\/$/, "");
+    const ct     = file.type || "application/octet-stream";
 
-    const res = await fetch(workerUrl.replace(/\/$/, "") + "/upload", {
-      method: "POST",
-      body: form,
+    // 1. Запрашиваем presigned URL (воркер проверяет, есть ли файл уже)
+    const presignRes = await fetch(
+      `${base}/presign?path=${encodeURIComponent(path)}&type=${encodeURIComponent(ct)}`
+    );
+    if (!presignRes.ok) throw new Error(`Presign error ${presignRes.status}`);
+    const presign = await presignRes.json();
+
+    if (presign.error) throw new Error(presign.error);
+
+    if (presign.exists) {
+      // Дубликат — файл уже есть в хранилище
+      if (urlInput)  { urlInput.value = presign.url; urlInput.disabled = false; }
+      if (labelInput && !labelInput.value.trim()) labelInput.value = file.name.replace(/\.[^.]+$/, "");
+      setStatus(`Файл уже загружен, ссылка подставлена: ${file.name}`, "success");
+      return;
+    }
+
+    // 2. Загружаем файл напрямую в Yandex Object Storage (минуя Cloudflare)
+    if (urlInput) urlInput.value = "Загружается…";
+    const putRes = await fetch(presign.url, {
+      method:  "PUT",
+      headers: { "Content-Type": ct },
+      body:    file,
     });
+    if (!putRes.ok) throw new Error(`Upload failed ${putRes.status}`);
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error(data.error || res.statusText);
-    }
-
-    const { url } = await res.json();
-    if (urlInput)  { urlInput.value = url; urlInput.disabled = false; }
-    if (labelInput && !labelInput.value.trim()) {
-      labelInput.value = file.name.replace(/\.[^.]+$/, "");
-    }
+    if (urlInput)  { urlInput.value = presign.publicUrl; urlInput.disabled = false; }
+    if (labelInput && !labelInput.value.trim()) labelInput.value = file.name.replace(/\.[^.]+$/, "");
     setStatus(`Файл загружен: ${file.name}`, "success");
   } catch (err) {
     if (urlInput) { urlInput.value = ""; urlInput.disabled = false; }
@@ -1189,6 +1209,27 @@ async function uploadAttachmentToRow(file, row) {
     console.error(err);
   } finally {
     if (uploadBtn) uploadBtn.textContent = origText;
+  }
+}
+
+async function deleteFromStorage(publicUrl) {
+  const workerUrl = (window.FIREBASE_CONFIG?.uploadWorkerUrl || "").trim();
+  if (!workerUrl) return;
+
+  // Извлекаем path из URL: https://storage.yandexcloud.net/{bucket}/{path}
+  const prefix = "https://storage.yandexcloud.net/";
+  const withoutPrefix = publicUrl.slice(prefix.length);       // "{bucket}/{path}"
+  const slashIdx = withoutPrefix.indexOf("/");
+  if (slashIdx < 0) return;
+  const path = withoutPrefix.slice(slashIdx + 1);             // "{path}"
+
+  try {
+    await fetch(
+      `${workerUrl.replace(/\/$/, "")}/delete?path=${encodeURIComponent(path)}`,
+      { method: "DELETE" }
+    );
+  } catch (err) {
+    console.warn("deleteFromStorage:", err.message);
   }
 }
 
