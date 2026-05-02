@@ -117,7 +117,6 @@ async function init() {
   }
 
   initPageTabs();
-  initYadiskSync();
   bindEvents();
   await loadCatalog();
   await loadUsers();
@@ -148,6 +147,39 @@ function bindEvents() {
     // Удалить строку вложения
     const removeBtn = e.target.closest("[data-remove-attachment]");
     if (removeBtn) removeBtn.closest(".attachment-row")?.remove();
+  });
+
+  // Загрузка файла через кнопку 📎
+  els.tasksEditor.addEventListener("change", (e) => {
+    const fileInput = e.target.closest(".att-file-input");
+    if (fileInput && fileInput.files?.[0]) {
+      const row = fileInput.closest(".attachment-row");
+      void uploadAttachmentToRow(fileInput.files[0], row);
+      fileInput.value = "";
+    }
+  });
+
+  // Drag & drop файлов на блок вложений
+  els.tasksEditor.addEventListener("dragover", (e) => {
+    const editor = e.target.closest(".attachments-editor");
+    if (editor) { e.preventDefault(); editor.classList.add("is-dragover"); }
+  });
+  els.tasksEditor.addEventListener("dragleave", (e) => {
+    const editor = e.target.closest(".attachments-editor");
+    if (editor && !editor.contains(e.relatedTarget)) editor.classList.remove("is-dragover");
+  });
+  els.tasksEditor.addEventListener("drop", (e) => {
+    const editor = e.target.closest(".attachments-editor");
+    if (!editor) return;
+    e.preventDefault();
+    editor.classList.remove("is-dragover");
+    Array.from(e.dataTransfer.files).forEach((file) => {
+      const tmp = document.createElement("div");
+      tmp.innerHTML = attachmentRowHtml("", "");
+      const row = tmp.firstElementChild;
+      editor.appendChild(row);
+      void uploadAttachmentToRow(file, row);
+    });
   });
 }
 
@@ -1094,10 +1126,46 @@ function parseStoredAttachment(item) {
 /** HTML одной строки редактора вложений */
 function attachmentRowHtml(label, url) {
   return `<div class="attachment-row">
-    <input class="att-label" type="text"  placeholder="Название (напр. Запись урока)" value="${escapeAttr(label)}" />
-    <input class="att-url"   type="url"   placeholder="https://disk.yandex.ru/…"     value="${escapeAttr(url)}" />
+    <input class="att-label" type="text" placeholder="Название (напр. Запись урока)" value="${escapeAttr(label)}" />
+    <input class="att-url"   type="url"  placeholder="https://... или загрузи файл →" value="${escapeAttr(url)}" />
+    <label class="icon-btn att-upload-btn" title="Загрузить файл">📎<input type="file" class="att-file-input" style="display:none" /></label>
     <button class="icon-btn danger" type="button" data-remove-attachment title="Удалить">✕</button>
   </div>`;
+}
+
+async function uploadAttachmentToRow(file, row) {
+  if (!window.storage) {
+    setStatus("Firebase Storage не подключён", "error");
+    return;
+  }
+  const urlInput   = row.querySelector(".att-url");
+  const labelInput = row.querySelector(".att-label");
+  const uploadBtn  = row.querySelector(".att-upload-btn");
+  const taskRow    = row.closest("[data-task-id]");
+  const taskId     = taskRow?.getAttribute("data-task-id") || "tmp";
+  const userId     = state.selectedUserId || "tmp";
+
+  const origText = uploadBtn?.textContent || "📎";
+  if (uploadBtn)  uploadBtn.textContent = "⏳";
+  if (urlInput) { urlInput.value = "Загружается…"; urlInput.disabled = true; }
+
+  try {
+    const path = `attachments/${userId}/${taskId}/${Date.now()}_${file.name}`;
+    const ref  = window.storage.ref(path);
+    await ref.put(file);
+    const url  = await ref.getDownloadURL();
+    if (urlInput)  { urlInput.value = url; urlInput.disabled = false; }
+    if (labelInput && !labelInput.value.trim()) {
+      labelInput.value = file.name.replace(/\.[^.]+$/, "");
+    }
+    setStatus(`Файл загружен: ${file.name}`, "success");
+  } catch (err) {
+    if (urlInput) { urlInput.value = ""; urlInput.disabled = false; }
+    setStatus("Ошибка загрузки: " + err.message, "error");
+    console.error(err);
+  } finally {
+    if (uploadBtn) uploadBtn.textContent = origText;
+  }
 }
 
 /** Считывает все вложения из строк редактора → массив строк "label|url" */
@@ -1145,182 +1213,6 @@ function initPageTabs() {
     }).catch(() => alert("Не удалось скопировать — выдели текст вручную."));
   });
   document.getElementById("loadTemplatesBtn")?.addEventListener("click", () => loadTemplates());
-}
-
-// ─── Яндекс Диск синхронизация ───────────────────────────────────────────────
-
-function initYadiskSync() {
-  const workerUrl   = (window.FIREBASE_CONFIG?.yadiskWorkerUrl || "").trim();
-  const rootFolder  = (window.FIREBASE_CONFIG?.yadiskRootFolder || "/Ученики").trim();
-  const btn = document.getElementById("yadiskSyncBtn");
-  const label = document.getElementById("yadiskRootLabel");
-  if (label) label.textContent = rootFolder;
-
-  if (!btn) return;
-
-  if (!workerUrl) {
-    btn.disabled = true;
-    btn.title = "Укажи yadiskWorkerUrl в firebase.config.js";
-    return;
-  }
-
-  btn.addEventListener("click", () => syncYadisk(workerUrl, rootFolder));
-}
-
-function yadiskLog(msg, cls) {
-  const el = document.getElementById("yadiskLog");
-  if (!el) return;
-  const line = document.createElement("span");
-  if (cls) line.className = cls;
-  line.textContent = msg + "\n";
-  el.appendChild(line);
-  el.scrollTop = el.scrollHeight;
-}
-
-function yadiskLogClear() {
-  const el = document.getElementById("yadiskLog");
-  if (el) el.innerHTML = "";
-}
-
-async function yadiskRequest(workerUrl, path) {
-  const url = workerUrl.replace(/\/$/, "") + "/v1/disk/resources?path=" + encodeURIComponent(path) + "&limit=100";
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`Яндекс API вернул ${r.status}`);
-  return r.json();
-}
-
-async function yadiskPublish(workerUrl, path) {
-  const url = workerUrl.replace(/\/$/, "") + "/v1/disk/resources/publish?path=" + encodeURIComponent(path);
-  const r = await fetch(url, { method: "PUT" });
-  if (!r.ok && r.status !== 409) throw new Error(`publish ${r.status}`);
-  // Получаем public_url
-  const meta = await yadiskRequest(workerUrl, path);
-  return meta.public_url || null;
-}
-
-async function syncYadisk(workerUrl, rootFolder) {
-  yadiskLogClear();
-  const btn = document.getElementById("yadiskSyncBtn");
-  if (btn) btn.disabled = true;
-
-  try {
-    yadiskLog(`📂 Сканирую ${rootFolder}…`, "log-inf");
-
-    // Список студентов на диске
-    const rootData = await yadiskRequest(workerUrl, `disk:${rootFolder}`);
-    const studentFolders = (rootData._embedded?.items || []).filter((i) => i.type === "dir");
-
-    if (!studentFolders.length) {
-      yadiskLog("⚠️  Папка пуста или не найдена", "log-err");
-      return;
-    }
-
-    // Загружаем всех учеников из Firestore
-    const usersSnap = await window.db.collection("users").get();
-    const users = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-    let totalAttached = 0;
-
-    for (const studentFolder of studentFolders) {
-      const studentName = studentFolder.name;
-      yadiskLog(`\n👤 ${studentName}`, "log-inf");
-
-      // Ищем совпадение по имени (регистронезависимо)
-      const user = users.find(
-        (u) => (u.name || "").trim().toLowerCase() === studentName.trim().toLowerCase()
-      );
-      if (!user) {
-        yadiskLog(`  ⚠️  Ученик «${studentName}» не найден в базе — пропускаю`, "log-err");
-        continue;
-      }
-
-      // Загружаем предметы ученика
-      const subjectsSnap = await window.db.collection("users").doc(user.id).collection("subjects").get();
-      const subjects = subjectsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-      // Папки предметов
-      const subjectDirsData = await yadiskRequest(workerUrl, `disk:${rootFolder}/${studentName}`);
-      const subjectFolders = (subjectDirsData._embedded?.items || []).filter((i) => i.type === "dir");
-
-      for (const subjectFolder of subjectFolders) {
-        const subjectName = subjectFolder.name;
-
-        // Ищем совпадение по названию предмета
-        const subject = subjects.find(
-          (s) => (s.title || "").trim().toLowerCase() === subjectName.trim().toLowerCase()
-        );
-        if (!subject) {
-          yadiskLog(`  ⚠️  Предмет «${subjectName}» не найден — пропускаю`, "log-dim");
-          continue;
-        }
-
-        // Файлы в папке предмета
-        const filesData = await yadiskRequest(workerUrl, `disk:${rootFolder}/${studentName}/${subjectName}`);
-        const files = (filesData._embedded?.items || []).filter((i) => i.type === "file");
-
-        // Загружаем задания
-        const tasksSnap = await window.db
-          .collection("users").doc(user.id)
-          .collection("subjects").doc(subject.id)
-          .collection("tasks").get();
-        const tasks = tasksSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-        for (const file of files) {
-          // Извлекаем номер задания из имени файла (напр. "Задание 3.pdf" → 3)
-          const match = file.name.match(/задание\s*(\d+)/i);
-          if (!match) {
-            yadiskLog(`    ⏭  ${file.name} — номер задания не распознан`, "log-dim");
-            continue;
-          }
-          const taskNum = Number(match[1]);
-          const task = tasks.find((t) => Number(t.order_index) === taskNum);
-          if (!task) {
-            yadiskLog(`    ⚠️  Задание ${taskNum} не найдено у ${studentName}`, "log-dim");
-            continue;
-          }
-
-          // Делаем файл публичным
-          const filePath = `disk:${rootFolder}/${studentName}/${subjectName}/${file.name}`;
-          const publicUrl = await yadiskPublish(workerUrl, filePath);
-          if (!publicUrl) {
-            yadiskLog(`    ⚠️  Нет публичной ссылки для ${file.name}`, "log-err");
-            continue;
-          }
-
-          // Обновляем attachments задания
-          const existingDetails = task.details || {};
-          const existingAtt     = Array.isArray(existingDetails.attachments) ? existingDetails.attachments : [];
-          const label = file.name.replace(/\.[^.]+$/, ""); // без расширения
-          const entry = `${label}|${publicUrl}`;
-
-          if (!existingAtt.includes(entry)) {
-            const newAtt = [...existingAtt.filter((a) => !String(a).includes(publicUrl)), entry];
-            await window.db
-              .collection("users").doc(user.id)
-              .collection("subjects").doc(subject.id)
-              .collection("tasks").doc(task.id)
-              .update({ "details.attachments": newAtt });
-            yadiskLog(`    ✓ ${file.name} → Задание ${taskNum}`, "log-ok");
-            totalAttached++;
-          } else {
-            yadiskLog(`    ⏭  ${file.name} — уже прикреплено`, "log-dim");
-          }
-        }
-      }
-    }
-
-    yadiskLog(`\n✅ Готово! Прикреплено файлов: ${totalAttached}`, "log-ok");
-    if (totalAttached > 0) {
-      await loadUsers(true, false);
-      if (state.selectedUserId) await loadUserSubjects(state.selectedUserId);
-      renderEditPanel();
-    }
-  } catch (err) {
-    yadiskLog("❌ Ошибка: " + err.message, "log-err");
-    console.error(err);
-  } finally {
-    if (btn) btn.disabled = false;
-  }
 }
 
 // ─── Каталог предметов ────────────────────────────────────────────────────────
