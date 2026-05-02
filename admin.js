@@ -132,16 +132,18 @@ function bindEvents() {
 
   // Делегирование для вложений — работает даже после перерендера tasksEditor
   els.tasksEditor.addEventListener("click", (e) => {
-    // Добавить строку вложения
-    const addBtn = e.target.closest("[data-add-attachment]");
-    if (addBtn) {
-      const taskId = addBtn.getAttribute("data-add-attachment");
-      const editor = document.getElementById(`att-${taskId}`);
-      if (editor) {
-        const tmp = document.createElement("div");
-        tmp.innerHTML = attachmentRowHtml("", "");
-        editor.appendChild(tmp.firstElementChild);
-      }
+    // Добавить файл к конспекту
+    const addLessonBtn = e.target.closest("[data-add-lesson-file]");
+    if (addLessonBtn) {
+      const editor = document.getElementById(`lesson-files-${addLessonBtn.getAttribute("data-add-lesson-file")}`);
+      if (editor) { const tmp = document.createElement("div"); tmp.innerHTML = attachmentRowHtml("", ""); editor.appendChild(tmp.firstElementChild); }
+      return;
+    }
+    // Добавить файл к домашке
+    const addHwBtn = e.target.closest("[data-add-hw-file]");
+    if (addHwBtn) {
+      const editor = document.getElementById(`hw-files-${addHwBtn.getAttribute("data-add-hw-file")}`);
+      if (editor) { const tmp = document.createElement("div"); tmp.innerHTML = attachmentRowHtml("", ""); editor.appendChild(tmp.firstElementChild); }
       return;
     }
     // Удалить строку вложения
@@ -755,13 +757,15 @@ function renderTaskRow(task) {
     ? details.homework.join("\n")
     : "";
   const hints = Array.isArray(details.hints) ? details.hints.join("\n") : "";
-  const attachmentsRaw = Array.isArray(details.attachments)
-    ? details.attachments
-    : [];
+  const lessonFilesRaw  = Array.isArray(details.lessonFiles)   ? details.lessonFiles   : [];
+  const homeworkFilesRaw = Array.isArray(details.homeworkFiles) ? details.homeworkFiles : [];
   const orderVal = getAdminTaskOrderValue(task);
   const updatedLocal = toDateTimeLocalValue(task.updated_at);
 
-  const attachmentRowsHtml = attachmentsRaw
+  const lessonFilesHtml = lessonFilesRaw
+    .map((a) => { const p = parseStoredAttachment(a); return attachmentRowHtml(p.label, p.url); })
+    .join("");
+  const homeworkFilesHtml = homeworkFilesRaw
     .map((a) => { const p = parseStoredAttachment(a); return attachmentRowHtml(p.label, p.url); })
     .join("");
 
@@ -769,7 +773,7 @@ function renderTaskRow(task) {
      <details class="task-row" open data-task-id="${escapeAttr(task.id)}" data-subject-id-tr="${escapeAttr(task.subject_id || "")}" data-order-index="${escapeAttr(orderVal)}">
       <summary class="task-row__summary">
         <span>${escapeHtml(task.title || "Задание")}</span>
-        <span class="muted">${escapeHtml(formatStatus(task.status))}${attachmentsRaw.length ? ` · 📎 ${attachmentsRaw.length}` : ""}</span>
+        <span class="muted">${escapeHtml(formatStatus(task.status))}${(lessonFilesRaw.length + homeworkFilesRaw.length) ? ` · 📎 ${lessonFilesRaw.length + homeworkFilesRaw.length}` : ""}</span>
       </summary>
       <div class="task-row__body">
         <div class="task-order-bar" role="group">
@@ -798,15 +802,19 @@ function renderTaskRow(task) {
           <input data-f="title" value="${escapeAttr(task.title || "")}" /></label>
         <label><span>Описание</span>
           <input data-f="description" value="${escapeAttr(task.description || "")}" /></label>
-        <label><span>Конспект</span><textarea data-f="lessonNotes" rows="3">${escapeHtml(details.lessonNotes || "")}</textarea></label>
-        <label><span>Домашка (1 строка = 1 пункт)</span><textarea data-f="homework" rows="3">${escapeHtml(homework)}</textarea></label>
-        <label><span>Подсказки (1 строка = 1 пункт)</span><textarea data-f="hints" rows="3">${escapeHtml(hints)}</textarea></label>
-
         <div class="admin-field">
-          <span>Вложения (записи с урока, файлы)</span>
-          <div class="attachments-editor" id="att-${escapeAttr(task.id)}">${attachmentRowsHtml}</div>
-          <button class="icon-btn" type="button" data-add-attachment="${escapeAttr(task.id)}">+ Добавить вложение</button>
+          <span>Конспект</span>
+          <textarea data-f="lessonNotes" rows="3">${escapeHtml(details.lessonNotes || "")}</textarea>
+          <div class="attachments-editor" id="lesson-files-${escapeAttr(task.id)}">${lessonFilesHtml}</div>
+          <button class="icon-btn" type="button" data-add-lesson-file="${escapeAttr(task.id)}">+ Добавить файл к конспекту</button>
         </div>
+        <div class="admin-field">
+          <span>Домашнее задание (1 строка = 1 пункт)</span>
+          <textarea data-f="homework" rows="3">${escapeHtml(homework)}</textarea>
+          <div class="attachments-editor" id="hw-files-${escapeAttr(task.id)}">${homeworkFilesHtml}</div>
+          <button class="icon-btn" type="button" data-add-hw-file="${escapeAttr(task.id)}">+ Добавить файл к домашке</button>
+        </div>
+        <label><span>Подсказки (1 строка = 1 пункт)</span><textarea data-f="hints" rows="3">${escapeHtml(hints)}</textarea></label>
 
         <div class="task-actions">
           <button class="icon-btn" type="button" data-save-task="${escapeAttr(task.id)}">Сохранить задание</button>
@@ -847,9 +855,11 @@ async function saveTaskFromRow(row) {
     details: {
       lessonNotes:
         row.querySelector('[data-f="lessonNotes"]')?.value?.trim() || "",
-      homework: splitLines(row.querySelector('[data-f="homework"]')?.value),
-      hints: splitLines(row.querySelector('[data-f="hints"]')?.value),
-      attachments: readAttachmentsFromRow(row),
+      lessonFiles:   readAttachmentsFromRow(row.querySelector('[id^="lesson-files-"]')),
+      homework:      splitLines(row.querySelector('[data-f="homework"]')?.value),
+      homeworkFiles: readAttachmentsFromRow(row.querySelector('[id^="hw-files-"]')),
+      hints:         splitLines(row.querySelector('[data-f="hints"]')?.value),
+      attachments:   [],
       isPinned,
     },
   };
@@ -1183,8 +1193,9 @@ async function uploadAttachmentToRow(file, row) {
 }
 
 /** Считывает все вложения из строк редактора → массив строк "label|url" */
-function readAttachmentsFromRow(row) {
-  return Array.from(row.querySelectorAll(".attachment-row"))
+function readAttachmentsFromRow(container) {
+  if (!container) return [];
+  return Array.from(container.querySelectorAll(".attachment-row"))
     .map((r) => {
       const label = (r.querySelector(".att-label")?.value || "").trim();
       const url   = (r.querySelector(".att-url")?.value   || "").trim();
