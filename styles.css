@@ -276,6 +276,7 @@ body.is-app-loading #appShell {
 
 .tab {
   appearance: none;
+  color: var(--text);
   border: 1px solid rgba(15, 23, 42, 0.12);
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(10px);
@@ -611,6 +612,7 @@ body.is-app-loading #appShell {
 .task {
   text-align: left;
   width: 100%;
+  color: var(--text);
   border: 1px solid rgba(15, 23, 42, 0.1);
   background: rgba(255, 255, 255, 0.7);
   border-radius: 18px;
