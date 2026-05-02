@@ -462,12 +462,14 @@ function openModal(task) {
   els.modalBadge.textContent = formatStatus(task.status);
   els.modalBadge.className = `modal__badge badge--${task.status}`;
 
-  const details = task.details || {};
-  const attachments = Array.isArray(details.attachments) ? details.attachments : [];
+  const details       = task.details || {};
+  const lessonFiles   = Array.isArray(details.lessonFiles)   ? details.lessonFiles   : [];
+  const homeworkFiles = Array.isArray(details.homeworkFiles) ? details.homeworkFiles : [];
+  const attachments   = Array.isArray(details.attachments)   ? details.attachments   : [];
   els.modalContent.innerHTML = [
-    renderRichSection("Конспект", details.lessonNotes || ""),
-    renderRichSection("Домашнее задание", details.homework || []),
-    renderRichSection("Подсказки", details.hints || []),
+    renderSectionWithFiles("Конспект",         details.lessonNotes || "", lessonFiles),
+    renderSectionWithFiles("Домашнее задание", details.homework    || [], homeworkFiles),
+    renderRichSection("Подсказки",             details.hints       || []),
     attachments.length ? renderAttachmentsSection(attachments) : "",
   ].join("");
 
@@ -539,6 +541,43 @@ function renderRichSection(title, rawValue) {
     </div>`;
 }
 
+function renderSectionWithFiles(title, rawValue, files) {
+  const lines  = normalizeRichLines(rawValue);
+  const parsed = lines.reduce(
+    (acc, line) => { const link = parseRichLink(line); link ? acc.links.push(link) : acc.texts.push(line); return acc; },
+    { texts: [], links: [] },
+  );
+
+  const fileLinks = (files || []).map((item) => {
+    const s = String(item || "").trim();
+    if (!s) return null;
+    if (s.includes("|")) {
+      const idx = s.indexOf("|");
+      return { label: s.slice(0, idx).trim() || "Файл", href: s.slice(idx + 1).trim() };
+    }
+    try { new URL(s); return { label: "Открыть файл", href: s }; } catch { return null; }
+  }).filter(Boolean);
+
+  const bodyHtml = parsed.texts.length
+    ? `<div class="section__body">${parsed.texts.map((x) => escapeHtml(x)).join("<br />")}</div>`
+    : "";
+
+  const hasContent = parsed.texts.length || parsed.links.length || fileLinks.length;
+
+  return `
+    <div class="section">
+      <div class="section__title">${escapeHtml(title)}</div>
+      ${bodyHtml}
+      ${parsed.links.length ? renderLinks(parsed.links) : ""}
+      ${fileLinks.length ? `<div class="attachments-list" style="margin-top:10px">${fileLinks.map((a) => `
+        <a class="attachment-link" href="${escapeAttr(a.href)}" target="_blank" rel="noreferrer">
+          <span class="attachment-link__icon" aria-hidden="true">${getFileIcon(a.href, a.label)}</span>
+          <span>${escapeHtml(a.label)}</span>
+        </a>`).join("")}</div>` : ""}
+      ${!hasContent ? `<div class="section__body">—</div>` : ""}
+    </div>`;
+}
+
 function normalizeRichLines(rawValue) {
   if (Array.isArray(rawValue))
     return rawValue.map((x) => String(x || "").trim()).filter(Boolean);
@@ -546,6 +585,17 @@ function normalizeRichLines(rawValue) {
     .split("\n")
     .map((x) => x.trim())
     .filter(Boolean);
+}
+
+function getFileIcon(href, label) {
+  const s = ((href || "") + " " + (label || "")).toLowerCase();
+  if (/\.(jpe?g|png|gif|webp|svg|bmp|heic)(\?|#|$)/.test(s)) return "🖼️";
+  if (/\.pdf(\?|#|$)/.test(s))                                  return "📄";
+  if (/\.(mp4|mov|avi|mkv|webm|m4v)(\?|#|$)/.test(s))          return "🎬";
+  if (/\.(mp3|wav|ogg|m4a|aac)(\?|#|$)/.test(s))               return "🎵";
+  if (/\.(docx?|pages)(\?|#|$)/.test(s))                       return "📝";
+  if (/\.(xlsx?|numbers|csv)(\?|#|$)/.test(s))                 return "📊";
+  return "📎";
 }
 
 function parseRichLink(line) {
@@ -578,7 +628,7 @@ function renderAttachmentsSection(attachments) {
       <div class="attachments-list">
         ${links.map((a) => `
           <a class="attachment-link" href="${escapeAttr(a.href)}" target="_blank" rel="noreferrer">
-            <span class="attachment-link__icon" aria-hidden="true">↗</span>
+            <span class="attachment-link__icon" aria-hidden="true">${getFileIcon(a.href, a.label)}</span>
             <span>${escapeHtml(a.label)}</span>
           </a>`).join("")}
       </div>
