@@ -1134,10 +1134,12 @@ function attachmentRowHtml(label, url) {
 }
 
 async function uploadAttachmentToRow(file, row) {
-  if (!window.storage) {
-    setStatus("Firebase Storage не подключён", "error");
+  const workerUrl = (window.FIREBASE_CONFIG?.uploadWorkerUrl || "").trim();
+  if (!workerUrl) {
+    setStatus("Укажи uploadWorkerUrl в firebase.config.js", "error");
     return;
   }
+
   const urlInput   = row.querySelector(".att-url");
   const labelInput = row.querySelector(".att-label");
   const uploadBtn  = row.querySelector(".att-upload-btn");
@@ -1150,10 +1152,22 @@ async function uploadAttachmentToRow(file, row) {
   if (urlInput) { urlInput.value = "Загружается…"; urlInput.disabled = true; }
 
   try {
-    const path = `attachments/${userId}/${taskId}/${Date.now()}_${file.name}`;
-    const ref  = window.storage.ref(path);
-    await ref.put(file);
-    const url  = await ref.getDownloadURL();
+    const path = `${userId}/${taskId}/${Date.now()}_${file.name}`;
+    const form = new FormData();
+    form.append("file", file);
+    form.append("path", path);
+
+    const res = await fetch(workerUrl.replace(/\/$/, "") + "/upload", {
+      method: "POST",
+      body: form,
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(data.error || res.statusText);
+    }
+
+    const { url } = await res.json();
     if (urlInput)  { urlInput.value = url; urlInput.disabled = false; }
     if (labelInput && !labelInput.value.trim()) {
       labelInput.value = file.name.replace(/\.[^.]+$/, "");
