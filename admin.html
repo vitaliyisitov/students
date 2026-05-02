@@ -223,25 +223,6 @@
           <section class="card admin__card">
             <div class="card__header">
               <div>
-                <div class="eyebrow">Яндекс Диск</div>
-                <h2 class="h2">Синхронизация файлов</h2>
-              </div>
-              <button class="icon-btn" type="button" id="yadiskSyncBtn">Синхронизировать</button>
-            </div>
-            <div class="admin-form">
-              <p class="muted" style="margin: 0; font-size: 13px;">
-                Сканирует папку <code id="yadiskRootLabel">/Ученики</code> на Яндекс Диске,
-                делает файлы публичными и прикрепляет ссылки к заданиям.<br />
-                Структура: <code>/{Имя ученика}/{Предмет}/Задание N.pdf</code>.
-                Инструкция по настройке — в файле <code>yadisk-worker.js</code>.
-              </p>
-              <div class="setup-log" id="yadiskLog" style="min-height: 60px;">Нажми «Синхронизировать» чтобы начать…</div>
-            </div>
-          </section>
-
-          <section class="card admin__card">
-            <div class="card__header">
-              <div>
                 <div class="eyebrow">Безопасность</div>
                 <h2 class="h2">Правила Firestore</h2>
               </div>
@@ -307,6 +288,7 @@ service cloud.firestore {
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
     <script src="./firebase.config.js?v=2"></script>
     <script src="./admin.js?v=2" defer></script>
   </body>
