@@ -988,3 +988,6 @@ body.is-app-loading #appShell {
     scroll-behavior: auto !important;
   }
 }
+#appGateMessage {
+  padding: 0px 18px;
+}
