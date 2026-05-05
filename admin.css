@@ -93,9 +93,29 @@
 
 .attachment-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto auto auto;
   gap: 6px;
   align-items: center;
+}
+
+.att-upload-btn {
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.att-upload-btn:hover {
+  background: rgba(0, 122, 255, 0.08);
+  border-color: rgba(0, 122, 255, 0.35);
+}
+
+.attachments-editor.is-dragover {
+  background: rgba(0, 122, 255, 0.05);
+  border-radius: 10px;
+  outline: 2px dashed rgba(0, 122, 255, 0.45);
+  outline-offset: 4px;
 }
 
 .att-label,
@@ -117,9 +137,95 @@
 
 @media (max-width: 640px) {
   .attachment-row {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
   }
   .att-label { display: none; }
+}
+
+/* ─── Браузер файлов ──────────────────────────────────────────────────────── */
+
+.fb-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.fb-overlay[hidden] { display: none !important; }
+
+.fb-panel {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(15, 23, 42, 0.2);
+  width: min(780px, 100%);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.fb-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+  flex-shrink: 0;
+}
+
+.fb-title {
+  font-weight: 600;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.fb-search {
+  flex: 1;
+  appearance: none;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 10px;
+  padding: 7px 11px;
+  font: inherit;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.9);
+  min-width: 0;
+}
+
+.fb-list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 8px 0;
+}
+
+.fb-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 16px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  cursor: default;
+}
+
+.fb-row:hover { background: rgba(0, 122, 255, 0.04); }
+
+.fb-icon { font-size: 18px; text-align: center; }
+
+.fb-name {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fb-size {
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* ─── Основная сетка ─────────────────────────────────────────────────────── */
