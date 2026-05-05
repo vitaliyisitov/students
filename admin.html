@@ -252,6 +252,12 @@ service cloud.firestore {
       allow delete: if request.auth != null;
     }
 
+    // Настройки (ключи YOS) — только авторизованный администратор
+    match /settings/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
     // Ученики — читают все (поиск по токену ?k=TOKEN), пишут только авторизованные
     match /users/{userId} {
       allow read: if true;
