@@ -1763,15 +1763,37 @@ async function loadStorageFiles() {
     return;
   }
   try {
-    const res  = await fetch(`${workerUrl.replace(/\/$/, "")}/list`);
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    fileBrowserItems = data.items || [];
+    // 1. Получаем presigned URL от воркера (маленький запрос через Cloudflare)
+    const presignRes = await fetch(`${workerUrl.replace(/\/$/, "")}/list-presign`);
+    const presignData = await presignRes.json();
+    if (presignData.error) throw new Error(presignData.error);
+
+    // 2. Запрашиваем список напрямую из Yandex (минуя Cloudflare/VPN)
+    const listRes = await fetch(presignData.url);
+    if (!listRes.ok) throw new Error(`List ${listRes.status}`);
+
+    const xml = await listRes.text();
+    fileBrowserItems = parseListXml(xml, presignData.publicBase);
     renderFileBrowserList();
   } catch (err) {
     document.getElementById("fileBrowserList").innerHTML =
       `<p class="muted" style="padding:12px 16px;color:var(--red)">Ошибка: ${escapeHtml(err.message)}</p>`;
   }
+}
+
+function parseListXml(xml, publicBase) {
+  const items = [];
+  const re = /<Contents>([\s\S]*?)<\/Contents>/g;
+  let m;
+  while ((m = re.exec(xml)) !== null) {
+    const keyM  = /<Key>([^<]+)<\/Key>/.exec(m[1]);
+    const sizeM = /<Size>([^<]+)<\/Size>/.exec(m[1]);
+    if (!keyM) continue;
+    const key = keyM[1];
+    const url = `${publicBase}/${key.split("/").map(encodeURIComponent).join("/")}`;
+    items.push({ key, url, size: sizeM ? Number(sizeM[1]) : 0 });
+  }
+  return items;
 }
 
 function renderFileBrowserList() {
