@@ -118,6 +118,7 @@ async function init() {
 
   initPageTabs();
   bindEvents();
+  await fetchYosCreds();
   await loadCatalog();
   await loadUsers();
   setStatus("Данные загружены ✅", "success");
@@ -1215,6 +1216,151 @@ function escapeAttr(value) {
   return escapeHtml(value).replaceAll("`", "&#096;");
 }
 
+// ─── Yandex Object Storage — клиентская подпись (без Cloudflare) ─────────────
+
+const YOS_REGION   = "ru-central1";
+const YOS_ENDPOINT = "https://storage.yandexcloud.net";
+
+let yosCreds = null; // { bucket, accessKey, secretKey }
+
+async function fetchYosCreds() {
+  try {
+    const snap = await window.db.collection("settings").doc("storage").get();
+    if (!snap.exists) { console.warn("settings/storage не найден в Firestore"); return; }
+    const d = snap.data();
+    yosCreds = {
+      bucket:    (d.yos_bucket    || "").trim(),
+      accessKey: (d.yos_access_key || "").trim(),
+      secretKey: (d.yos_secret_key || "").trim(),
+    };
+  } catch (err) {
+    console.warn("fetchYosCreds:", err.message);
+  }
+}
+
+// Web Crypto helpers (аналог кода в upload-worker.js)
+const _te  = (s) => new TextEncoder().encode(s);
+const _enc = encodeURIComponent;
+
+function _yosPathEncode(path) { return path.split("/").map(_enc).join("/"); }
+
+async function _sha256hex(data) {
+  const h = await crypto.subtle.digest("SHA-256", typeof data === "string" ? _te(data) : data);
+  return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function _hmacBytes(keyBuf, msg) {
+  const kb = typeof keyBuf === "string" ? _te(keyBuf) : keyBuf;
+  const k  = await crypto.subtle.importKey("raw", kb, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await crypto.subtle.sign("HMAC", k, _te(msg)));
+}
+
+async function _hmacHex(key, msg) {
+  const buf = await crypto.subtle.sign("HMAC", key, _te(msg));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function _deriveSigKey(secretKey, dateStr) {
+  const kDate    = await _hmacBytes("AWS4" + secretKey, dateStr);
+  const kRegion  = await _hmacBytes(kDate,   YOS_REGION);
+  const kService = await _hmacBytes(kRegion, "s3");
+  const kFinal   = await _hmacBytes(kService, "aws4_request");
+  return crypto.subtle.importKey("raw", kFinal, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+}
+
+function _yosFmtDate(d) { return d.toISOString().slice(0, 10).replace(/-/g, ""); }
+function _yosFmtDT(d)   { return d.toISOString().replace(/[:\-]/g, "").replace(/\.\d+/, ""); }
+
+function _yosSortedQs(params) {
+  const pairs = params.map(([k, v]) => [_enc(k), _enc(v)]);
+  pairs.sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
+  return pairs.map(([k, v]) => `${k}=${v}`).join("&");
+}
+
+async function yosPresignPut(key, ct) {
+  const { bucket, accessKey, secretKey } = yosCreds;
+  const now  = new Date(), date = _yosFmtDate(now), dt = _yosFmtDT(now);
+  const scope = `${date}/${YOS_REGION}/s3/aws4_request`;
+  const host  = "storage.yandexcloud.net";
+  const uri   = `/${bucket}/${_yosPathEncode(key)}`;
+
+  const qs = _yosSortedQs([
+    ["X-Amz-Algorithm",    "AWS4-HMAC-SHA256"],
+    ["X-Amz-Credential",   `${accessKey}/${scope}`],
+    ["X-Amz-Date",         dt],
+    ["X-Amz-Expires",      "600"],
+    ["X-Amz-SignedHeaders", "host"],
+  ]);
+
+  const canon  = ["PUT", uri, qs, `host:${host}\n`, "host", "UNSIGNED-PAYLOAD"].join("\n");
+  const toSign = ["AWS4-HMAC-SHA256", dt, scope, await _sha256hex(canon)].join("\n");
+  const sig    = await _hmacHex(await _deriveSigKey(secretKey, date), toSign);
+
+  return {
+    presignedUrl: `https://${host}${uri}?${qs}&X-Amz-Signature=${sig}`,
+    publicUrl:    `${YOS_ENDPOINT}/${bucket}/${_yosPathEncode(key)}`,
+  };
+}
+
+async function yosPresignList(prefix = "") {
+  const { bucket, accessKey, secretKey } = yosCreds;
+  const now  = new Date(), date = _yosFmtDate(now), dt = _yosFmtDT(now);
+  const scope = `${date}/${YOS_REGION}/s3/aws4_request`;
+  const host  = "storage.yandexcloud.net";
+  const uri   = `/${bucket}`;
+
+  const baseParams = [
+    ["X-Amz-Algorithm",    "AWS4-HMAC-SHA256"],
+    ["X-Amz-Credential",   `${accessKey}/${scope}`],
+    ["X-Amz-Date",         dt],
+    ["X-Amz-Expires",      "60"],
+    ["X-Amz-SignedHeaders", "host"],
+    ["list-type",           "2"],
+    ["max-keys",            "1000"],
+  ];
+  if (prefix) baseParams.push(["prefix", prefix]);
+  const qs = _yosSortedQs(baseParams);
+
+  const canon  = ["GET", uri, qs, `host:${host}\n`, "host", "UNSIGNED-PAYLOAD"].join("\n");
+  const toSign = ["AWS4-HMAC-SHA256", dt, scope, await _sha256hex(canon)].join("\n");
+  const sig    = await _hmacHex(await _deriveSigKey(secretKey, date), toSign);
+
+  return `https://${host}${uri}?${qs}&X-Amz-Signature=${sig}`;
+}
+
+async function yosDeleteObject(publicUrl) {
+  const { accessKey, secretKey } = yosCreds;
+  const parsed = new URL(publicUrl);
+  const host   = parsed.hostname;
+  const path   = parsed.pathname;
+  const now    = new Date(), date = _yosFmtDate(now), dt = _yosFmtDT(now);
+  const emptyHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+  const scope  = `${date}/${YOS_REGION}/s3/aws4_request`;
+
+  const canon = [
+    "DELETE", path, "",
+    `host:${host}\nx-amz-content-sha256:${emptyHash}\nx-amz-date:${dt}\n`,
+    "host;x-amz-content-sha256;x-amz-date",
+    emptyHash,
+  ].join("\n");
+
+  const toSign = ["AWS4-HMAC-SHA256", dt, scope, await _sha256hex(canon)].join("\n");
+  const sig    = await _hmacHex(await _deriveSigKey(secretKey, date), toSign);
+
+  const resp = await fetch(publicUrl, {
+    method: "DELETE",
+    headers: {
+      "Authorization":        `AWS4-HMAC-SHA256 Credential=${accessKey}/${scope}, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=${sig}`,
+      "x-amz-date":           dt,
+      "x-amz-content-sha256": emptyHash,
+    },
+  });
+  if (!resp.ok && resp.status !== 204 && resp.status !== 404) {
+    const text = await resp.text();
+    throw new Error(`Storage DELETE ${resp.status}: ${text.slice(0, 300)}`);
+  }
+}
+
 // ─── Вложения (attachments) ───────────────────────────────────────────────────
 
 /** Парсит элемент хранилища → {label, url}.
@@ -1243,17 +1389,16 @@ function attachmentRowHtml(label, url) {
 }
 
 async function uploadAttachmentToRow(file, row) {
-  const workerUrl = (window.FIREBASE_CONFIG?.uploadWorkerUrl || "").trim();
-  if (!workerUrl) {
-    setStatus("Укажи uploadWorkerUrl в firebase.config.js", "error");
+  if (!yosCreds?.accessKey) {
+    setStatus("Ключи Yandex Storage не загружены. Проверь settings/storage в Firestore.", "error");
     return;
   }
 
   const urlInput   = row.querySelector(".att-url");
   const labelInput = row.querySelector(".att-label");
   const uploadBtn  = row.querySelector(".att-upload-btn");
-  const taskRow  = row.closest("[data-task-id]");
-  const tmplRow  = row.closest("[data-tmpl-id]");
+  const taskRow = row.closest("[data-task-id]");
+  const tmplRow = row.closest("[data-tmpl-id]");
   let storagePath;
   if (taskRow) {
     storagePath = `${state.selectedUserId || "tmp"}/${taskRow.getAttribute("data-task-id") || "tmp"}/${file.name}`;
@@ -1268,38 +1413,28 @@ async function uploadAttachmentToRow(file, row) {
   if (urlInput) { urlInput.value = "Проверяю…"; urlInput.disabled = true; }
 
   try {
-    // Ключ без timestamp — для дедупликации по имени файла
-    const path   = storagePath;
-    const base   = workerUrl.replace(/\/$/, "");
-    const ct     = file.type || "application/octet-stream";
+    const ct = file.type || "application/octet-stream";
+    const { presignedUrl, publicUrl } = await yosPresignPut(storagePath, ct);
 
-    // 1. Запрашиваем presigned URL (воркер проверяет, есть ли файл уже)
-    const presignRes = await fetch(
-      `${base}/presign?path=${encodeURIComponent(path)}&type=${encodeURIComponent(ct)}`
-    );
-    if (!presignRes.ok) throw new Error(`Presign error ${presignRes.status}`);
-    const presign = await presignRes.json();
-
-    if (presign.error) throw new Error(presign.error);
-
-    if (presign.exists) {
-      // Дубликат — файл уже есть в хранилище
-      if (urlInput)  { urlInput.value = presign.url; urlInput.disabled = false; }
+    // Дедупликация по имени файла
+    const headRes = await fetch(publicUrl, { method: "HEAD" });
+    if (headRes.ok) {
+      if (urlInput)  { urlInput.value = publicUrl; urlInput.disabled = false; }
       if (labelInput && !labelInput.value.trim()) labelInput.value = file.name.replace(/\.[^.]+$/, "");
       setStatus(`Файл уже загружен, ссылка подставлена: ${file.name}`, "success");
       return;
     }
 
-    // 2. Загружаем файл напрямую в Yandex Object Storage (минуя Cloudflare)
+    // Загружаем напрямую в Yandex Object Storage
     if (urlInput) urlInput.value = "Загружается…";
-    const putRes = await fetch(presign.url, {
+    const putRes = await fetch(presignedUrl, {
       method:  "PUT",
       headers: { "Content-Type": ct },
       body:    file,
     });
     if (!putRes.ok) throw new Error(`Upload failed ${putRes.status}`);
 
-    if (urlInput)  { urlInput.value = presign.publicUrl; urlInput.disabled = false; }
+    if (urlInput)  { urlInput.value = publicUrl; urlInput.disabled = false; }
     if (labelInput && !labelInput.value.trim()) labelInput.value = file.name.replace(/\.[^.]+$/, "");
     setStatus(`Файл загружен: ${file.name}`, "success");
   } catch (err) {
@@ -1312,18 +1447,11 @@ async function uploadAttachmentToRow(file, row) {
 }
 
 async function deleteFromStorage(publicUrl) {
-  const workerUrl = (window.FIREBASE_CONFIG?.uploadWorkerUrl || "").trim();
-  if (!workerUrl) return;
-
+  if (!yosCreds?.accessKey) return;
   try {
-    const res  = await fetch(
-      `${workerUrl.replace(/\/$/, "")}/delete?url=${encodeURIComponent(publicUrl)}`,
-      { method: "DELETE" }
-    );
-    const data = await res.json().catch(() => ({}));
-    if (data.error) setStatus(`Файл удалён с сайта, но не из хранилища: ${data.error}`, "error");
+    await yosDeleteObject(publicUrl);
   } catch (err) {
-    console.warn("deleteFromStorage:", err.message);
+    setStatus(`Файл удалён с сайта, но не из хранилища: ${err.message}`, "error");
   }
 }
 
@@ -1757,23 +1885,16 @@ function closeFileBrowser() {
 }
 
 async function loadStorageFiles() {
-  const workerUrl = (window.FIREBASE_CONFIG?.uploadWorkerUrl || "").trim();
-  if (!workerUrl) {
-    document.getElementById("fileBrowserList").innerHTML = '<p class="muted" style="padding:12px 16px;color:var(--red)">uploadWorkerUrl не задан</p>';
+  if (!yosCreds?.accessKey) {
+    document.getElementById("fileBrowserList").innerHTML = '<p class="muted" style="padding:12px 16px;color:var(--red)">Ключи не загружены. Проверь settings/storage в Firestore.</p>';
     return;
   }
   try {
-    // 1. Получаем presigned URL от воркера (маленький запрос через Cloudflare)
-    const presignRes = await fetch(`${workerUrl.replace(/\/$/, "")}/list-presign`);
-    const presignData = await presignRes.json();
-    if (presignData.error) throw new Error(presignData.error);
-
-    // 2. Запрашиваем список напрямую из Yandex (минуя Cloudflare/VPN)
-    const listRes = await fetch(presignData.url);
+    const presignedUrl = await yosPresignList();
+    const listRes = await fetch(presignedUrl);
     if (!listRes.ok) throw new Error(`List ${listRes.status}`);
-
     const xml = await listRes.text();
-    fileBrowserItems = parseListXml(xml, presignData.publicBase);
+    fileBrowserItems = parseListXml(xml, `${YOS_ENDPOINT}/${yosCreds.bucket}`);
     renderFileBrowserList();
   } catch (err) {
     document.getElementById("fileBrowserList").innerHTML =
