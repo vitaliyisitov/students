@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Панель управления</title>
+    <title>Админка • Кабинет ученика</title>
     <meta
       name="description"
-      content="Панель управления учениками"
+      content="Админ-панель для создания и редактирования учеников в student-dashboard."
     />
     <link rel="stylesheet" href="./styles.css" />
     <link rel="stylesheet" href="./admin.css" />
@@ -17,7 +17,7 @@
         <div class="card__header">
           <div>
             <div class="eyebrow">Доступ</div>
-            <h2 class="h2">Вход в панель управления</h2>
+            <h2 class="h2">Вход в админку</h2>
           </div>
         </div>
         <div class="admin-form">
@@ -283,6 +283,18 @@ service cloud.firestore {
         </div><!-- /panel database -->
 
       </main>
+    </div>
+
+    <!-- Браузер файлов хранилища -->
+    <div id="fileBrowserModal" class="fb-overlay" hidden>
+      <div class="fb-panel">
+        <div class="fb-header">
+          <span class="fb-title">Файлы в хранилище</span>
+          <input id="fileBrowserSearch" type="text" class="fb-search" placeholder="Поиск по имени…" />
+          <button class="icon-btn" type="button" id="fileBrowserClose" title="Закрыть">✕</button>
+        </div>
+        <div id="fileBrowserList" class="fb-list"></div>
+      </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
