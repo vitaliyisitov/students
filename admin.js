@@ -1416,14 +1416,16 @@ async function uploadAttachmentToRow(file, row) {
     const ct = file.type || "application/octet-stream";
     const { presignedUrl, publicUrl } = await yosPresignPut(storagePath, ct);
 
-    // Дедупликация по имени файла
-    const headRes = await fetch(publicUrl, { method: "HEAD" });
-    if (headRes.ok) {
-      if (urlInput)  { urlInput.value = publicUrl; urlInput.disabled = false; }
-      if (labelInput && !labelInput.value.trim()) labelInput.value = file.name.replace(/\.[^.]+$/, "");
-      setStatus(`Файл уже загружен, ссылка подставлена: ${file.name}`, "success");
-      return;
-    }
+    // Дедупликация по имени файла (HEAD может быть заблокирован CORS — не фатально)
+    try {
+      const headRes = await fetch(publicUrl, { method: "HEAD" });
+      if (headRes.ok) {
+        if (urlInput)  { urlInput.value = publicUrl; urlInput.disabled = false; }
+        if (labelInput && !labelInput.value.trim()) labelInput.value = file.name.replace(/\.[^.]+$/, "");
+        setStatus(`Файл уже загружен, ссылка подставлена: ${file.name}`, "success");
+        return;
+      }
+    } catch { /* HEAD заблокирован CORS — просто загружаем */ }
 
     // Загружаем напрямую в Yandex Object Storage
     if (urlInput) urlInput.value = "Загружается…";
