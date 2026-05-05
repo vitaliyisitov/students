@@ -1244,6 +1244,15 @@ const _enc = encodeURIComponent;
 
 function _yosPathEncode(path) { return path.split("/").map(_enc).join("/"); }
 
+/** Превращает произвольную строку в безопасный сегмент пути */
+function yosSlug(s) {
+  return String(s || "").trim()
+    .replace(/[/\\:*?"<>|]+/g, "")   // убираем опасные символы
+    .replace(/\s+/g, "_")             // пробелы → подчёркивания
+    .replace(/_{2,}/g, "_")
+    .slice(0, 60) || "untitled";
+}
+
 async function _sha256hex(data) {
   const h = await crypto.subtle.digest("SHA-256", typeof data === "string" ? _te(data) : data);
   return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, "0")).join("");
@@ -1401,9 +1410,12 @@ async function uploadAttachmentToRow(file, row) {
   const tmplRow = row.closest("[data-tmpl-id]");
   let storagePath;
   if (taskRow) {
-    storagePath = `${state.selectedUserId || "tmp"}/${taskRow.getAttribute("data-task-id") || "tmp"}/${file.name}`;
+    const userName  = yosSlug(state.users.find(u => u.id === state.selectedUserId)?.name || state.selectedUserId);
+    const taskTitle = yosSlug(taskRow.querySelector('[data-f="title"]')?.value || taskRow.getAttribute("data-task-id"));
+    storagePath = `${userName}/${taskTitle}/${file.name}`;
   } else if (tmplRow) {
-    storagePath = `templates/${tmplRow.getAttribute("data-tmpl-id") || "tmp"}/${file.name}`;
+    const tmplTitle = yosSlug(tmplRow.querySelector('[data-f="title"]')?.value || tmplRow.getAttribute("data-tmpl-id"));
+    storagePath = `templates/${tmplTitle}/${file.name}`;
   } else {
     storagePath = `uploads/${file.name}`;
   }
