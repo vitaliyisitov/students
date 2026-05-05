@@ -153,6 +153,14 @@ function bindEvents() {
       if (editor) { const tmp = document.createElement("div"); tmp.innerHTML = attachmentRowHtml("", ""); editor.appendChild(tmp.firstElementChild); }
       return;
     }
+    // Найти файл в хранилище
+    const browseBtn = e.target.closest(".att-browse-btn");
+    if (browseBtn) {
+      const row = browseBtn.closest(".attachment-row");
+      if (row) openFileBrowser(row);
+      return;
+    }
+
     // Удалить строку вложения (+ удалить файл из хранилища)
     const removeBtn = e.target.closest("[data-remove-attachment]");
     if (removeBtn) {
@@ -165,38 +173,104 @@ function bindEvents() {
     }
   });
 
-  // Загрузка файла через кнопку 📎
-  els.tasksEditor.addEventListener("change", (e) => {
-    const fileInput = e.target.closest(".att-file-input");
-    if (fileInput && fileInput.files?.[0]) {
-      const row = fileInput.closest(".attachment-row");
-      void uploadAttachmentToRow(fileInput.files[0], row);
-      fileInput.value = "";
+  // Применяем события загрузки и drag-drop к обоим редакторам
+  const tmplEditorEl = document.getElementById("templatesEditor");
+  [els.tasksEditor, tmplEditorEl].forEach((container) => {
+    if (!container) return;
+
+    container.addEventListener("change", (e) => {
+      const fileInput = e.target.closest(".att-file-input");
+      if (fileInput && fileInput.files?.[0]) {
+        const row = fileInput.closest(".attachment-row");
+        void uploadAttachmentToRow(fileInput.files[0], row);
+        fileInput.value = "";
+      }
+    });
+
+    container.addEventListener("dragover", (e) => {
+      const editor = e.target.closest(".attachments-editor");
+      if (editor) { e.preventDefault(); editor.classList.add("is-dragover"); }
+    });
+    container.addEventListener("dragleave", (e) => {
+      const editor = e.target.closest(".attachments-editor");
+      if (editor && !editor.contains(e.relatedTarget)) editor.classList.remove("is-dragover");
+    });
+    container.addEventListener("drop", (e) => {
+      const editor = e.target.closest(".attachments-editor");
+      if (!editor) return;
+      e.preventDefault();
+      editor.classList.remove("is-dragover");
+      Array.from(e.dataTransfer.files).forEach((file) => {
+        const tmp = document.createElement("div");
+        tmp.innerHTML = attachmentRowHtml("", "");
+        const row = tmp.firstElementChild;
+        editor.appendChild(row);
+        void uploadAttachmentToRow(file, row);
+      });
+    });
+
+    // Клик для шаблонов: добавить файл и удалить
+    if (container === tmplEditorEl) {
+      container.addEventListener("click", (e) => {
+        const addLessonBtn = e.target.closest("[data-add-tmpl-lesson-file]");
+        if (addLessonBtn) {
+          const editor = document.getElementById(`tmpl-lesson-files-${addLessonBtn.getAttribute("data-add-tmpl-lesson-file")}`);
+          if (editor) { const tmp = document.createElement("div"); tmp.innerHTML = attachmentRowHtml("", ""); editor.appendChild(tmp.firstElementChild); }
+          return;
+        }
+        const addHwBtn = e.target.closest("[data-add-tmpl-hw-file]");
+        if (addHwBtn) {
+          const editor = document.getElementById(`tmpl-hw-files-${addHwBtn.getAttribute("data-add-tmpl-hw-file")}`);
+          if (editor) { const tmp = document.createElement("div"); tmp.innerHTML = attachmentRowHtml("", ""); editor.appendChild(tmp.firstElementChild); }
+          return;
+        }
+        const addHintBtn = e.target.closest("[data-add-tmpl-hint-file]");
+        if (addHintBtn) {
+          const editor = document.getElementById(`tmpl-hint-files-${addHintBtn.getAttribute("data-add-tmpl-hint-file")}`);
+          if (editor) { const tmp = document.createElement("div"); tmp.innerHTML = attachmentRowHtml("", ""); editor.appendChild(tmp.firstElementChild); }
+          return;
+        }
+        const browseBtn = e.target.closest(".att-browse-btn");
+        if (browseBtn) {
+          const row = browseBtn.closest(".attachment-row");
+          if (row) openFileBrowser(row);
+          return;
+        }
+        const removeBtn = e.target.closest("[data-remove-attachment]");
+        if (removeBtn) {
+          const row = removeBtn.closest(".attachment-row");
+          if (row) {
+            const url = row.querySelector(".att-url")?.value?.trim() || "";
+            row.remove();
+            if (url.startsWith("https://storage.yandexcloud.net/")) void deleteFromStorage(url);
+          }
+        }
+      });
     }
   });
 
-  // Drag & drop файлов на блок вложений
-  els.tasksEditor.addEventListener("dragover", (e) => {
-    const editor = e.target.closest(".attachments-editor");
-    if (editor) { e.preventDefault(); editor.classList.add("is-dragover"); }
-  });
-  els.tasksEditor.addEventListener("dragleave", (e) => {
-    const editor = e.target.closest(".attachments-editor");
-    if (editor && !editor.contains(e.relatedTarget)) editor.classList.remove("is-dragover");
-  });
-  els.tasksEditor.addEventListener("drop", (e) => {
-    const editor = e.target.closest(".attachments-editor");
-    if (!editor) return;
-    e.preventDefault();
-    editor.classList.remove("is-dragover");
-    Array.from(e.dataTransfer.files).forEach((file) => {
-      const tmp = document.createElement("div");
-      tmp.innerHTML = attachmentRowHtml("", "");
-      const row = tmp.firstElementChild;
-      editor.appendChild(row);
-      void uploadAttachmentToRow(file, row);
+  // Файловый браузер
+  const fbModal = document.getElementById("fileBrowserModal");
+  if (fbModal) {
+    document.getElementById("fileBrowserClose")?.addEventListener("click", closeFileBrowser);
+    fbModal.addEventListener("click", (e) => {
+      if (e.target === fbModal) closeFileBrowser();
+      const pickBtn = e.target.closest("[data-fb-pick]");
+      if (pickBtn && fileBrowserTargetRow) {
+        const fbRow = pickBtn.closest(".fb-row");
+        const url  = fbRow?.getAttribute("data-fb-url") || "";
+        const name = fbRow?.getAttribute("data-fb-name") || "";
+        const urlInput   = fileBrowserTargetRow.querySelector(".att-url");
+        const labelInput = fileBrowserTargetRow.querySelector(".att-label");
+        if (urlInput) urlInput.value = url;
+        if (labelInput && !labelInput.value.trim()) labelInput.value = name.replace(/\.[^.]+$/, "");
+        closeFileBrowser();
+      }
     });
-  });
+    document.getElementById("fileBrowserSearch")?.addEventListener("input", () => {
+      renderFileBrowserList();
+    });
+  }
 }
 
 function disableForms() {
@@ -1163,6 +1237,7 @@ function attachmentRowHtml(label, url) {
     <input class="att-label" type="text" placeholder="Название (напр. Запись урока)" value="${escapeAttr(label)}" />
     <input class="att-url"   type="url"  placeholder="https://... или загрузи файл →" value="${escapeAttr(url)}" />
     <label class="icon-btn att-upload-btn" title="Загрузить файл">📎<input type="file" class="att-file-input" style="display:none" /></label>
+    <button class="icon-btn att-browse-btn" type="button" title="Найти файл в хранилище">📂</button>
     <button class="icon-btn danger" type="button" data-remove-attachment title="Удалить">✕</button>
   </div>`;
 }
@@ -1177,9 +1252,16 @@ async function uploadAttachmentToRow(file, row) {
   const urlInput   = row.querySelector(".att-url");
   const labelInput = row.querySelector(".att-label");
   const uploadBtn  = row.querySelector(".att-upload-btn");
-  const taskRow    = row.closest("[data-task-id]");
-  const taskId     = taskRow?.getAttribute("data-task-id") || "tmp";
-  const userId     = state.selectedUserId || "tmp";
+  const taskRow  = row.closest("[data-task-id]");
+  const tmplRow  = row.closest("[data-tmpl-id]");
+  let storagePath;
+  if (taskRow) {
+    storagePath = `${state.selectedUserId || "tmp"}/${taskRow.getAttribute("data-task-id") || "tmp"}/${file.name}`;
+  } else if (tmplRow) {
+    storagePath = `templates/${tmplRow.getAttribute("data-tmpl-id") || "tmp"}/${file.name}`;
+  } else {
+    storagePath = `uploads/${file.name}`;
+  }
 
   const origText = uploadBtn?.textContent || "📎";
   if (uploadBtn)  uploadBtn.textContent = "⏳";
@@ -1187,7 +1269,7 @@ async function uploadAttachmentToRow(file, row) {
 
   try {
     // Ключ без timestamp — для дедупликации по имени файла
-    const path   = `${userId}/${taskId}/${file.name}`;
+    const path   = storagePath;
     const base   = workerUrl.replace(/\/$/, "");
     const ct     = file.type || "application/octet-stream";
 
@@ -1506,8 +1588,13 @@ function renderTmplEditor() {
     const templates = tmplData.filter((t) => t.catalog_id === c.id);
     const rows = templates.length
       ? templates.map(renderTmplRow).join("")
-      : `<p class="muted" style="padding:0 18px">Шаблонов нет — заполни базу.</p>`;
-    return `<div data-tmpl-block="${escapeAttr(c.id)}" style="display:${isActive ? "grid" : "none"};gap:8px;">${rows}</div>`;
+      : `<p class="muted" style="padding:0 18px">Шаблонов нет.</p>`;
+    return `<div data-tmpl-block="${escapeAttr(c.id)}" style="display:${isActive ? "grid" : "none"};gap:8px;">
+      ${rows}
+      <div class="task-actions" style="padding:0 18px;">
+        <button class="icon-btn" type="button" data-add-tmpl-task="${escapeAttr(c.id)}">+ Добавить шаблон</button>
+      </div>
+    </div>`;
   }).join("");
 
   editorEl.innerHTML = `<div class="tasks-subject-tabs" style="padding:0 18px 10px;">${tabs}</div>${blocks}`;
@@ -1525,12 +1612,25 @@ function renderTmplEditor() {
   editorEl.querySelectorAll("[data-save-tmpl]").forEach((btn) => {
     btn.addEventListener("click", () => saveTmplRow(btn.closest("[data-tmpl-id]")));
   });
+  editorEl.querySelectorAll("[data-delete-tmpl]").forEach((btn) => {
+    btn.addEventListener("click", () => void deleteTmplTask(btn.getAttribute("data-delete-tmpl")));
+  });
+  editorEl.querySelectorAll("[data-add-tmpl-task]").forEach((btn) => {
+    btn.addEventListener("click", () => void addTmplTask(btn.getAttribute("data-add-tmpl-task")));
+  });
 }
 
 function renderTmplRow(t) {
   const details  = (t.default_details && typeof t.default_details === "object") ? t.default_details : {};
   const homework = Array.isArray(details.homework) ? details.homework.join("\n") : "";
   const hints    = Array.isArray(details.hints)    ? details.hints.join("\n")    : "";
+  const lessonFilesRaw  = Array.isArray(details.lessonFiles)  ? details.lessonFiles  : [];
+  const homeworkFilesRaw = Array.isArray(details.homeworkFiles) ? details.homeworkFiles : [];
+  const hintFilesRaw    = Array.isArray(details.hintFiles)    ? details.hintFiles    : [];
+
+  const lessonFilesHtml   = lessonFilesRaw.map((a)  => { const p = parseStoredAttachment(a); return attachmentRowHtml(p.label, p.url); }).join("");
+  const homeworkFilesHtml = homeworkFilesRaw.map((a) => { const p = parseStoredAttachment(a); return attachmentRowHtml(p.label, p.url); }).join("");
+  const hintFilesHtml     = hintFilesRaw.map((a)    => { const p = parseStoredAttachment(a); return attachmentRowHtml(p.label, p.url); }).join("");
 
   return `
     <details class="task-row tmpl-row" data-tmpl-id="${escapeAttr(t.id)}" style="margin:0 18px;">
@@ -1543,11 +1643,27 @@ function renderTmplRow(t) {
           <label><span>Название</span><input data-f="title" value="${escapeAttr(t.title || "")}" /></label>
           <label><span>Описание</span><input data-f="description" value="${escapeAttr(t.description || "")}" /></label>
         </div>
-        <label><span>Конспект (lessonNotes)</span><textarea data-f="lessonNotes" rows="3">${escapeHtml(details.lessonNotes || "")}</textarea></label>
-        <label><span>Домашка (1 строка = 1 пункт)</span><textarea data-f="homework" rows="3">${escapeHtml(homework)}</textarea></label>
-        <label><span>Подсказки (1 строка = 1 пункт)</span><textarea data-f="hints" rows="3">${escapeHtml(hints)}</textarea></label>
+        <div class="admin-field">
+          <span>Конспект (lessonNotes)</span>
+          <textarea data-f="lessonNotes" rows="3">${escapeHtml(details.lessonNotes || "")}</textarea>
+          <div class="attachments-editor" id="tmpl-lesson-files-${escapeAttr(t.id)}">${lessonFilesHtml}</div>
+          <button class="icon-btn" type="button" data-add-tmpl-lesson-file="${escapeAttr(t.id)}">+ Добавить файл к конспекту</button>
+        </div>
+        <div class="admin-field">
+          <span>Домашка (1 строка = 1 пункт)</span>
+          <textarea data-f="homework" rows="3">${escapeHtml(homework)}</textarea>
+          <div class="attachments-editor" id="tmpl-hw-files-${escapeAttr(t.id)}">${homeworkFilesHtml}</div>
+          <button class="icon-btn" type="button" data-add-tmpl-hw-file="${escapeAttr(t.id)}">+ Добавить файл к домашке</button>
+        </div>
+        <div class="admin-field">
+          <span>Подсказки (1 строка = 1 пункт)</span>
+          <textarea data-f="hints" rows="3">${escapeHtml(hints)}</textarea>
+          <div class="attachments-editor" id="tmpl-hint-files-${escapeAttr(t.id)}">${hintFilesHtml}</div>
+          <button class="icon-btn" type="button" data-add-tmpl-hint-file="${escapeAttr(t.id)}">+ Добавить файл к подсказкам</button>
+        </div>
         <div class="task-actions">
           <button class="icon-btn" type="button" data-save-tmpl="${escapeAttr(t.id)}">Сохранить шаблон</button>
+          <button class="icon-btn danger" type="button" data-delete-tmpl="${escapeAttr(t.id)}">Удалить шаблон</button>
           <span class="tmpl-save-status" data-save-status="${escapeAttr(t.id)}"></span>
         </div>
       </div>
@@ -1564,10 +1680,13 @@ async function saveTmplRow(row) {
     title:       (row.querySelector('[data-f="title"]')?.value       || "").trim() || "Задание",
     description: (row.querySelector('[data-f="description"]')?.value || "").trim(),
     default_details: {
-      lessonNotes:  (row.querySelector('[data-f="lessonNotes"]')?.value || "").trim(),
-      homework:     splitLines(row.querySelector('[data-f="homework"]')?.value),
-      hints:        splitLines(row.querySelector('[data-f="hints"]')?.value),
-      attachments:  [],
+      lessonNotes:   (row.querySelector('[data-f="lessonNotes"]')?.value || "").trim(),
+      lessonFiles:   readAttachmentsFromRow(row.querySelector('[id^="tmpl-lesson-files-"]')),
+      homework:      splitLines(row.querySelector('[data-f="homework"]')?.value),
+      homeworkFiles: readAttachmentsFromRow(row.querySelector('[id^="tmpl-hw-files-"]')),
+      hints:         splitLines(row.querySelector('[data-f="hints"]')?.value),
+      hintFiles:     readAttachmentsFromRow(row.querySelector('[id^="tmpl-hint-files-"]')),
+      attachments:   [],
     },
   };
 
@@ -1580,4 +1699,115 @@ async function saveTmplRow(row) {
   } catch (err) {
     if (statusEl) { statusEl.textContent = "Ошибка: " + err.message; statusEl.className = "tmpl-save-status err"; }
   }
+}
+
+async function addTmplTask(catalogId) {
+  if (!catalogId) return;
+  const existing = tmplData.filter((t) => t.catalog_id === catalogId);
+  const maxOrder = existing.reduce((m, t) => Math.max(m, t.order_index || 0), 0);
+  try {
+    await window.db.collection("task_templates").add({
+      catalog_id: catalogId,
+      title: "Новый шаблон",
+      description: "",
+      order_index: maxOrder + 1,
+      default_details: {
+        lessonNotes: "", lessonFiles: [],
+        homework: [],   homeworkFiles: [],
+        hints: [],      hintFiles: [],
+        attachments: [],
+      },
+    });
+    await loadTemplates();
+  } catch (err) {
+    console.error("addTmplTask:", err);
+  }
+}
+
+async function deleteTmplTask(id) {
+  if (!id) return;
+  if (!window.confirm("Удалить этот шаблон?")) return;
+  try {
+    await window.db.collection("task_templates").doc(id).delete();
+    await loadTemplates();
+  } catch (err) {
+    console.error("deleteTmplTask:", err);
+  }
+}
+
+// ─── Браузер файлов хранилища ─────────────────────────────────────────────────
+
+let fileBrowserTargetRow = null;
+let fileBrowserItems     = [];
+
+async function openFileBrowser(row) {
+  fileBrowserTargetRow = row;
+  const modal = document.getElementById("fileBrowserModal");
+  if (!modal) return;
+  modal.hidden = false;
+  document.getElementById("fileBrowserSearch").value = "";
+  document.getElementById("fileBrowserList").innerHTML = '<p class="muted" style="padding:12px 16px">Загрузка…</p>';
+  await loadStorageFiles();
+}
+
+function closeFileBrowser() {
+  const modal = document.getElementById("fileBrowserModal");
+  if (modal) modal.hidden = true;
+  fileBrowserTargetRow = null;
+}
+
+async function loadStorageFiles() {
+  const workerUrl = (window.FIREBASE_CONFIG?.uploadWorkerUrl || "").trim();
+  if (!workerUrl) {
+    document.getElementById("fileBrowserList").innerHTML = '<p class="muted" style="padding:12px 16px;color:var(--red)">uploadWorkerUrl не задан</p>';
+    return;
+  }
+  try {
+    const res  = await fetch(`${workerUrl.replace(/\/$/, "")}/list`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    fileBrowserItems = data.items || [];
+    renderFileBrowserList();
+  } catch (err) {
+    document.getElementById("fileBrowserList").innerHTML =
+      `<p class="muted" style="padding:12px 16px;color:var(--red)">Ошибка: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function renderFileBrowserList() {
+  const listEl = document.getElementById("fileBrowserList");
+  if (!listEl) return;
+  const q        = (document.getElementById("fileBrowserSearch")?.value || "").trim().toLowerCase();
+  const filtered = q ? fileBrowserItems.filter((f) => f.key.toLowerCase().includes(q)) : fileBrowserItems;
+  if (!filtered.length) {
+    listEl.innerHTML = '<p class="muted" style="padding:12px 16px">Файлов не найдено</p>';
+    return;
+  }
+  listEl.innerHTML = filtered.map((f) => {
+    const name = f.key.split("/").pop();
+    return `<div class="fb-row" data-fb-url="${escapeAttr(f.url)}" data-fb-name="${escapeAttr(name)}">
+      <span class="fb-icon">${fileIconByName(name)}</span>
+      <span class="fb-name" title="${escapeAttr(f.key)}">${escapeHtml(f.key)}</span>
+      <span class="fb-size muted">${fmtBytes(f.size)}</span>
+      <button class="icon-btn" type="button" data-fb-pick>Выбрать</button>
+    </div>`;
+  }).join("");
+}
+
+function fileIconByName(name) {
+  const s = name.toLowerCase();
+  if (/\.(jpe?g|png|gif|webp|svg|bmp|heic)$/.test(s)) return "🖼️";
+  if (/\.pdf$/.test(s))                                 return "📄";
+  if (/\.(mp4|mov|avi|mkv|webm|m4v)$/.test(s))        return "🎬";
+  if (/\.(mp3|wav|ogg|m4a|aac)$/.test(s))             return "🎵";
+  if (/\.(docx?|pages)$/.test(s))                      return "📝";
+  if (/\.(xlsx?|numbers|csv)$/.test(s))                return "📊";
+  return "📎";
+}
+
+function fmtBytes(n) {
+  if (!n) return "";
+  if (n < 1024)    return `${n} B`;
+  if (n < 1048576) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1048576).toFixed(1)} MB`;
 }
