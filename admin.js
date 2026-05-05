@@ -1416,8 +1416,11 @@ async function uploadAttachmentToRow(file, row) {
     const taskTitle   = yosSlug(taskRow.querySelector('[data-f="title"]')?.value || taskRow.getAttribute("data-task-id"));
     storagePath = `${userName}/${subjectTitle}/${taskTitle}/${file.name}`;
   } else if (tmplRow) {
-    const tmplTitle = yosSlug(tmplRow.querySelector('[data-f="title"]')?.value || tmplRow.getAttribute("data-tmpl-id"));
-    storagePath = `templates/${tmplTitle}/${file.name}`;
+    const tmplId      = tmplRow.getAttribute("data-tmpl-id") || "";
+    const catalogId   = tmplData.find(t => t.id === tmplId)?.catalog_id || "";
+    const catalogTitle = yosSlug(tmplCatalog.find(c => c.id === catalogId)?.title || catalogId);
+    const tmplTitle   = yosSlug(tmplRow.querySelector('[data-f="title"]')?.value || tmplId);
+    storagePath = `templates/${catalogTitle}/${tmplTitle}/${file.name}`;
   } else {
     storagePath = `uploads/${file.name}`;
   }
