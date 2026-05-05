@@ -465,11 +465,12 @@ function openModal(task) {
   const details       = task.details || {};
   const lessonFiles   = Array.isArray(details.lessonFiles)   ? details.lessonFiles   : [];
   const homeworkFiles = Array.isArray(details.homeworkFiles) ? details.homeworkFiles : [];
+  const hintFiles     = Array.isArray(details.hintFiles)     ? details.hintFiles     : [];
   const attachments   = Array.isArray(details.attachments)   ? details.attachments   : [];
   els.modalContent.innerHTML = [
     renderSectionWithFiles("Конспект",         details.lessonNotes || "", lessonFiles),
     renderSectionWithFiles("Домашнее задание", details.homework    || [], homeworkFiles),
-    renderRichSection("Подсказки",             details.hints       || []),
+    renderSectionWithFiles("Подсказки",        details.hints       || [], hintFiles),
     attachments.length ? renderAttachmentsSection(attachments) : "",
   ].join("");
 
