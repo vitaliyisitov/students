@@ -146,6 +146,13 @@ function bindEvents() {
       if (editor) { const tmp = document.createElement("div"); tmp.innerHTML = attachmentRowHtml("", ""); editor.appendChild(tmp.firstElementChild); }
       return;
     }
+    // Добавить файл к подсказкам
+    const addHintBtn = e.target.closest("[data-add-hint-file]");
+    if (addHintBtn) {
+      const editor = document.getElementById(`hint-files-${addHintBtn.getAttribute("data-add-hint-file")}`);
+      if (editor) { const tmp = document.createElement("div"); tmp.innerHTML = attachmentRowHtml("", ""); editor.appendChild(tmp.firstElementChild); }
+      return;
+    }
     // Удалить строку вложения (+ удалить файл из хранилища)
     const removeBtn = e.target.closest("[data-remove-attachment]");
     if (removeBtn) {
@@ -766,6 +773,7 @@ function renderTaskRow(task) {
   const hints = Array.isArray(details.hints) ? details.hints.join("\n") : "";
   const lessonFilesRaw  = Array.isArray(details.lessonFiles)   ? details.lessonFiles   : [];
   const homeworkFilesRaw = Array.isArray(details.homeworkFiles) ? details.homeworkFiles : [];
+  const hintFilesRaw    = Array.isArray(details.hintFiles)     ? details.hintFiles     : [];
   const orderVal = getAdminTaskOrderValue(task);
   const updatedLocal = toDateTimeLocalValue(task.updated_at);
 
@@ -773,6 +781,9 @@ function renderTaskRow(task) {
     .map((a) => { const p = parseStoredAttachment(a); return attachmentRowHtml(p.label, p.url); })
     .join("");
   const homeworkFilesHtml = homeworkFilesRaw
+    .map((a) => { const p = parseStoredAttachment(a); return attachmentRowHtml(p.label, p.url); })
+    .join("");
+  const hintFilesHtml = hintFilesRaw
     .map((a) => { const p = parseStoredAttachment(a); return attachmentRowHtml(p.label, p.url); })
     .join("");
 
@@ -821,7 +832,12 @@ function renderTaskRow(task) {
           <div class="attachments-editor" id="hw-files-${escapeAttr(task.id)}">${homeworkFilesHtml}</div>
           <button class="icon-btn" type="button" data-add-hw-file="${escapeAttr(task.id)}">+ Добавить файл к домашке</button>
         </div>
-        <label><span>Подсказки (1 строка = 1 пункт)</span><textarea data-f="hints" rows="3">${escapeHtml(hints)}</textarea></label>
+        <div class="admin-field">
+          <span>Подсказки (1 строка = 1 пункт)</span>
+          <textarea data-f="hints" rows="3">${escapeHtml(hints)}</textarea>
+          <div class="attachments-editor" id="hint-files-${escapeAttr(task.id)}">${hintFilesHtml}</div>
+          <button class="icon-btn" type="button" data-add-hint-file="${escapeAttr(task.id)}">+ Добавить файл к подсказкам</button>
+        </div>
 
         <div class="task-actions">
           <button class="icon-btn" type="button" data-save-task="${escapeAttr(task.id)}">Сохранить задание</button>
@@ -866,6 +882,7 @@ async function saveTaskFromRow(row) {
       homework:      splitLines(row.querySelector('[data-f="homework"]')?.value),
       homeworkFiles: readAttachmentsFromRow(row.querySelector('[id^="hw-files-"]')),
       hints:         splitLines(row.querySelector('[data-f="hints"]')?.value),
+      hintFiles:     readAttachmentsFromRow(row.querySelector('[id^="hint-files-"]')),
       attachments:   [],
       isPinned,
     },
