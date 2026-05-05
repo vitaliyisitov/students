@@ -1216,18 +1216,13 @@ async function deleteFromStorage(publicUrl) {
   const workerUrl = (window.FIREBASE_CONFIG?.uploadWorkerUrl || "").trim();
   if (!workerUrl) return;
 
-  // Извлекаем path из URL: https://storage.yandexcloud.net/{bucket}/{path}
-  const prefix = "https://storage.yandexcloud.net/";
-  const withoutPrefix = publicUrl.slice(prefix.length);       // "{bucket}/{path}"
-  const slashIdx = withoutPrefix.indexOf("/");
-  if (slashIdx < 0) return;
-  const path = withoutPrefix.slice(slashIdx + 1);             // "{path}"
-
   try {
-    await fetch(
-      `${workerUrl.replace(/\/$/, "")}/delete?path=${encodeURIComponent(path)}`,
+    const res  = await fetch(
+      `${workerUrl.replace(/\/$/, "")}/delete?url=${encodeURIComponent(publicUrl)}`,
       { method: "DELETE" }
     );
+    const data = await res.json().catch(() => ({}));
+    if (data.error) setStatus(`Файл удалён с сайта, но не из хранилища: ${data.error}`, "error");
   } catch (err) {
     console.warn("deleteFromStorage:", err.message);
   }
