@@ -780,7 +780,7 @@ async function renderTasksEditor() {
       const rows = tasks.length
         ? tasks.map(renderTaskRow).join("")
         : `<p class="muted">Заданий нет. <button class="icon-btn" type="button" data-add-task="${escapeAttr(s.id)}">Добавить первое задание</button></p>`;
-      return `<div class="task-subject-block" data-task-block="${escapeAttr(s.id)}" style="display:${s.id === firstId ? "grid" : "none"};gap:10px;grid-template-columns:repeat(3,minmax(0,1fr));">${rows}<div class="task-actions" style="grid-column:1/-1;"><button class="icon-btn" type="button" data-add-task="${escapeAttr(s.id)}">+ Добавить задание</button></div></div>`;
+      return `<div class="task-subject-block" data-task-block="${escapeAttr(s.id)}" style="display:${s.id === firstId ? "grid" : "none"};gap:10px;grid-template-columns:repeat(3,minmax(0,1fr));"><div style="grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end;padding:0 2px;"><button class="icon-btn" type="button" data-save-all-block="${escapeAttr(s.id)}">💾 Сохранить все</button><button class="icon-btn" type="button" data-add-task="${escapeAttr(s.id)}">+ Добавить задание</button></div>${rows}</div>`;
     })
     .join("");
 
@@ -802,10 +802,10 @@ async function renderTasksEditor() {
   });
 
   els.tasksEditor.querySelectorAll("[data-save-task]").forEach((btn) => {
-    btn.addEventListener(
-      "click",
-      () => void saveTaskFromRow(btn.closest("[data-task-id]")),
-    );
+    btn.addEventListener("click", () => void saveTaskFromRow(btn.closest("[data-task-id]")));
+  });
+  els.tasksEditor.querySelectorAll("[data-save-all-block]").forEach((btn) => {
+    btn.addEventListener("click", () => void saveAllTasksInBlock(btn.getAttribute("data-save-all-block")));
   });
   els.tasksEditor.querySelectorAll("[data-delete-task]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -922,57 +922,42 @@ function renderTaskRow(task) {
     </details>`;
 }
 
-async function saveTaskFromRow(row) {
-  if (!row) return;
-  const taskId = row.getAttribute("data-task-id");
-  const subjectId = row.getAttribute("data-subject-id-tr");
-  if (!taskId || !subjectId) return;
-
+function buildTaskPayload(row) {
   const orderInput = Number(row.querySelector('[data-f="order_index"]')?.value);
-  const order_index =
-    Number.isFinite(orderInput) && orderInput > 0
-      ? orderInput
-      : Number(row.getAttribute("data-order-index")) || 1;
-
-  const isPinned = row.querySelector('[data-f="isPinned"]')?.value === "true";
-  const statusVal =
-    row.querySelector('[data-f="status"]')?.value || "not_started";
-  const updatedFromForm = fromDateTimeLocalValue(
-    row.querySelector('[data-f="updated_at"]')?.value,
-  );
-  const updatedAtIso =
-    updatedFromForm ||
-    (statusVal === "not_started" ? null : new Date().toISOString());
-
+  const order_index = Number.isFinite(orderInput) && orderInput > 0
+    ? orderInput : Number(row.getAttribute("data-order-index")) || 1;
+  const isPinned  = row.querySelector('[data-f="isPinned"]')?.value === "true";
+  const statusVal = row.querySelector('[data-f="status"]')?.value || "not_started";
+  const updatedFromForm = fromDateTimeLocalValue(row.querySelector('[data-f="updated_at"]')?.value);
+  const updatedAtIso = updatedFromForm || (statusVal === "not_started" ? null : new Date().toISOString());
   const payload = {
-    title: row.querySelector('[data-f="title"]')?.value?.trim() || "Задание",
-    description:
-      row.querySelector('[data-f="description"]')?.value?.trim() || "",
-    status: statusVal,
-    order_index,
+    title:       row.querySelector('[data-f="title"]')?.value?.trim() || "Задание",
+    description: row.querySelector('[data-f="description"]')?.value?.trim() || "",
+    status: statusVal, order_index,
     details: {
-      lessonNotes:
-        row.querySelector('[data-f="lessonNotes"]')?.value?.trim() || "",
+      lessonNotes:   row.querySelector('[data-f="lessonNotes"]')?.value?.trim() || "",
       lessonFiles:   readAttachmentsFromRow(row.querySelector('[id^="lesson-files-"]')),
       homework:      splitLines(row.querySelector('[data-f="homework"]')?.value),
       homeworkFiles: readAttachmentsFromRow(row.querySelector('[id^="hw-files-"]')),
       hints:         splitLines(row.querySelector('[data-f="hints"]')?.value),
       hintFiles:     readAttachmentsFromRow(row.querySelector('[id^="hint-files-"]')),
-      attachments:   [],
-      isPinned,
+      attachments: [], isPinned,
     },
   };
   if (updatedAtIso) payload.updated_at = updatedAtIso;
+  return payload;
+}
 
+async function saveTaskFromRow(row) {
+  if (!row) return;
+  const taskId    = row.getAttribute("data-task-id");
+  const subjectId = row.getAttribute("data-subject-id-tr");
+  if (!taskId || !subjectId) return;
   try {
-    await window.db
-      .collection("users")
-      .doc(state.selectedUserId)
-      .collection("subjects")
-      .doc(subjectId)
-      .collection("tasks")
-      .doc(taskId)
-      .update(payload);
+    await window.db.collection("users").doc(state.selectedUserId)
+      .collection("subjects").doc(subjectId)
+      .collection("tasks").doc(taskId)
+      .update(buildTaskPayload(row));
     setStatus("Задание сохранено", "success");
     await renderTasksEditor();
   } catch (err) {
@@ -1081,6 +1066,56 @@ async function moveTaskInOrder(taskId, direction) {
   } catch (err) {
     setStatus("Не удалось сохранить порядок", "error");
     console.error(err);
+  }
+}
+
+async function saveAllTasksInBlock(subjectId) {
+  const block = els.tasksEditor.querySelector(`[data-task-block="${subjectId}"]`);
+  if (!block) return;
+  const rows = Array.from(block.querySelectorAll("[data-task-id]"));
+  if (!rows.length) return;
+  setStatus(`Сохраняю ${rows.length} заданий…`, "muted");
+  try {
+    const batch = window.db.batch();
+    rows.forEach((row) => {
+      const taskId = row.getAttribute("data-task-id");
+      if (!taskId) return;
+      const ref = window.db.collection("users").doc(state.selectedUserId)
+        .collection("subjects").doc(subjectId)
+        .collection("tasks").doc(taskId);
+      batch.update(ref, buildTaskPayload(row));
+    });
+    await batch.commit();
+    setStatus(`Сохранено ${rows.length} заданий ✅`, "success");
+    await renderTasksEditor();
+  } catch (err) {
+    setStatus("Ошибка при сохранении", "error");
+    console.error(err);
+  }
+}
+
+async function moveTmplTask(id, direction) {
+  const t = tmplData.find((x) => x.id === id);
+  if (!t) return;
+  const list = tmplData
+    .filter((x) => x.catalog_id === t.catalog_id)
+    .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+  const idx    = list.findIndex((x) => x.id === id);
+  const newIdx = direction === "up" ? idx - 1 : idx + 1;
+  if (idx < 0 || newIdx < 0 || newIdx >= list.length) return;
+  [list[idx], list[newIdx]] = [list[newIdx], list[idx]];
+  try {
+    const batch = window.db.batch();
+    list.forEach((item, i) => {
+      batch.update(window.db.collection("task_templates").doc(item.id), { order_index: i + 1 });
+      const local = tmplData.find((x) => x.id === item.id);
+      if (local) local.order_index = i + 1;
+    });
+    await batch.commit();
+    tmplData.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+    renderTmplEditor();
+  } catch (err) {
+    console.error("moveTmplTask:", err);
   }
 }
 
@@ -1765,6 +1800,12 @@ function renderTmplEditor() {
   editorEl.querySelectorAll("[data-add-tmpl-task]").forEach((btn) => {
     btn.addEventListener("click", () => void addTmplTask(btn.getAttribute("data-add-tmpl-task")));
   });
+  editorEl.querySelectorAll("[data-tmpl-move-up]").forEach((btn) => {
+    btn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); void moveTmplTask(btn.getAttribute("data-tmpl-move-up"), "up"); });
+  });
+  editorEl.querySelectorAll("[data-tmpl-move-down]").forEach((btn) => {
+    btn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); void moveTmplTask(btn.getAttribute("data-tmpl-move-down"), "down"); });
+  });
 }
 
 function renderTmplRow(t) {
@@ -1786,6 +1827,10 @@ function renderTmplRow(t) {
         <span class="muted" style="font-size:11px;">№${t.order_index || "?"}</span>
       </summary>
       <div class="task-row__body">
+        <div class="task-order-bar" role="group">
+          <button class="icon-btn" type="button" data-tmpl-move-up="${escapeAttr(t.id)}" title="Выше">↑</button>
+          <button class="icon-btn" type="button" data-tmpl-move-down="${escapeAttr(t.id)}" title="Ниже">↓</button>
+        </div>
         <div class="task-row__grid">
           <label><span>Название</span><input data-f="title" value="${escapeAttr(t.title || "")}" /></label>
           <label><span>Описание</span><input data-f="description" value="${escapeAttr(t.description || "")}" /></label>
