@@ -1830,6 +1830,7 @@ function renderTmplRow(t) {
         <div class="task-order-bar" role="group">
           <button class="icon-btn" type="button" data-tmpl-move-up="${escapeAttr(t.id)}" title="Выше">↑</button>
           <button class="icon-btn" type="button" data-tmpl-move-down="${escapeAttr(t.id)}" title="Ниже">↓</button>
+          <input data-f="order_index" type="number" min="1" step="1" value="${escapeAttr(String(t.order_index || 1))}" style="width:58px;" title="Порядковый номер" />
         </div>
         <div class="task-row__grid">
           <label><span>Название</span><input data-f="title" value="${escapeAttr(t.title || "")}" /></label>
@@ -1868,9 +1869,11 @@ async function saveTmplRow(row) {
   if (!id) return;
   const statusEl = document.querySelector(`[data-save-status="${id}"]`);
 
+  const orderVal = Number(row.querySelector('[data-f="order_index"]')?.value);
   const payload = {
     title:       (row.querySelector('[data-f="title"]')?.value       || "").trim() || "Задание",
     description: (row.querySelector('[data-f="description"]')?.value || "").trim(),
+    order_index: Number.isFinite(orderVal) && orderVal > 0 ? orderVal : (tmplData.find(x => x.id === id)?.order_index || 1),
     default_details: {
       lessonNotes:   (row.querySelector('[data-f="lessonNotes"]')?.value || "").trim(),
       lessonFiles:   readAttachmentsFromRow(row.querySelector('[id^="tmpl-lesson-files-"]')),
@@ -1885,9 +1888,10 @@ async function saveTmplRow(row) {
   if (statusEl) { statusEl.textContent = "Сохраняю…"; statusEl.className = "tmpl-save-status"; }
   try {
     await window.db.collection("task_templates").doc(id).update(payload);
-    if (statusEl) { statusEl.textContent = "✓ Сохранено"; statusEl.className = "tmpl-save-status ok"; }
     const t = tmplData.find((x) => x.id === id);
     if (t) Object.assign(t, payload);
+    tmplData.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+    renderTmplEditor();
   } catch (err) {
     if (statusEl) { statusEl.textContent = "Ошибка: " + err.message; statusEl.className = "tmpl-save-status err"; }
   }
