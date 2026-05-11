@@ -124,17 +124,20 @@ a {
   width: 40px;
   height: 40px;
   border-radius: 14px;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: rgba(255, 255, 255, 0.94);
-  background: linear-gradient(
-    135deg,
-    rgba(0, 122, 255, 0.95),
-    rgba(124, 58, 237, 0.95)
-  );
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
   box-shadow: 0 14px 30px rgba(0, 122, 255, 0.18);
+}
+
+.brand__mark dotlottie-wc {
+  width: 28px !important;
+  height: 28px !important;
+  display: block;
 }
 
 .brand__title {
