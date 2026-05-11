@@ -1612,7 +1612,7 @@ const SUBJECT_CATALOG = [
   },
   {
     slug: "oge_info", title: "ОГЭ Информатика", emoji: "💻", sort_order: 2,
-    default_tasks_total: 27, default_duration_minutes: 235,
+    default_tasks_total: 16, default_duration_minutes: 150,
     default_exam_date: "2026-06-15", default_exam_time: "10:00",
     default_tips: [
       "Чередуй теорию и практику по таймеру.",
