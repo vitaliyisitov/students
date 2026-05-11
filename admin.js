@@ -1094,6 +1094,47 @@ async function saveAllTasksInBlock(subjectId) {
   }
 }
 
+async function saveAllTmplInBlock(catalogId) {
+  const editorEl = document.getElementById("templatesEditor");
+  const block = editorEl?.querySelector(`[data-tmpl-block="${catalogId}"]`);
+  if (!block) return;
+  const rows = Array.from(block.querySelectorAll("[data-tmpl-id]"));
+  if (!rows.length) return;
+  setStatus(`Сохраняю ${rows.length} шаблонов…`, "muted");
+  try {
+    const batch = window.db.batch();
+    rows.forEach((row) => {
+      const id = row.getAttribute("data-tmpl-id");
+      if (!id) return;
+      const orderVal = Number(row.querySelector('[data-f="order_index"]')?.value);
+      const payload = {
+        title:       (row.querySelector('[data-f="title"]')?.value       || "").trim() || "Задание",
+        description: (row.querySelector('[data-f="description"]')?.value || "").trim(),
+        order_index: Number.isFinite(orderVal) && orderVal > 0 ? orderVal : (tmplData.find(x => x.id === id)?.order_index || 1),
+        default_details: {
+          lessonNotes:   (row.querySelector('[data-f="lessonNotes"]')?.value || "").trim(),
+          lessonFiles:   readAttachmentsFromRow(row.querySelector('[id^="tmpl-lesson-files-"]')),
+          homework:      splitLines(row.querySelector('[data-f="homework"]')?.value),
+          homeworkFiles: readAttachmentsFromRow(row.querySelector('[id^="tmpl-hw-files-"]')),
+          hints:         splitLines(row.querySelector('[data-f="hints"]')?.value),
+          hintFiles:     readAttachmentsFromRow(row.querySelector('[id^="tmpl-hint-files-"]')),
+          attachments:   [],
+        },
+      };
+      batch.update(window.db.collection("task_templates").doc(id), payload);
+      const t = tmplData.find(x => x.id === id);
+      if (t) Object.assign(t, payload);
+    });
+    await batch.commit();
+    tmplData.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+    renderTmplEditor();
+    setStatus(`Сохранено ${rows.length} шаблонов ✅`, "success");
+  } catch (err) {
+    setStatus("Ошибка при сохранении шаблонов", "error");
+    console.error(err);
+  }
+}
+
 async function moveTmplTask(id, direction) {
   const t = tmplData.find((x) => x.id === id);
   if (!t) return;
@@ -1772,10 +1813,11 @@ function renderTmplEditor() {
       ? templates.map(renderTmplRow).join("")
       : `<p class="muted" style="padding:0 18px">Шаблонов нет.</p>`;
     return `<div data-tmpl-block="${escapeAttr(c.id)}" style="display:${isActive ? "grid" : "none"};gap:8px;">
-      ${rows}
-      <div class="task-actions" style="padding:0 18px;">
+      <div style="display:flex;gap:8px;justify-content:flex-end;padding:0 18px;">
+        <button class="icon-btn" type="button" data-save-all-tmpl="${escapeAttr(c.id)}">💾 Сохранить все</button>
         <button class="icon-btn" type="button" data-add-tmpl-task="${escapeAttr(c.id)}">+ Добавить шаблон</button>
       </div>
+      ${rows}
     </div>`;
   }).join("");
 
@@ -1799,6 +1841,9 @@ function renderTmplEditor() {
   });
   editorEl.querySelectorAll("[data-add-tmpl-task]").forEach((btn) => {
     btn.addEventListener("click", () => void addTmplTask(btn.getAttribute("data-add-tmpl-task")));
+  });
+  editorEl.querySelectorAll("[data-save-all-tmpl]").forEach((btn) => {
+    btn.addEventListener("click", () => void saveAllTmplInBlock(btn.getAttribute("data-save-all-tmpl")));
   });
   editorEl.querySelectorAll("[data-tmpl-move-up]").forEach((btn) => {
     btn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); void moveTmplTask(btn.getAttribute("data-tmpl-move-up"), "up"); });
