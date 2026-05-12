@@ -362,7 +362,19 @@ function bindEvents() {
       state.section = section;
       saveState(state);
       renderTasks();
+      // Если пользователь проскролил ниже верха карточки — возвращаем к её началу
+      const cardTop = els.cardTasks.getBoundingClientRect().top + window.scrollY - 72;
+      if (window.scrollY > cardTop) {
+        window.scrollTo({ top: Math.max(0, cardTop), behavior: "instant" });
+      }
     });
+
+  els.trialsPanel.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-trial-open]");
+    if (!btn) return;
+    const subject = getSelectedSubject();
+    openTrialModal(btn.dataset.trialOpen, subject?.catalogSlug);
+  });
 
   els.modalClose.addEventListener("click", closeModal);
   els.modal.addEventListener("click", (e) => {
@@ -521,20 +533,53 @@ function renderTasks() {
     btn.classList.toggle("is-active", btn.dataset.section === state.section);
   });
 
+  // Точка-уведомление на табе «Пробные варианты» — обновляем при любом рендере
+  {
+    const _subj = getSelectedSubject();
+    const _trials = (data.trialsBySubjectId || {})[_subj?.id] || [];
+    els.cardTasks.querySelector("[data-section='trials']")
+      ?.classList.toggle("has-homework", _trials.some((t) => t.is_homework));
+  }
+
   if (isTrials) {
     const subject = getSelectedSubject();
     const trials = (data.trialsBySubjectId || {})[subject?.id] || [];
+
+    const barHtml = renderScoreBar(subject?.catalogSlug);
+    const scaleSection = barHtml
+      ? `<div class="task-part-label" role="heading" aria-level="3">Шкала перевода</div>${barHtml}`
+      : "";
+    const resultsHeading = `<div class="task-part-label" role="heading" aria-level="3">Результаты</div>`;
+
     if (!trials.length) {
-      els.trialsPanel.innerHTML = `<div class="trials-empty">
-        <div class="trials-empty__icon">📋</div>
-        <div class="trials-empty__title">Пробные варианты</div>
-        <div class="trials-empty__text">Здесь будут появляться результаты пробных экзаменов и полных вариантов.</div>
-      </div>`;
+      els.trialsPanel.innerHTML =
+        scaleSection +
+        resultsHeading +
+        `<div class="trials-empty">
+          <div class="trials-empty__icon">📋</div>
+          <div class="trials-empty__title">Пробные варианты</div>
+          <div class="trials-empty__text">Здесь будут появляться результаты пробных экзаменов и полных вариантов.</div>
+        </div>`;
     } else {
-      els.trialsPanel.innerHTML = trials.map((t) => renderTrialCard(t, subject?.catalogSlug)).join("");
+      // Группируем пробники по section_label (новый label = новый раздел)
+      let gridHtml = "";
+      let lastLabel = null;
+      for (const t of trials) {
+        const label = t.section_label?.trim() || "";
+        if (label && label !== lastLabel) {
+          gridHtml += `<div class="task-part-label">${escapeHtml(label)}</div>`;
+          lastLabel = label;
+        }
+        gridHtml += renderTrialCard(t, subject?.catalogSlug);
+      }
+      els.trialsPanel.innerHTML =
+        scaleSection +
+        resultsHeading +
+        `<div class="trials-grid">${gridHtml}</div>`;
     }
     return;
   }
+
 
   const subject = getSelectedSubject();
   const tasks = getTasksForSelectedSubject()
@@ -582,6 +627,7 @@ function openModal(task) {
   lastFocusedBeforeModal = document.activeElement;
   els.modalTitle.textContent = task.title;
   els.modalSubtitle.textContent = task.description || "";
+  els.modalBadge.hidden = false;
   els.modalBadge.textContent = formatStatus(task.status);
   els.modalBadge.className = `modal__badge badge--${task.status}`;
 
@@ -655,39 +701,110 @@ function renderTrialCard(trial, catalogSlug) {
   const title = trial.title || "Пробный вариант";
   const dateStr = trial.date ? formatTrialDate(trial.date) : null;
   const score = trial.score ? String(trial.score).trim() : null;
+  const converted = score ? convertScore(score, catalogSlug) : null;
+  const gradeLabel = catalogSlug?.startsWith("oge") ? "Оценка" : "Тест. балл";
+  const cardLevel = converted?.level ? `trial-card--${converted.level}` : "";
+
+  const statsHtml = score
+    ? `<div class="trial-card__stats">
+        <div class="trial-card__stat trial-card__stat--score">
+          <div class="trial-card__stat-value">${escapeHtml(score)}</div>
+          <div class="trial-card__stat-label">Баллы</div>
+        </div>
+        ${converted
+          ? `<div class="trial-card__stat trial-card__stat--${converted.level}">
+              <div class="trial-card__stat-value">${escapeHtml(converted.display)}</div>
+              <div class="trial-card__stat-label">${gradeLabel}</div>
+            </div>`
+          : ""}
+      </div>`
+    : "";
+
+  const hwBadge = trial.is_homework
+    ? `<span class="trial-card__hw-badge">ДЗ</span>`
+    : "";
+
+  return `<button class="trial-card ${cardLevel}" type="button" data-trial-open="${escapeAttr(trial.id)}">
+    <div class="trial-card__top">
+      <div class="trial-card__title-row">
+        <div class="trial-card__title">${escapeHtml(title)}</div>
+        ${hwBadge}
+      </div>
+      ${dateStr ? `<div class="trial-card__date">${escapeHtml(dateStr)}</div>` : ""}
+    </div>
+    ${statsHtml}
+  </button>`;
+}
+
+function openTrialModal(trialId, catalogSlug) {
+  const subject = getSelectedSubject();
+  const trials = (data.trialsBySubjectId || {})[subject?.id] || [];
+  const trial = trials.find((t) => t.id === trialId);
+  if (!trial) return;
+
+  lastFocusedBeforeModal = document.activeElement;
+
+  const score = trial.score ? String(trial.score).trim() : null;
+  const converted = score ? convertScore(score, catalogSlug) : null;
+  const gradeLabel = catalogSlug?.startsWith("oge") ? "Оценка" : "Тест. балл";
+  const dateStr = trial.date ? formatTrialDate(trial.date) : null;
   const variantUrl = trial.variant_url ? String(trial.variant_url).trim() : null;
   const solutionUrl = trial.solution_url ? String(trial.solution_url).trim() : null;
-  const converted = score ? convertScore(score, catalogSlug) : null;
 
-  const resultHtml = score
-    ? `<div class="trial-card__result">
-        <span class="trial-card__score">${escapeHtml(score)}</span>
-        ${converted ? `<span class="trial-card__result-arrow" aria-hidden="true">→</span>
-        <span class="trial-card__grade trial-card__grade--${converted.level}">${escapeHtml(converted.display)}</span>` : ""}
-      </div>`
-    : "";
+  els.modalTitle.textContent = trial.title || "Пробный вариант";
+  els.modalSubtitle.textContent = dateStr || "";
 
-  const filesHtml = (variantUrl || solutionUrl)
-    ? `<div class="trial-card__files">
-        ${variantUrl ? `<a class="trial-card__file-link" href="${escapeAttr(variantUrl)}" target="_blank" rel="noreferrer">
-          <img src="./icons/variant.png" alt="" aria-hidden="true" width="16" height="16" /> Вариант
-        </a>` : ""}
-        ${solutionUrl ? `<a class="trial-card__file-link" href="${escapeAttr(solutionUrl)}" target="_blank" rel="noreferrer">
-          <img src="./icons/solution.png" alt="" aria-hidden="true" width="16" height="16" /> Решение
-        </a>` : ""}
-      </div>`
-    : "";
+  els.modalBadge.textContent = "";
+  els.modalBadge.className = "modal__badge";
+  els.modalBadge.hidden = true;
 
-  return `<div class="trial-card">
-    <div class="trial-card__header">
-      <div class="trial-card__title">${escapeHtml(title)}</div>
-      <div class="trial-card__meta">
-        ${dateStr ? `<span class="trial-card__date">${escapeHtml(dateStr)}</span>` : ""}
-        ${resultHtml}
+  let html = "";
+
+  if (score) {
+    html += `<div class="section">
+      <div class="section__title">Результат</div>
+      <div class="trial-card__stats" style="max-width:280px;margin-top:14px">
+        <div class="trial-card__stat trial-card__stat--score">
+          <div class="trial-card__stat-value">${escapeHtml(score)}</div>
+          <div class="trial-card__stat-label">Первичные баллы</div>
+        </div>
+        ${converted
+          ? `<div class="trial-card__stat trial-card__stat--${converted.level}">
+              <div class="trial-card__stat-value">${escapeHtml(converted.display)}</div>
+              <div class="trial-card__stat-label">${escapeHtml(gradeLabel)}</div>
+            </div>`
+          : ""}
       </div>
-    </div>
-    ${filesHtml}
-  </div>`;
+    </div>`;
+  }
+
+  if (variantUrl || solutionUrl) {
+    html += `<div class="section">
+      <div class="section__title">Файлы</div>
+      <div class="attachments-list">
+        ${variantUrl
+          ? `<a class="attachment-link" href="${escapeAttr(variantUrl)}" target="_blank" rel="noreferrer">
+              <span class="attachment-link__icon" aria-hidden="true"><img src="./icons/variant.png" width="16" height="16" alt="" /></span>
+              <span>Вариант</span>
+            </a>`
+          : ""}
+        ${solutionUrl
+          ? `<a class="attachment-link" href="${escapeAttr(solutionUrl)}" target="_blank" rel="noreferrer">
+              <span class="attachment-link__icon" aria-hidden="true"><img src="./icons/solution.png" width="16" height="16" alt="" /></span>
+              <span>Решение</span>
+            </a>`
+          : ""}
+      </div>
+    </div>`;
+  }
+
+  if (!html) html = `<div class="section"><div class="section__body">Нет дополнительной информации.</div></div>`;
+
+  els.modalContent.innerHTML = html;
+  els.modal.classList.add("is-open");
+  els.modal.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+  setTimeout(() => els.modalClose.focus(), 0);
 }
 
 function formatTrialDate(dateStr) {
@@ -1086,6 +1203,50 @@ function convertScore(rawScoreStr, catalogSlug) {
   }
 
   return null;
+}
+
+// ─── Шкала перевода баллов ───────────────────────────────────────────────────
+// ОГЭ → цветная полоса с зонами   ЕГЭ → сетка «первичный → тестовый»
+function renderScoreBar(catalogSlug) {
+  const cfg = SCORE_CONVERSION[catalogSlug];
+  if (!cfg) return "";
+
+  if (cfg.type === "grade") {
+    const segsHtml = cfg.thresholds
+      .map((t, i) => {
+        const prevSpan =
+          i > 0 ? cfg.thresholds[i - 1].max - cfg.thresholds[i - 1].min + 1 : null;
+        const span = t.max === Infinity ? (prevSpan || 8) : t.max - t.min + 1;
+        const range = t.max === Infinity ? `${t.min}+` : `${t.min}–${t.max}`;
+        return (
+          `<div class="score-bar__zone score-bar__zone--grade-${t.grade}" style="flex:${span}">` +
+          `<span class="score-bar__zone-range">${range}</span>` +
+          `<span class="score-bar__zone-val">${t.grade}</span>` +
+          `</div>`
+        );
+      })
+      .join("");
+    return `<div class="score-bar"><div class="score-bar__track">${segsHtml}</div></div>`;
+  }
+
+  if (cfg.type === "test") {
+    const itemsHtml = cfg.table
+      .map((testScore, primary) => {
+        const zone = cfg.thresholds.find((t) => testScore >= t.min && testScore <= t.max);
+        const level = zone?.level || "mid";
+        return (
+          `<div class="score-lookup__item score-lookup__item--${level}">` +
+          `<span class="score-lookup__primary">${primary}</span>` +
+          `<span class="score-lookup__sep">→</span>` +
+          `<span class="score-lookup__test">${testScore}</span>` +
+          `</div>`
+        );
+      })
+      .join("");
+    return `<div class="score-bar"><div class="score-lookup">${itemsHtml}</div></div>`;
+  }
+
+  return "";
 }
 
 // ─── Иконки предметов по catalogSlug ─────────────────────────────────────────
