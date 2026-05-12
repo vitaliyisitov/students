@@ -30,6 +30,8 @@ const els = {
   greetingEyebrow: document.getElementById("greetingEyebrow"),
   greetingTitle: document.getElementById("greetingTitle"),
   subjectPill: document.getElementById("subjectPill"),
+  subjectPillIcon: document.getElementById("subjectPillIcon"),
+  subjectPillText: document.getElementById("subjectPillText"),
   progressValue: document.getElementById("progressValue"),
   heroCompleted: document.getElementById("heroCompleted"),
   heroInProgress: document.getElementById("heroInProgress"),
@@ -267,9 +269,7 @@ function mapSubject(row) {
       ? row.title.trim()
       : "Предмет";
   const emoji =
-    typeof row.emoji === "string" && row.emoji.trim()
-      ? row.emoji.trim()
-      : "📘";
+    typeof row.emoji === "string" && row.emoji.trim() ? row.emoji.trim() : "📘";
   const tips = Array.isArray(row.tips) ? row.tips : [];
 
   return {
@@ -356,7 +356,7 @@ function renderSubjectTabs() {
     .map((s) => {
       const active = s.id === state.selectedSubjectId ? "is-active" : "";
       return `<button class="tab ${active}" type="button" data-subject="${escapeAttr(s.id)}" aria-pressed="${s.id === state.selectedSubjectId}">
-        <span aria-hidden="true">${escapeHtml(s.emoji || "📘")}</span>
+        <img src="${escapeAttr(subjectIconSrc(s.catalogSlug))}" alt="" aria-hidden="true" class="tab-icon" width="18" height="18" />
         <span>${escapeHtml(s.title)}</span>
       </button>`;
     })
@@ -369,10 +369,12 @@ function renderGreeting() {
   const greeting = getGreeting();
 
   els.greetingEyebrow.textContent = greeting.subtitle;
-  els.greetingTitle.textContent = `${greeting.title}, ${name} 👋`;
-  els.subjectPill.textContent = subject
-    ? `${subject.emoji} ${subject.title}`
-    : "—";
+  els.greetingTitle.textContent = `${greeting.title}, ${name}`;
+  if (els.subjectPillText) els.subjectPillText.textContent = subject ? subject.title : "—";
+  if (els.subjectPillIcon) {
+    els.subjectPillIcon.src = subjectIconSrc(subject?.catalogSlug);
+    els.subjectPillIcon.hidden = !subject;
+  }
 
   const subjectTasks = getTasksForSelectedSubject();
   const counts = countStatuses(subjectTasks);
@@ -462,15 +464,25 @@ function openModal(task) {
   els.modalBadge.textContent = formatStatus(task.status);
   els.modalBadge.className = `modal__badge badge--${task.status}`;
 
-  const details       = task.details || {};
-  const lessonFiles   = Array.isArray(details.lessonFiles)   ? details.lessonFiles   : [];
-  const homeworkFiles = Array.isArray(details.homeworkFiles) ? details.homeworkFiles : [];
-  const hintFiles     = Array.isArray(details.hintFiles)     ? details.hintFiles     : [];
-  const attachments   = Array.isArray(details.attachments)   ? details.attachments   : [];
+  const details = task.details || {};
+  const lessonFiles = Array.isArray(details.lessonFiles)
+    ? details.lessonFiles
+    : [];
+  const homeworkFiles = Array.isArray(details.homeworkFiles)
+    ? details.homeworkFiles
+    : [];
+  const hintFiles = Array.isArray(details.hintFiles) ? details.hintFiles : [];
+  const attachments = Array.isArray(details.attachments)
+    ? details.attachments
+    : [];
   els.modalContent.innerHTML = [
-    renderSectionWithFiles("Конспект",         details.lessonNotes || "", lessonFiles),
-    renderSectionWithFiles("Домашнее задание", details.homework    || [], homeworkFiles),
-    renderSectionWithFiles("Подсказки",        details.hints       || [], hintFiles),
+    renderSectionWithFiles("Конспект", details.lessonNotes || "", lessonFiles),
+    renderSectionWithFiles(
+      "Домашнее задание",
+      details.homework || [],
+      homeworkFiles,
+    ),
+    renderSectionWithFiles("Подсказки", details.hints || [], hintFiles),
     attachments.length ? renderAttachmentsSection(attachments) : "",
   ].join("");
 
@@ -543,38 +555,61 @@ function renderRichSection(title, rawValue) {
 }
 
 function renderSectionWithFiles(title, rawValue, files) {
-  const lines  = normalizeRichLines(rawValue);
+  const lines = normalizeRichLines(rawValue);
   const parsed = lines.reduce(
-    (acc, line) => { const link = parseRichLink(line); link ? acc.links.push(link) : acc.texts.push(line); return acc; },
+    (acc, line) => {
+      const link = parseRichLink(line);
+      link ? acc.links.push(link) : acc.texts.push(line);
+      return acc;
+    },
     { texts: [], links: [] },
   );
 
-  const fileLinks = (files || []).map((item) => {
-    const s = String(item || "").trim();
-    if (!s) return null;
-    if (s.includes("|")) {
-      const idx = s.indexOf("|");
-      return { label: s.slice(0, idx).trim() || "Файл", href: s.slice(idx + 1).trim() };
-    }
-    try { new URL(s); return { label: "Открыть файл", href: s }; } catch { return null; }
-  }).filter(Boolean);
+  const fileLinks = (files || [])
+    .map((item) => {
+      const s = String(item || "").trim();
+      if (!s) return null;
+      if (s.includes("|")) {
+        const idx = s.indexOf("|");
+        return {
+          label: s.slice(0, idx).trim() || "Файл",
+          href: s.slice(idx + 1).trim(),
+        };
+      }
+      try {
+        new URL(s);
+        return { label: "Открыть файл", href: s };
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
 
   const bodyHtml = parsed.texts.length
     ? `<div class="section__body">${parsed.texts.map((x) => escapeHtml(x)).join("<br />")}</div>`
     : "";
 
-  const hasContent = parsed.texts.length || parsed.links.length || fileLinks.length;
+  const hasContent =
+    parsed.texts.length || parsed.links.length || fileLinks.length;
 
   return `
     <div class="section">
       <div class="section__title">${escapeHtml(title)}</div>
       ${bodyHtml}
       ${parsed.links.length ? renderLinks(parsed.links) : ""}
-      ${fileLinks.length ? `<div class="attachments-list" style="margin-top:10px">${fileLinks.map((a) => `
+      ${
+        fileLinks.length
+          ? `<div class="attachments-list" style="margin-top:10px">${fileLinks
+              .map(
+                (a) => `
         <a class="attachment-link" href="${escapeAttr(a.href)}" target="_blank" rel="noreferrer">
           <span class="attachment-link__icon" aria-hidden="true">${getFileIcon(a.href, a.label)}</span>
           <span>${escapeHtml(a.label)}</span>
-        </a>`).join("")}</div>` : ""}
+        </a>`,
+              )
+              .join("")}</div>`
+          : ""
+      }
       ${!hasContent ? `<div class="section__body">—</div>` : ""}
     </div>`;
 }
@@ -591,11 +626,11 @@ function normalizeRichLines(rawValue) {
 function getFileIcon(href, label) {
   const s = ((href || "") + " " + (label || "")).toLowerCase();
   if (/\.(jpe?g|png|gif|webp|svg|bmp|heic)(\?|#|$)/.test(s)) return "🖼️";
-  if (/\.pdf(\?|#|$)/.test(s))                                  return "📄";
-  if (/\.(mp4|mov|avi|mkv|webm|m4v)(\?|#|$)/.test(s))          return "🎬";
-  if (/\.(mp3|wav|ogg|m4a|aac)(\?|#|$)/.test(s))               return "🎵";
-  if (/\.(docx?|pages)(\?|#|$)/.test(s))                       return "📝";
-  if (/\.(xlsx?|numbers|csv)(\?|#|$)/.test(s))                 return "📊";
+  if (/\.pdf(\?|#|$)/.test(s)) return "📄";
+  if (/\.(mp4|mov|avi|mkv|webm|m4v)(\?|#|$)/.test(s)) return "🎬";
+  if (/\.(mp3|wav|ogg|m4a|aac)(\?|#|$)/.test(s)) return "🎵";
+  if (/\.(docx?|pages)(\?|#|$)/.test(s)) return "📝";
+  if (/\.(xlsx?|numbers|csv)(\?|#|$)/.test(s)) return "📊";
   return "📎";
 }
 
@@ -613,25 +648,39 @@ function parseRichLink(line) {
 }
 
 function renderAttachmentsSection(attachments) {
-  const links = attachments.map((item) => {
-    const s = String(item || "").trim();
-    if (s.includes("|")) {
-      const idx = s.indexOf("|");
-      return { label: s.slice(0, idx).trim() || "Файл", href: s.slice(idx + 1).trim() };
-    }
-    try { new URL(s); return { label: "Открыть файл", href: s }; } catch { return null; }
-  }).filter(Boolean);
+  const links = attachments
+    .map((item) => {
+      const s = String(item || "").trim();
+      if (s.includes("|")) {
+        const idx = s.indexOf("|");
+        return {
+          label: s.slice(0, idx).trim() || "Файл",
+          href: s.slice(idx + 1).trim(),
+        };
+      }
+      try {
+        new URL(s);
+        return { label: "Открыть файл", href: s };
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
 
   if (!links.length) return "";
   return `
     <div class="section section--attachments">
       <div class="section__title">📎 Записи и файлы</div>
       <div class="attachments-list">
-        ${links.map((a) => `
+        ${links
+          .map(
+            (a) => `
           <a class="attachment-link" href="${escapeAttr(a.href)}" target="_blank" rel="noreferrer">
             <span class="attachment-link__icon" aria-hidden="true">${getFileIcon(a.href, a.label)}</span>
             <span>${escapeHtml(a.label)}</span>
-          </a>`).join("")}
+          </a>`,
+          )
+          .join("")}
       </div>
     </div>`;
 }
@@ -690,11 +739,16 @@ function getTasksForSelectedSubject() {
 
 function formatStatus(status) {
   switch (status) {
-    case "not_started": return "Не начато";
-    case "in_progress": return "В процессе";
-    case "homework":    return "Сделать ДЗ";
-    case "completed":   return "Пройдено";
-    default:            return "—";
+    case "not_started":
+      return "Не начато";
+    case "in_progress":
+      return "В процессе";
+    case "homework":
+      return "Сделать ДЗ";
+    case "completed":
+      return "Пройдено";
+    default:
+      return "—";
   }
 }
 
@@ -713,25 +767,30 @@ function filterTasks(tasks, filter) {
 function setActiveFilterChip(filter) {
   els.cardTasks
     .querySelectorAll("button[data-filter]")
-    .forEach((c) => c.classList.toggle("is-active", c.dataset.filter === filter));
+    .forEach((c) =>
+      c.classList.toggle("is-active", c.dataset.filter === filter),
+    );
 }
 
 function getGreeting() {
   const h = new Date().getHours();
-  if (h < 5)  return { title: "Доброй ночи",  subtitle: "Дашборд" };
-  if (h < 12) return { title: "Доброе утро",  subtitle: "Дашборд" };
-  if (h < 18) return { title: "Добрый день",  subtitle: "Дашборд" };
-  return          { title: "Добрый вечер", subtitle: "Дашборд" };
+  if (h < 5) return { title: "Доброй ночи", subtitle: "Дашборд" };
+  if (h < 12) return { title: "Доброе утро", subtitle: "Дашборд" };
+  if (h < 18) return { title: "Добрый день", subtitle: "Дашборд" };
+  return { title: "Добрый вечер", subtitle: "Дашборд" };
 }
 
 function startClock() {
   const tick = () => {
     const now = new Date();
     els.nowDate.textContent = now.toLocaleDateString(undefined, {
-      weekday: "short", month: "short", day: "2-digit",
+      weekday: "short",
+      month: "short",
+      day: "2-digit",
     });
     els.nowTime.textContent = now.toLocaleTimeString(undefined, {
-      hour: "2-digit", minute: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
   tick();
@@ -748,8 +807,16 @@ function startCountdownTicker() {
 
 function daysUntil(date) {
   const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfTarget = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  );
+  const startOfTarget = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  );
   return Math.round((startOfTarget - startOfToday) / (1000 * 60 * 60 * 24));
 }
 
@@ -760,16 +827,33 @@ function parseISODate(iso) {
 }
 
 function pluralizeDays(n) {
-  const mod10 = n % 10, mod100 = n % 100;
+  const mod10 = n % 10,
+    mod100 = n % 100;
   if (mod10 === 1 && mod100 !== 11) return "день";
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "дня";
   return "дней";
 }
 
+// ─── Иконки предметов по catalogSlug ─────────────────────────────────────────
+// Добавь новые slug → файл по аналогии. Файлы должны лежать в папке ./icons/
+const SUBJECT_ICONS = {
+  oge_math: "./icons/oge_math.png",
+  oge_info: "./icons/oge_info.png",
+  ege_math: "./icons/ege_math.png",
+  ege_info: "./icons/ege_info.png",
+};
+const SUBJECT_ICON_FALLBACK = "./icons/subject.png";
+
+function subjectIconSrc(catalogSlug) {
+  return SUBJECT_ICONS[catalogSlug] || SUBJECT_ICON_FALLBACK;
+}
+
 function escapeHtml(value) {
   return String(value)
-    .replaceAll("&", "&amp;").replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;").replaceAll('"', "&quot;")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
 
@@ -778,7 +862,9 @@ function escapeAttr(value) {
 }
 
 function saveState(next) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch {}
 }
 
 function loadState() {
@@ -787,5 +873,7 @@ function loadState() {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return parsed && typeof parsed === "object" ? parsed : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
