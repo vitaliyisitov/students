@@ -217,7 +217,9 @@ a {
   display: grid;
   place-items: center;
   pointer-events: none;
-  transition: opacity 220ms ease, visibility 220ms ease;
+  transition:
+    opacity 220ms ease,
+    visibility 220ms ease;
 }
 
 .app-loader.is-hidden {
@@ -391,6 +393,9 @@ body.is-app-loading #appShell {
 }
 
 .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid rgba(15, 23, 42, 0.12);
   padding: 8px 10px;
   border-radius: 999px;
@@ -398,6 +403,37 @@ body.is-app-loading #appShell {
   font-size: 13px;
   background: rgba(255, 255, 255, 0.66);
   white-space: nowrap;
+}
+
+.pill-icon {
+  flex-shrink: 0;
+  display: block;
+}
+
+/* ─── Заголовок приветствия ──────────────────────────────────────────────── */
+
+.greeting-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.greeting-icon {
+  flex-shrink: 0;
+  display: block;
+}
+
+/* ─── Иконка в таб-кнопке ────────────────────────────────────────────────── */
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tab-icon {
+  flex-shrink: 0;
+  display: block;
 }
 
 .icon-btn {
@@ -434,6 +470,7 @@ body.is-app-loading #appShell {
 .hero-grid {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
+  align-items: stretch;
   gap: 12px;
   margin-top: 10px;
   width: 100%;
@@ -471,17 +508,17 @@ body.is-app-loading #appShell {
 
 .hero-summary {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-rows: 1fr;
+  grid-template-columns: repeat(2, 1fr);
+  align-content: stretch;
   gap: 10px;
+  align-self: stretch;
 }
 
 .kpi {
-  padding: 12px 12px;
+  padding: 12px 14px;
   background: rgba(255, 255, 255, 0.8);
   border: 1px solid rgba(15, 23, 42, 0.16);
   border-radius: 16px;
-  height: 100%;
 }
 
 .kpi__label {
@@ -493,8 +530,35 @@ body.is-app-loading #appShell {
   margin-top: 6px;
   font-size: 26px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* ─── KPI статусные цвета ────────────────────────────────────────────────── */
+
+.kpi--completed {
+  background: rgba(52, 199, 89, 0.10);
+  border-color: rgba(52, 199, 89, 0.28);
+}
+.kpi--completed .kpi__value { color: #0f6e2b; }
+
+.kpi--in_progress {
+  background: rgba(0, 122, 255, 0.08);
+  border-color: rgba(0, 122, 255, 0.25);
+}
+.kpi--in_progress .kpi__value { color: #00408c; }
+
+.kpi--homework {
+  background: rgba(255, 159, 10, 0.10);
+  border-color: rgba(255, 159, 10, 0.28);
+}
+.kpi--homework .kpi__value { color: #7a4500; }
+
+.kpi--not_started {
+  background: rgba(100, 116, 139, 0.07);
+  border-color: rgba(100, 116, 139, 0.18);
+}
+.kpi--not_started .kpi__value { color: #475569; }
 
 .progress {
   margin-top: 14px;
@@ -888,7 +952,11 @@ body.is-app-loading #appShell {
 /* ─── Вложения в модальном окне ученика ─────────────────────────────────── */
 
 .section--attachments {
-  background: linear-gradient(135deg, rgba(0,122,255,0.06), rgba(124,58,237,0.04));
+  background: linear-gradient(
+    135deg,
+    rgba(0, 122, 255, 0.06),
+    rgba(124, 58, 237, 0.04)
+  );
   border-color: rgba(0, 122, 255, 0.15);
 }
 
@@ -910,7 +978,10 @@ body.is-app-loading #appShell {
   font-size: 14px;
   font-weight: 600;
   color: var(--blue);
-  transition: box-shadow 140ms ease, background 140ms ease, transform 140ms ease;
+  transition:
+    box-shadow 140ms ease,
+    background 140ms ease,
+    transform 140ms ease;
 }
 
 .attachment-link:hover {
