@@ -8,7 +8,7 @@
       name="description"
       content="Личный кабинет ученика для подготовки к экзаменам"
     />
-    <link rel="stylesheet" href="./styles.css?v=2" />
+    <link rel="stylesheet" href="./styles.css?v=3" />
     <link rel="icon" href="favicon.png" type="image/png" />
   </head>
   <body>
@@ -70,12 +70,31 @@
         <section class="bento" aria-label="Панель ученика">
           <article class="card card--hero" id="cardGreeting">
             <div class="card__header">
-              <div>
+              <div class="greeting-title-wrap">
                 <div class="eyebrow" id="greetingEyebrow">Дашборд</div>
-                <h1 class="h1" id="greetingTitle">Привет —</h1>
+                <div class="greeting-title-row">
+                  <h1 class="h1" id="greetingTitle">Привет —</h1>
+                  <img
+                    src="./icons/wave.png"
+                    alt=""
+                    aria-hidden="true"
+                    class="greeting-icon"
+                    width="36"
+                    height="36"
+                  />
+                </div>
               </div>
               <div class="pill" id="subjectPill" title="Выбранный предмет">
-                —
+                <img
+                  src="./icons/subject.png"
+                  alt=""
+                  aria-hidden="true"
+                  class="pill-icon"
+                  id="subjectPillIcon"
+                  width="16"
+                  height="16"
+                />
+                <span id="subjectPillText">—</span>
               </div>
             </div>
 
@@ -103,19 +122,19 @@
                 </div>
 
                 <div class="hero-summary">
-                  <div class="kpi">
+                  <div class="kpi kpi--completed">
                     <div class="kpi__label">Пройдено</div>
                     <div class="kpi__value" id="heroCompleted">—</div>
                   </div>
-                  <div class="kpi">
+                  <div class="kpi kpi--in_progress">
                     <div class="kpi__label">В процессе</div>
                     <div class="kpi__value" id="heroInProgress">—</div>
                   </div>
-                  <div class="kpi">
+                  <div class="kpi kpi--homework">
                     <div class="kpi__label">Сделать ДЗ</div>
                     <div class="kpi__value" id="heroHomework">—</div>
                   </div>
-                  <div class="kpi">
+                  <div class="kpi kpi--not_started">
                     <div class="kpi__label">Не начато</div>
                     <div class="kpi__value" id="heroNotStarted">—</div>
                   </div>
@@ -234,7 +253,7 @@
     <script src="./firebase.config.js?v=2"></script>
     <script src="./firebase.config.js?v=3"></script>
     <script src="./script.js?v=2" defer></script>
-        <script
+    <script
       src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.14/dist/dotlottie-wc.js"
       type="module"
     ></script>
