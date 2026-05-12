@@ -279,6 +279,128 @@ body.is-app-loading #appShell {
   margin: 10px 0 16px;
 }
 
+/* ─── Переключатель Задания / Пробники ───────────────────────────────────── */
+
+.section-switcher {
+  display: inline-flex;
+  gap: 2px;
+  background: rgba(15, 23, 42, 0.06);
+  border-radius: 12px;
+  padding: 3px;
+  margin-top: 6px;
+}
+
+.section-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 6px 16px;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.section-tab.is-active {
+  background: #fff;
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* ─── Заголовок части заданий ────────────────────────────────────────────── */
+
+.task-part-label {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 4px 2px 2px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.task-part-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(15, 23, 42, 0.1);
+}
+
+/* ─── Заглушка пробников ─────────────────────────────────────────────────── */
+
+.trials-panel {
+  padding: 0 18px 18px;
+}
+
+.trials-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 20px;
+  background: rgba(15, 23, 42, 0.03);
+  border: 1px dashed rgba(15, 23, 42, 0.14);
+  border-radius: 18px;
+  gap: 8px;
+}
+
+.trials-empty__icon { font-size: 32px; }
+.trials-empty__title { font-weight: 700; font-size: 16px; }
+.trials-empty__text { font-size: 14px; color: var(--muted); max-width: 320px; line-height: 1.5; }
+
+/* ─── Карточки пробников ─────────────────────────────────────────────────── */
+
+.trial-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface, #fff);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 14px;
+  margin-bottom: 10px;
+}
+.trial-card:last-child { margin-bottom: 0; }
+
+.trial-card__title {
+  font-weight: 600;
+  font-size: 15px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trial-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.trial-card__date {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.trial-card__score {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  background: rgba(15, 23, 42, 0.06);
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
 .tab {
   appearance: none;
   color: var(--text);
@@ -410,17 +532,23 @@ body.is-app-loading #appShell {
   display: block;
 }
 
-/* ─── Заголовок приветствия ──────────────────────────────────────────────── */
-
-.greeting-title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+/* ─── Иконка приветствия (inline внутри h1) ──────────────────────────────── */
 
 .greeting-icon {
-  flex-shrink: 0;
-  display: block;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 4px;
+  position: relative;
+  top: -2px;
+  width: 36px;
+  height: 36px;
+}
+
+@media (max-width: 640px) {
+  .greeting-icon {
+    width: 24px;
+    height: 24px;
+  }
 }
 
 /* ─── Иконка в таб-кнопке ────────────────────────────────────────────────── */
