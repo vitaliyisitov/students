@@ -6,6 +6,7 @@ const state = {
   selectedUserId: null,
   selectedUserSubjects: [],
   tasksBySubjectId: {},
+  trials: [],          // пробники текущего ученика
 };
 
 const els = {
@@ -26,6 +27,7 @@ const els = {
   archiveBtn: document.getElementById("archiveBtn"),
   deleteStudentBtn: document.getElementById("deleteStudentBtn"),
   tasksEditor: document.getElementById("tasksEditor"),
+  trialsEditor: document.getElementById("trialsEditor"),
 
   statusBox: document.getElementById("statusBox"),
 };
@@ -386,8 +388,19 @@ async function loadUsers(preserveSelected = true, autoSelect = true) {
 async function selectUser(userId) {
   state.selectedUserId = userId;
   renderStudentsList();
-  await loadUserSubjects(userId);
+  await Promise.all([loadUserSubjects(userId), loadUserTrials(userId)]);
   renderEditPanel();
+}
+
+async function loadUserTrials(userId) {
+  try {
+    const snap = await window.db
+      .collection("users").doc(userId).collection("trials")
+      .orderBy("order_index").get();
+    state.trials = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch {
+    state.trials = [];
+  }
 }
 
 async function loadUserSubjects(userId) {
@@ -455,6 +468,7 @@ function renderEditPanel() {
     state.selectedUserSubjects.map((s) => s.catalog_id).filter(Boolean),
   );
   renderSubjectSettings();
+  renderTrialsEditor();
   void renderTasksEditor();
 }
 
@@ -1835,6 +1849,122 @@ function initPageTabs() {
   document
     .getElementById("loadTemplatesBtn")
     ?.addEventListener("click", () => loadTemplates());
+}
+
+// ─── Пробники ─────────────────────────────────────────────────────────────────
+
+function renderTrialsEditor() {
+  const root = els.trialsEditor;
+  if (!root) return;
+
+  if (!state.selectedUserId) {
+    root.innerHTML = `<p class="muted admin-empty">Выбери ученика из списка.</p>`;
+    return;
+  }
+
+  const rows = state.trials.map((t) => trialRowHtml(t)).join("");
+
+  root.innerHTML = `
+    <div style="display:flex;gap:8px;justify-content:flex-end;padding:0 2px 4px;">
+      <button class="icon-btn" type="button" id="addTrialBtn">+ Добавить пробник</button>
+    </div>
+    ${rows || `<p class="muted" style="margin:0;padding:4px 2px;">Пробников пока нет.</p>`}
+  `;
+
+  root.querySelector("#addTrialBtn")?.addEventListener("click", addTrial);
+
+  root.querySelectorAll("[data-save-trial]").forEach((btn) => {
+    btn.addEventListener("click", () => saveTrial(btn.dataset.saveTrial));
+  });
+  root.querySelectorAll("[data-delete-trial]").forEach((btn) => {
+    btn.addEventListener("click", () => deleteTrial(btn.dataset.deleteTrial));
+  });
+}
+
+function trialRowHtml(t) {
+  return `
+    <div class="trial-row" data-trial-id="${t.id}">
+      <div class="trial-row__fields">
+        <label class="trial-field">
+          <span>Название</span>
+          <input type="text" data-tf="title" value="${escapeAttrAdmin(t.title || "")}" placeholder="Пробник 1 — март 2026" />
+        </label>
+        <label class="trial-field">
+          <span>Дата</span>
+          <input type="date" data-tf="date" value="${escapeAttrAdmin(t.date || "")}" />
+        </label>
+        <label class="trial-field">
+          <span>Результат</span>
+          <input type="text" data-tf="score" value="${escapeAttrAdmin(t.score || "")}" placeholder="18 / 25" />
+        </label>
+      </div>
+      <div class="trial-row__actions">
+        <button class="icon-btn" type="button" data-save-trial="${t.id}">Сохранить</button>
+        <button class="icon-btn danger" type="button" data-delete-trial="${t.id}">Удалить</button>
+      </div>
+    </div>`;
+}
+
+function escapeAttrAdmin(v) {
+  return String(v).replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+async function addTrial() {
+  if (!state.selectedUserId) return;
+  try {
+    const ref = await window.db
+      .collection("users").doc(state.selectedUserId).collection("trials")
+      .add({
+        title: "",
+        date: new Date().toISOString().slice(0, 10),
+        score: "",
+        order_index: (state.trials.length + 1),
+        created_at: new Date().toISOString(),
+      });
+    state.trials.push({ id: ref.id, title: "", date: new Date().toISOString().slice(0, 10), score: "", order_index: state.trials.length });
+    renderTrialsEditor();
+  } catch (err) {
+    setStatus("Ошибка при создании пробника", "error");
+    console.error(err);
+  }
+}
+
+async function saveTrial(trialId) {
+  if (!state.selectedUserId || !trialId) return;
+  const row = els.trialsEditor.querySelector(`[data-trial-id="${trialId}"]`);
+  if (!row) return;
+  const payload = {
+    title: row.querySelector('[data-tf="title"]')?.value.trim() || "",
+    date:  row.querySelector('[data-tf="date"]')?.value  || "",
+    score: row.querySelector('[data-tf="score"]')?.value.trim() || "",
+  };
+  try {
+    await window.db
+      .collection("users").doc(state.selectedUserId).collection("trials")
+      .doc(trialId).update(payload);
+    const local = state.trials.find((t) => t.id === trialId);
+    if (local) Object.assign(local, payload);
+    setStatus("Пробник сохранён ✅", "success");
+  } catch (err) {
+    setStatus("Ошибка при сохранении пробника", "error");
+    console.error(err);
+  }
+}
+
+async function deleteTrial(trialId) {
+  if (!state.selectedUserId || !trialId) return;
+  if (!confirm("Удалить пробник?")) return;
+  try {
+    await window.db
+      .collection("users").doc(state.selectedUserId).collection("trials")
+      .doc(trialId).delete();
+    state.trials = state.trials.filter((t) => t.id !== trialId);
+    renderTrialsEditor();
+    setStatus("Пробник удалён", "success");
+  } catch (err) {
+    setStatus("Ошибка при удалении пробника", "error");
+    console.error(err);
+  }
 }
 
 // ─── Каталог предметов ────────────────────────────────────────────────────────
