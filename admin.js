@@ -1936,6 +1936,12 @@ function renderTrialsEditor() {
   root.querySelectorAll("[data-delete-trial]").forEach((btn) => {
     btn.addEventListener("click", () => deleteTrial(btn.dataset.deleteTrial));
   });
+  root.querySelectorAll("[data-trial-up]").forEach((btn) => {
+    btn.addEventListener("click", () => moveTrialUpOrDown(btn.dataset.trialUp, "up"));
+  });
+  root.querySelectorAll("[data-trial-down]").forEach((btn) => {
+    btn.addEventListener("click", () => moveTrialUpOrDown(btn.dataset.trialDown, "down"));
+  });
   root.querySelectorAll("[data-fb-trial]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const fileField = btn.closest(".trial-file-field");
@@ -1954,6 +1960,7 @@ async function initTrialsEditorSubject() {
 }
 
 function trialRowHtml(t) {
+  const hwChecked = t.is_homework ? "checked" : "";
   return `
     <div class="trial-row" data-trial-id="${t.id}">
       <div class="trial-row__fields">
@@ -1968,6 +1975,19 @@ function trialRowHtml(t) {
         <label class="trial-field">
           <span>Результат</span>
           <input type="text" data-tf="score" value="${escapeAttrAdmin(t.score || "")}" placeholder="18 / 25" />
+        </label>
+      </div>
+      <div class="trial-row__meta">
+        <label class="trial-field trial-field--section">
+          <span>Раздел (заголовок над пробником)</span>
+          <input type="text" data-tf="section_label" value="${escapeAttrAdmin(t.section_label || "")}" placeholder="Декабрь 2025" />
+        </label>
+        <label class="trial-field trial-field--hw">
+          <span>Задание на ДЗ</span>
+          <div class="trial-hw-wrap">
+            <input type="checkbox" data-tf="is_homework" ${hwChecked} />
+            <span class="trial-hw-label">Показать точку на вкладке</span>
+          </div>
         </label>
       </div>
       <div class="trial-row__files">
@@ -1985,6 +2005,8 @@ function trialRowHtml(t) {
         </div>
       </div>
       <div class="trial-row__actions">
+        <button class="icon-btn icon-btn--sq" type="button" data-trial-up="${t.id}" title="Переместить вверх">↑</button>
+        <button class="icon-btn icon-btn--sq" type="button" data-trial-down="${t.id}" title="Переместить вниз">↓</button>
         <button class="icon-btn" type="button" data-save-trial="${t.id}">Сохранить</button>
         <button class="icon-btn danger" type="button" data-delete-trial="${t.id}">Удалить</button>
       </div>
@@ -2010,10 +2032,12 @@ async function addTrial() {
         score: "",
         variant_url: "",
         solution_url: "",
+        section_label: "",
+        is_homework: false,
         order_index: (state.trials.length + 1),
         created_at: new Date().toISOString(),
       });
-    state.trials.push({ id: ref.id, title: "", date: new Date().toISOString().slice(0, 10), score: "", variant_url: "", solution_url: "", order_index: state.trials.length });
+    state.trials.push({ id: ref.id, title: "", date: new Date().toISOString().slice(0, 10), score: "", variant_url: "", solution_url: "", section_label: "", is_homework: false, order_index: state.trials.length });
     renderTrialsEditor();
   } catch (err) {
     setStatus("Ошибка при создании пробника", "error");
@@ -2026,11 +2050,13 @@ async function saveTrial(trialId) {
   const row = els.trialsEditor.querySelector(`[data-trial-id="${trialId}"]`);
   if (!row) return;
   const payload = {
-    title:        row.querySelector('[data-tf="title"]')?.value.trim() || "",
-    date:         row.querySelector('[data-tf="date"]')?.value || "",
-    score:        row.querySelector('[data-tf="score"]')?.value.trim() || "",
-    variant_url:  row.querySelector('[data-tf="variant_url"]')?.value.trim() || "",
-    solution_url: row.querySelector('[data-tf="solution_url"]')?.value.trim() || "",
+    title:         row.querySelector('[data-tf="title"]')?.value.trim() || "",
+    date:          row.querySelector('[data-tf="date"]')?.value || "",
+    score:         row.querySelector('[data-tf="score"]')?.value.trim() || "",
+    variant_url:   row.querySelector('[data-tf="variant_url"]')?.value.trim() || "",
+    solution_url:  row.querySelector('[data-tf="solution_url"]')?.value.trim() || "",
+    section_label: row.querySelector('[data-tf="section_label"]')?.value.trim() || "",
+    is_homework:   row.querySelector('[data-tf="is_homework"]')?.checked ?? false,
   };
   const subjectId = state.selectedTrialSubjectId;
   try {
@@ -2044,6 +2070,36 @@ async function saveTrial(trialId) {
     setStatus("Пробник сохранён ✅", "success");
   } catch (err) {
     setStatus("Ошибка при сохранении пробника", "error");
+    console.error(err);
+  }
+}
+
+async function moveTrialUpOrDown(trialId, dir) {
+  const subjectId = state.selectedTrialSubjectId;
+  if (!state.selectedUserId || !subjectId) return;
+  const sorted = [...state.trials].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+  const idx = sorted.findIndex((t) => t.id === trialId);
+  const swapIdx = dir === "up" ? idx - 1 : idx + 1;
+  if (swapIdx < 0 || swapIdx >= sorted.length) return;
+  const a = sorted[idx];
+  const b = sorted[swapIdx];
+  const tmpIdx = a.order_index ?? idx + 1;
+  a.order_index = b.order_index ?? swapIdx + 1;
+  b.order_index = tmpIdx;
+  try {
+    await Promise.all([
+      window.db.collection("users").doc(state.selectedUserId)
+        .collection("subjects").doc(subjectId)
+        .collection("trials").doc(a.id).update({ order_index: a.order_index }),
+      window.db.collection("users").doc(state.selectedUserId)
+        .collection("subjects").doc(subjectId)
+        .collection("trials").doc(b.id).update({ order_index: b.order_index }),
+    ]);
+    state.trials = sorted;
+    renderTrialsEditor();
+    setStatus("Порядок обновлён ✅", "success");
+  } catch (err) {
+    setStatus("Ошибка при изменении порядка", "error");
     console.error(err);
   }
 }
