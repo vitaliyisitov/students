@@ -651,13 +651,31 @@ function renderTrialCard(trial) {
   const title = trial.title || "Пробный вариант";
   const dateStr = trial.date ? formatTrialDate(trial.date) : null;
   const score = trial.score ? String(trial.score).trim() : null;
+  const variantUrl = trial.variant_url ? String(trial.variant_url).trim() : null;
+  const solutionUrl = trial.solution_url ? String(trial.solution_url).trim() : null;
+  const converted = score ? convertScore(score, trial.catalog_slug) : null;
+
+  const filesHtml = (variantUrl || solutionUrl)
+    ? `<div class="trial-card__files">
+        ${variantUrl ? `<a class="trial-card__file-link" href="${escapeAttr(variantUrl)}" target="_blank" rel="noreferrer">
+          <span aria-hidden="true">📄</span> Вариант
+        </a>` : ""}
+        ${solutionUrl ? `<a class="trial-card__file-link" href="${escapeAttr(solutionUrl)}" target="_blank" rel="noreferrer">
+          <span aria-hidden="true">✅</span> Решение
+        </a>` : ""}
+      </div>`
+    : "";
 
   return `<div class="trial-card">
-    <div class="trial-card__title">${escapeHtml(title)}</div>
-    <div class="trial-card__meta">
-      ${dateStr ? `<span class="trial-card__date">${escapeHtml(dateStr)}</span>` : ""}
-      ${score ? `<span class="trial-card__score">${escapeHtml(score)}</span>` : ""}
+    <div class="trial-card__header">
+      <div class="trial-card__title">${escapeHtml(title)}</div>
+      <div class="trial-card__meta">
+        ${dateStr ? `<span class="trial-card__date">${escapeHtml(dateStr)}</span>` : ""}
+        ${score ? `<span class="trial-card__score">${escapeHtml(score)}</span>` : ""}
+        ${converted ? `<span class="trial-card__grade trial-card__grade--${converted.level}">${escapeHtml(converted.display)}</span>` : ""}
+      </div>
     </div>
+    ${filesHtml}
   </div>`;
 }
 
@@ -974,6 +992,89 @@ function pluralizeDays(n) {
   if (mod10 === 1 && mod100 !== 11) return "день";
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "дня";
   return "дней";
+}
+
+// ─── Конвертация баллов пробников ────────────────────────────────────────────
+// Редактируй пороги под актуальные шкалы каждого года.
+// type "grade"  → первичные баллы → оценка 2–5 (ОГЭ)
+// type "test"   → первичные баллы → тестовые баллы 0–100 (ЕГЭ)
+const SCORE_CONVERSION = {
+  oge_math: {
+    type: "grade",
+    thresholds: [
+      { min: 0,  max: 7,        grade: 2 },
+      { min: 8,  max: 14,       grade: 3 },
+      { min: 15, max: 21,       grade: 4 },
+      { min: 22, max: Infinity, grade: 5 },
+    ],
+  },
+  oge_info: {
+    type: "grade",
+    thresholds: [
+      { min: 0,  max: 4,        grade: 2 },
+      { min: 5,  max: 12,       grade: 3 },
+      { min: 13, max: 18,       grade: 4 },
+      { min: 19, max: Infinity, grade: 5 },
+    ],
+  },
+  ege_math: {
+    type: "test",
+    // индекс = первичный балл → тестовый балл (шкала 2025, профиль)
+    table: [
+      0, 6, 12, 17, 22, 27, 34, 40, 43, 46,
+      48, 52, 54, 56, 60, 64, 66, 68, 70, 73,
+      75, 77, 79, 82, 84, 86, 88, 90, 92, 94,
+      96, 98, 100,
+    ],
+    thresholds: [
+      { min: 0,  max: 26,  level: "fail" },
+      { min: 27, max: 49,  level: "low"  },
+      { min: 50, max: 74,  level: "mid"  },
+      { min: 75, max: 100, level: "high" },
+    ],
+  },
+  ege_info: {
+    type: "test",
+    // индекс = первичный балл → тестовый балл (шкала 2025)
+    table: [
+      0, 7, 14, 20, 27, 34, 40, 43, 46, 48,
+      51, 54, 56, 58, 60, 63, 65, 68, 70, 72,
+      74, 76, 79, 81, 83, 85, 88, 90, 92, 95,
+      98, 100,
+    ],
+    thresholds: [
+      { min: 0,  max: 39,  level: "fail" },
+      { min: 40, max: 59,  level: "low"  },
+      { min: 60, max: 79,  level: "mid"  },
+      { min: 80, max: 100, level: "high" },
+    ],
+  },
+};
+
+// Принимает строку "18 / 32" или "18", возвращает { display, level } или null
+function convertScore(rawScoreStr, catalogSlug) {
+  if (!rawScoreStr || !catalogSlug) return null;
+  const cfg = SCORE_CONVERSION[catalogSlug];
+  if (!cfg) return null;
+
+  const match = String(rawScoreStr).match(/\d+/);
+  if (!match) return null;
+  const primary = parseInt(match[0], 10);
+
+  if (cfg.type === "grade") {
+    const found = cfg.thresholds.find((t) => primary >= t.min && primary <= t.max);
+    if (!found) return null;
+    return { display: String(found.grade), level: `grade-${found.grade}` };
+  }
+
+  if (cfg.type === "test") {
+    const testScore = cfg.table[primary] ?? null;
+    if (testScore === null) return null;
+    const found = cfg.thresholds.find((t) => testScore >= t.min && testScore <= t.max);
+    return { display: String(testScore), level: found?.level || "mid" };
+  }
+
+  return null;
 }
 
 // ─── Иконки предметов по catalogSlug ─────────────────────────────────────────
