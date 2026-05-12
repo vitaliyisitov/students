@@ -70,19 +70,9 @@
         <section class="bento" aria-label="Панель ученика">
           <article class="card card--hero" id="cardGreeting">
             <div class="card__header">
-              <div class="greeting-title-wrap">
+              <div>
                 <div class="eyebrow" id="greetingEyebrow">Дашборд</div>
-                <div class="greeting-title-row">
-                  <h1 class="h1" id="greetingTitle">Привет —</h1>
-                  <img
-                    src="./icons/wave.png"
-                    alt=""
-                    aria-hidden="true"
-                    class="greeting-icon"
-                    width="36"
-                    height="36"
-                  />
-                </div>
+                <h1 class="h1" id="greetingTitle">Привет —</h1>
               </div>
               <div class="pill" id="subjectPill" title="Выбранный предмет">
                 <img
@@ -178,9 +168,12 @@
             <div class="card__header">
               <div>
                 <div class="eyebrow">План подготовки</div>
-                <h2 class="h2">Задания</h2>
+                <div class="section-switcher" role="tablist" aria-label="Раздел">
+                  <button class="section-tab is-active" type="button" data-section="tasks" role="tab">Задания</button>
+                  <button class="section-tab" type="button" data-section="trials" role="tab">Пробники</button>
+                </div>
               </div>
-              <div class="filters" aria-label="Фильтры заданий">
+              <div class="filters" id="taskFilters" aria-label="Фильтры заданий">
                 <button class="chip is-active" type="button" data-filter="all">
                   Все
                 </button>
@@ -206,6 +199,8 @@
             >
               <!-- rendered by JS -->
             </div>
+
+            <div class="trials-panel" id="trialsPanel" hidden></div>
           </article>
         </section>
       </div>
