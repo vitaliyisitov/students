@@ -1,3 +1,49 @@
+/* ─── Пробники (админка) ─────────────────────────────────────────────────── */
+
+.trial-row {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.trial-row__fields {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 8px;
+}
+
+.trial-field {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.trial-field input {
+  width: 100%;
+  appearance: none;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.9);
+  font: inherit;
+  font-size: 13px;
+}
+
+.trial-row__actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .trial-row__fields {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ─── Вкладки страницы ───────────────────────────────────────────────────── */
 
 .admin-page-tabs {
