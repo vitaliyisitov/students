@@ -8,7 +8,7 @@ let data = {
   },
   subjects: [],
   tasks: [],
-  trials: [],
+  trialsBySubjectId: {},
 };
 
 const DASHBOARD_ACCESS_TOKEN = getDashboardAccessTokenFromUrl();
@@ -190,21 +190,24 @@ async function loadDataFromFirebase() {
       snap.docs.map((d) => ({ id: d.id, ...d.data() })),
     );
 
-    let trialRows = [];
-    try {
-      const trialsSnap = await window.db
-        .collection("users")
-        .doc(userId)
-        .collection("trials")
-        .orderBy("order_index")
-        .get();
-      trialRows = trialsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    } catch {
-      /* trials необязательны */
-    }
+    // Загружаем пробники по каждому предмету параллельно
+    const trialsSnaps = await Promise.all(
+      subjectRows.map((s) =>
+        window.db
+          .collection("users").doc(userId)
+          .collection("subjects").doc(s.id)
+          .collection("trials")
+          .orderBy("order_index").get()
+          .catch(() => ({ docs: [] })),
+      ),
+    );
+    const trialsBySubjectId = {};
+    subjectRows.forEach((s, i) => {
+      trialsBySubjectId[s.id] = trialsSnaps[i].docs.map((d) => ({ id: d.id, ...d.data() }));
+    });
 
     data = buildDataFromPayload(userRow, subjectRows, taskRows);
-    data.trials = trialRows;
+    data.trialsBySubjectId = trialsBySubjectId;
     setDashboardGate(null);
   } catch (err) {
     console.error("Firebase load error:", err);
@@ -519,7 +522,8 @@ function renderTasks() {
   });
 
   if (isTrials) {
-    const trials = data.trials || [];
+    const subject = getSelectedSubject();
+    const trials = (data.trialsBySubjectId || {})[subject?.id] || [];
     if (!trials.length) {
       els.trialsPanel.innerHTML = `<div class="trials-empty">
         <div class="trials-empty__icon">📋</div>
@@ -527,7 +531,7 @@ function renderTasks() {
         <div class="trials-empty__text">Здесь будут появляться результаты пробных экзаменов и полных вариантов.</div>
       </div>`;
     } else {
-      els.trialsPanel.innerHTML = trials.map(renderTrialCard).join("");
+      els.trialsPanel.innerHTML = trials.map((t) => renderTrialCard(t, subject?.catalogSlug)).join("");
     }
     return;
   }
@@ -647,21 +651,29 @@ function renderTaskCard(task) {
     </button>`;
 }
 
-function renderTrialCard(trial) {
+function renderTrialCard(trial, catalogSlug) {
   const title = trial.title || "Пробный вариант";
   const dateStr = trial.date ? formatTrialDate(trial.date) : null;
   const score = trial.score ? String(trial.score).trim() : null;
   const variantUrl = trial.variant_url ? String(trial.variant_url).trim() : null;
   const solutionUrl = trial.solution_url ? String(trial.solution_url).trim() : null;
-  const converted = score ? convertScore(score, trial.catalog_slug) : null;
+  const converted = score ? convertScore(score, catalogSlug) : null;
+
+  const resultHtml = score
+    ? `<div class="trial-card__result">
+        <span class="trial-card__score">${escapeHtml(score)}</span>
+        ${converted ? `<span class="trial-card__result-arrow" aria-hidden="true">→</span>
+        <span class="trial-card__grade trial-card__grade--${converted.level}">${escapeHtml(converted.display)}</span>` : ""}
+      </div>`
+    : "";
 
   const filesHtml = (variantUrl || solutionUrl)
     ? `<div class="trial-card__files">
         ${variantUrl ? `<a class="trial-card__file-link" href="${escapeAttr(variantUrl)}" target="_blank" rel="noreferrer">
-          <span aria-hidden="true">📄</span> Вариант
+          <img src="./icons/variant.png" alt="" aria-hidden="true" width="16" height="16" /> Вариант
         </a>` : ""}
         ${solutionUrl ? `<a class="trial-card__file-link" href="${escapeAttr(solutionUrl)}" target="_blank" rel="noreferrer">
-          <span aria-hidden="true">✅</span> Решение
+          <img src="./icons/solution.png" alt="" aria-hidden="true" width="16" height="16" /> Решение
         </a>` : ""}
       </div>`
     : "";
@@ -671,8 +683,7 @@ function renderTrialCard(trial) {
       <div class="trial-card__title">${escapeHtml(title)}</div>
       <div class="trial-card__meta">
         ${dateStr ? `<span class="trial-card__date">${escapeHtml(dateStr)}</span>` : ""}
-        ${score ? `<span class="trial-card__score">${escapeHtml(score)}</span>` : ""}
-        ${converted ? `<span class="trial-card__grade trial-card__grade--${converted.level}">${escapeHtml(converted.display)}</span>` : ""}
+        ${resultHtml}
       </div>
     </div>
     ${filesHtml}
