@@ -216,6 +216,19 @@
               </p>
             </div>
           </section>
+
+          <section class="card admin__card">
+            <div class="card__header">
+              <div>
+                <div class="eyebrow">Пробники</div>
+                <h2 class="h2">Пробные варианты</h2>
+              </div>
+            </div>
+            <div id="trialsEditor" class="tasks-editor">
+              <p class="muted admin-empty">Выбери ученика из списка.</p>
+            </div>
+          </section>
+
         </div>
         <!-- /panel students -->
 
@@ -334,6 +347,14 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if request.auth != null
         &amp;&amp; request.resource.data.keys().hasAll(['title', 'status']);
+      allow delete: if request.auth != null;
+    }
+
+    // Пробные варианты ученика
+    match /users/{userId}/trials/{trialId} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+        &amp;&amp; request.resource.data.keys().hasAll(['title']);
       allow delete: if request.auth != null;
     }
   }
