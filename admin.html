@@ -350,8 +350,8 @@ service cloud.firestore {
       allow delete: if request.auth != null;
     }
 
-    // Пробные варианты ученика
-    match /users/{userId}/trials/{trialId} {
+    // Пробные варианты ученика (внутри предмета)
+    match /users/{userId}/subjects/{subjectId}/trials/{trialId} {
       allow read: if true;
       allow create, update: if request.auth != null
         &amp;&amp; request.resource.data.keys().hasAll(['title']);
