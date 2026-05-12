@@ -1,5 +1,20 @@
 /* ─── Пробники (админка) ─────────────────────────────────────────────────── */
 
+.trial-subject-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 0 2px 10px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  margin-bottom: 12px;
+}
+
+.trial-rows-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .trial-row {
   border: 1px solid rgba(15, 23, 42, 0.12);
   border-radius: 14px;
@@ -11,7 +26,7 @@
 
 .trial-row__fields {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr;
   gap: 8px;
 }
 
