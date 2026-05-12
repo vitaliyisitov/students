@@ -42,39 +42,49 @@ function getStudentDashboardBaseUrl() {
 let appInitialized = false;
 
 function setupAdminGate() {
-  const adminEmail = (window.FIREBASE_CONFIG?.adminEmail || "").trim().toLowerCase();
+  const adminEmail = (window.FIREBASE_CONFIG?.adminEmail || "")
+    .trim()
+    .toLowerCase();
 
   // Кнопка выхода — подписываемся здесь, до появления приложения
-  document.getElementById("adminLogoutBtn")?.addEventListener("click", async () => {
-    await firebase.auth().signOut();
-  });
+  document
+    .getElementById("adminLogoutBtn")
+    ?.addEventListener("click", async () => {
+      await firebase.auth().signOut();
+    });
 
   // Кнопка входа через Google
   document.getElementById("googleSignInBtn")?.addEventListener("click", () => {
     const provider = new firebase.auth.GoogleAuthProvider();
     // Принудительно показываем выбор аккаунта каждый раз
     provider.setCustomParameters({ prompt: "select_account" });
-    firebase.auth().signInWithPopup(provider).catch((err) => {
-      const errorEl = document.getElementById("adminGateError");
-      if (errorEl) {
-        errorEl.textContent = "Ошибка входа: " + err.message;
-        errorEl.hidden = false;
-      }
-    });
+    firebase
+      .auth()
+      .signInWithPopup(provider)
+      .catch((err) => {
+        const errorEl = document.getElementById("adminGateError");
+        if (errorEl) {
+          errorEl.textContent = "Ошибка входа: " + err.message;
+          errorEl.hidden = false;
+        }
+      });
   });
 
   // Слушаем состояние авторизации
   firebase.auth().onAuthStateChanged((user) => {
-    const overlay  = document.getElementById("adminLoginOverlay");
-    const root     = document.getElementById("adminAppRoot");
+    const overlay = document.getElementById("adminLoginOverlay");
+    const root = document.getElementById("adminAppRoot");
     const logoutBtn = document.getElementById("adminLogoutBtn");
-    const errorEl  = document.getElementById("adminGateError");
+    const errorEl = document.getElementById("adminGateError");
 
     if (!user) {
       // Не авторизован — показываем оверлей входа
       if (overlay) overlay.hidden = false;
-      if (root)    root.hidden = true;
-      if (errorEl) { errorEl.hidden = true; errorEl.textContent = ""; }
+      if (root) root.hidden = true;
+      if (errorEl) {
+        errorEl.hidden = true;
+        errorEl.textContent = "";
+      }
       appInitialized = false;
       return;
     }
@@ -91,8 +101,8 @@ function setupAdminGate() {
     }
 
     // Правильный аккаунт — открываем приложение
-    if (overlay)   overlay.hidden = true;
-    if (root)      root.hidden = false;
+    if (overlay) overlay.hidden = true;
+    if (root) root.hidden = false;
     if (logoutBtn) {
       logoutBtn.textContent = `Выйти (${user.email})`;
       logoutBtn.hidden = false;
@@ -136,22 +146,40 @@ function bindEvents() {
     // Добавить файл к конспекту
     const addLessonBtn = e.target.closest("[data-add-lesson-file]");
     if (addLessonBtn) {
-      const editor = document.getElementById(`lesson-files-${addLessonBtn.getAttribute("data-add-lesson-file")}`);
-      if (editor) { const tmp = document.createElement("div"); tmp.innerHTML = attachmentRowHtml("", ""); editor.appendChild(tmp.firstElementChild); }
+      const editor = document.getElementById(
+        `lesson-files-${addLessonBtn.getAttribute("data-add-lesson-file")}`,
+      );
+      if (editor) {
+        const tmp = document.createElement("div");
+        tmp.innerHTML = attachmentRowHtml("", "");
+        editor.appendChild(tmp.firstElementChild);
+      }
       return;
     }
     // Добавить файл к домашке
     const addHwBtn = e.target.closest("[data-add-hw-file]");
     if (addHwBtn) {
-      const editor = document.getElementById(`hw-files-${addHwBtn.getAttribute("data-add-hw-file")}`);
-      if (editor) { const tmp = document.createElement("div"); tmp.innerHTML = attachmentRowHtml("", ""); editor.appendChild(tmp.firstElementChild); }
+      const editor = document.getElementById(
+        `hw-files-${addHwBtn.getAttribute("data-add-hw-file")}`,
+      );
+      if (editor) {
+        const tmp = document.createElement("div");
+        tmp.innerHTML = attachmentRowHtml("", "");
+        editor.appendChild(tmp.firstElementChild);
+      }
       return;
     }
     // Добавить файл к подсказкам
     const addHintBtn = e.target.closest("[data-add-hint-file]");
     if (addHintBtn) {
-      const editor = document.getElementById(`hint-files-${addHintBtn.getAttribute("data-add-hint-file")}`);
-      if (editor) { const tmp = document.createElement("div"); tmp.innerHTML = attachmentRowHtml("", ""); editor.appendChild(tmp.firstElementChild); }
+      const editor = document.getElementById(
+        `hint-files-${addHintBtn.getAttribute("data-add-hint-file")}`,
+      );
+      if (editor) {
+        const tmp = document.createElement("div");
+        tmp.innerHTML = attachmentRowHtml("", "");
+        editor.appendChild(tmp.firstElementChild);
+      }
       return;
     }
     // Найти файл в хранилище
@@ -169,7 +197,8 @@ function bindEvents() {
       if (row) {
         const url = row.querySelector(".att-url")?.value?.trim() || "";
         row.remove();
-        if (url.startsWith("https://storage.yandexcloud.net/")) void deleteFromStorage(url);
+        if (url.startsWith("https://storage.yandexcloud.net/"))
+          void deleteFromStorage(url);
       }
     }
   });
@@ -190,11 +219,15 @@ function bindEvents() {
 
     container.addEventListener("dragover", (e) => {
       const editor = e.target.closest(".attachments-editor");
-      if (editor) { e.preventDefault(); editor.classList.add("is-dragover"); }
+      if (editor) {
+        e.preventDefault();
+        editor.classList.add("is-dragover");
+      }
     });
     container.addEventListener("dragleave", (e) => {
       const editor = e.target.closest(".attachments-editor");
-      if (editor && !editor.contains(e.relatedTarget)) editor.classList.remove("is-dragover");
+      if (editor && !editor.contains(e.relatedTarget))
+        editor.classList.remove("is-dragover");
     });
     container.addEventListener("drop", (e) => {
       const editor = e.target.closest(".attachments-editor");
@@ -215,20 +248,38 @@ function bindEvents() {
       container.addEventListener("click", (e) => {
         const addLessonBtn = e.target.closest("[data-add-tmpl-lesson-file]");
         if (addLessonBtn) {
-          const editor = document.getElementById(`tmpl-lesson-files-${addLessonBtn.getAttribute("data-add-tmpl-lesson-file")}`);
-          if (editor) { const tmp = document.createElement("div"); tmp.innerHTML = attachmentRowHtml("", ""); editor.appendChild(tmp.firstElementChild); }
+          const editor = document.getElementById(
+            `tmpl-lesson-files-${addLessonBtn.getAttribute("data-add-tmpl-lesson-file")}`,
+          );
+          if (editor) {
+            const tmp = document.createElement("div");
+            tmp.innerHTML = attachmentRowHtml("", "");
+            editor.appendChild(tmp.firstElementChild);
+          }
           return;
         }
         const addHwBtn = e.target.closest("[data-add-tmpl-hw-file]");
         if (addHwBtn) {
-          const editor = document.getElementById(`tmpl-hw-files-${addHwBtn.getAttribute("data-add-tmpl-hw-file")}`);
-          if (editor) { const tmp = document.createElement("div"); tmp.innerHTML = attachmentRowHtml("", ""); editor.appendChild(tmp.firstElementChild); }
+          const editor = document.getElementById(
+            `tmpl-hw-files-${addHwBtn.getAttribute("data-add-tmpl-hw-file")}`,
+          );
+          if (editor) {
+            const tmp = document.createElement("div");
+            tmp.innerHTML = attachmentRowHtml("", "");
+            editor.appendChild(tmp.firstElementChild);
+          }
           return;
         }
         const addHintBtn = e.target.closest("[data-add-tmpl-hint-file]");
         if (addHintBtn) {
-          const editor = document.getElementById(`tmpl-hint-files-${addHintBtn.getAttribute("data-add-tmpl-hint-file")}`);
-          if (editor) { const tmp = document.createElement("div"); tmp.innerHTML = attachmentRowHtml("", ""); editor.appendChild(tmp.firstElementChild); }
+          const editor = document.getElementById(
+            `tmpl-hint-files-${addHintBtn.getAttribute("data-add-tmpl-hint-file")}`,
+          );
+          if (editor) {
+            const tmp = document.createElement("div");
+            tmp.innerHTML = attachmentRowHtml("", "");
+            editor.appendChild(tmp.firstElementChild);
+          }
           return;
         }
         const browseBtn = e.target.closest(".att-browse-btn");
@@ -243,7 +294,8 @@ function bindEvents() {
           if (row) {
             const url = row.querySelector(".att-url")?.value?.trim() || "";
             row.remove();
-            if (url.startsWith("https://storage.yandexcloud.net/")) void deleteFromStorage(url);
+            if (url.startsWith("https://storage.yandexcloud.net/"))
+              void deleteFromStorage(url);
           }
         }
       });
@@ -253,24 +305,29 @@ function bindEvents() {
   // Файловый браузер
   const fbModal = document.getElementById("fileBrowserModal");
   if (fbModal) {
-    document.getElementById("fileBrowserClose")?.addEventListener("click", closeFileBrowser);
+    document
+      .getElementById("fileBrowserClose")
+      ?.addEventListener("click", closeFileBrowser);
     fbModal.addEventListener("click", (e) => {
       if (e.target === fbModal) closeFileBrowser();
       const pickBtn = e.target.closest("[data-fb-pick]");
       if (pickBtn && fileBrowserTargetRow) {
         const fbRow = pickBtn.closest(".fb-row");
-        const url  = fbRow?.getAttribute("data-fb-url") || "";
+        const url = fbRow?.getAttribute("data-fb-url") || "";
         const name = fbRow?.getAttribute("data-fb-name") || "";
-        const urlInput   = fileBrowserTargetRow.querySelector(".att-url");
+        const urlInput = fileBrowserTargetRow.querySelector(".att-url");
         const labelInput = fileBrowserTargetRow.querySelector(".att-label");
         if (urlInput) urlInput.value = url;
-        if (labelInput && !labelInput.value.trim()) labelInput.value = name.replace(/\.[^.]+$/, "");
+        if (labelInput && !labelInput.value.trim())
+          labelInput.value = name.replace(/\.[^.]+$/, "");
         closeFileBrowser();
       }
     });
-    document.getElementById("fileBrowserSearch")?.addEventListener("input", () => {
-      renderFileBrowserList();
-    });
+    document
+      .getElementById("fileBrowserSearch")
+      ?.addEventListener("input", () => {
+        renderFileBrowserList();
+      });
   }
 }
 
@@ -802,10 +859,16 @@ async function renderTasksEditor() {
   });
 
   els.tasksEditor.querySelectorAll("[data-save-task]").forEach((btn) => {
-    btn.addEventListener("click", () => void saveTaskFromRow(btn.closest("[data-task-id]")));
+    btn.addEventListener(
+      "click",
+      () => void saveTaskFromRow(btn.closest("[data-task-id]")),
+    );
   });
   els.tasksEditor.querySelectorAll("[data-save-all-block]").forEach((btn) => {
-    btn.addEventListener("click", () => void saveAllTasksInBlock(btn.getAttribute("data-save-all-block")));
+    btn.addEventListener(
+      "click",
+      () => void saveAllTasksInBlock(btn.getAttribute("data-save-all-block")),
+    );
   });
   els.tasksEditor.querySelectorAll("[data-delete-task]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -846,27 +909,42 @@ function renderTaskRow(task) {
     ? details.homework.join("\n")
     : "";
   const hints = Array.isArray(details.hints) ? details.hints.join("\n") : "";
-  const lessonFilesRaw  = Array.isArray(details.lessonFiles)   ? details.lessonFiles   : [];
-  const homeworkFilesRaw = Array.isArray(details.homeworkFiles) ? details.homeworkFiles : [];
-  const hintFilesRaw    = Array.isArray(details.hintFiles)     ? details.hintFiles     : [];
+  const lessonFilesRaw = Array.isArray(details.lessonFiles)
+    ? details.lessonFiles
+    : [];
+  const homeworkFilesRaw = Array.isArray(details.homeworkFiles)
+    ? details.homeworkFiles
+    : [];
+  const hintFilesRaw = Array.isArray(details.hintFiles)
+    ? details.hintFiles
+    : [];
   const orderVal = getAdminTaskOrderValue(task);
   const updatedLocal = toDateTimeLocalValue(task.updated_at);
 
   const lessonFilesHtml = lessonFilesRaw
-    .map((a) => { const p = parseStoredAttachment(a); return attachmentRowHtml(p.label, p.url); })
+    .map((a) => {
+      const p = parseStoredAttachment(a);
+      return attachmentRowHtml(p.label, p.url);
+    })
     .join("");
   const homeworkFilesHtml = homeworkFilesRaw
-    .map((a) => { const p = parseStoredAttachment(a); return attachmentRowHtml(p.label, p.url); })
+    .map((a) => {
+      const p = parseStoredAttachment(a);
+      return attachmentRowHtml(p.label, p.url);
+    })
     .join("");
   const hintFilesHtml = hintFilesRaw
-    .map((a) => { const p = parseStoredAttachment(a); return attachmentRowHtml(p.label, p.url); })
+    .map((a) => {
+      const p = parseStoredAttachment(a);
+      return attachmentRowHtml(p.label, p.url);
+    })
     .join("");
 
   return `
      <details class="task-row" open data-task-id="${escapeAttr(task.id)}" data-subject-id-tr="${escapeAttr(task.subject_id || "")}" data-order-index="${escapeAttr(orderVal)}">
       <summary class="task-row__summary">
         <span>${escapeHtml(task.title || "Задание")}</span>
-        <span class="muted">${escapeHtml(formatStatus(task.status))}${(lessonFilesRaw.length + homeworkFilesRaw.length) ? ` · 📎 ${lessonFilesRaw.length + homeworkFilesRaw.length}` : ""}</span>
+        <span class="muted">${escapeHtml(formatStatus(task.status))}${lessonFilesRaw.length + homeworkFilesRaw.length ? ` · 📎 ${lessonFilesRaw.length + homeworkFilesRaw.length}` : ""}</span>
       </summary>
       <div class="task-row__body">
         <div class="task-order-bar" role="group">
@@ -924,24 +1002,41 @@ function renderTaskRow(task) {
 
 function buildTaskPayload(row) {
   const orderInput = Number(row.querySelector('[data-f="order_index"]')?.value);
-  const order_index = Number.isFinite(orderInput) && orderInput > 0
-    ? orderInput : Number(row.getAttribute("data-order-index")) || 1;
-  const isPinned  = row.querySelector('[data-f="isPinned"]')?.value === "true";
-  const statusVal = row.querySelector('[data-f="status"]')?.value || "not_started";
-  const updatedFromForm = fromDateTimeLocalValue(row.querySelector('[data-f="updated_at"]')?.value);
-  const updatedAtIso = updatedFromForm || (statusVal === "not_started" ? null : new Date().toISOString());
+  const order_index =
+    Number.isFinite(orderInput) && orderInput > 0
+      ? orderInput
+      : Number(row.getAttribute("data-order-index")) || 1;
+  const isPinned = row.querySelector('[data-f="isPinned"]')?.value === "true";
+  const statusVal =
+    row.querySelector('[data-f="status"]')?.value || "not_started";
+  const updatedFromForm = fromDateTimeLocalValue(
+    row.querySelector('[data-f="updated_at"]')?.value,
+  );
+  const updatedAtIso =
+    updatedFromForm ||
+    (statusVal === "not_started" ? null : new Date().toISOString());
   const payload = {
-    title:       row.querySelector('[data-f="title"]')?.value?.trim() || "Задание",
-    description: row.querySelector('[data-f="description"]')?.value?.trim() || "",
-    status: statusVal, order_index,
+    title: row.querySelector('[data-f="title"]')?.value?.trim() || "Задание",
+    description:
+      row.querySelector('[data-f="description"]')?.value?.trim() || "",
+    status: statusVal,
+    order_index,
     details: {
-      lessonNotes:   row.querySelector('[data-f="lessonNotes"]')?.value?.trim() || "",
-      lessonFiles:   readAttachmentsFromRow(row.querySelector('[id^="lesson-files-"]')),
-      homework:      splitLines(row.querySelector('[data-f="homework"]')?.value),
-      homeworkFiles: readAttachmentsFromRow(row.querySelector('[id^="hw-files-"]')),
-      hints:         splitLines(row.querySelector('[data-f="hints"]')?.value),
-      hintFiles:     readAttachmentsFromRow(row.querySelector('[id^="hint-files-"]')),
-      attachments: [], isPinned,
+      lessonNotes:
+        row.querySelector('[data-f="lessonNotes"]')?.value?.trim() || "",
+      lessonFiles: readAttachmentsFromRow(
+        row.querySelector('[id^="lesson-files-"]'),
+      ),
+      homework: splitLines(row.querySelector('[data-f="homework"]')?.value),
+      homeworkFiles: readAttachmentsFromRow(
+        row.querySelector('[id^="hw-files-"]'),
+      ),
+      hints: splitLines(row.querySelector('[data-f="hints"]')?.value),
+      hintFiles: readAttachmentsFromRow(
+        row.querySelector('[id^="hint-files-"]'),
+      ),
+      attachments: [],
+      isPinned,
     },
   };
   if (updatedAtIso) payload.updated_at = updatedAtIso;
@@ -950,13 +1045,17 @@ function buildTaskPayload(row) {
 
 async function saveTaskFromRow(row) {
   if (!row) return;
-  const taskId    = row.getAttribute("data-task-id");
+  const taskId = row.getAttribute("data-task-id");
   const subjectId = row.getAttribute("data-subject-id-tr");
   if (!taskId || !subjectId) return;
   try {
-    await window.db.collection("users").doc(state.selectedUserId)
-      .collection("subjects").doc(subjectId)
-      .collection("tasks").doc(taskId)
+    await window.db
+      .collection("users")
+      .doc(state.selectedUserId)
+      .collection("subjects")
+      .doc(subjectId)
+      .collection("tasks")
+      .doc(taskId)
       .update(buildTaskPayload(row));
     setStatus("Задание сохранено", "success");
     await renderTasksEditor();
@@ -1070,7 +1169,9 @@ async function moveTaskInOrder(taskId, direction) {
 }
 
 async function saveAllTasksInBlock(subjectId) {
-  const block = els.tasksEditor.querySelector(`[data-task-block="${subjectId}"]`);
+  const block = els.tasksEditor.querySelector(
+    `[data-task-block="${subjectId}"]`,
+  );
   if (!block) return;
   const rows = Array.from(block.querySelectorAll("[data-task-id]"));
   if (!rows.length) return;
@@ -1080,9 +1181,13 @@ async function saveAllTasksInBlock(subjectId) {
     rows.forEach((row) => {
       const taskId = row.getAttribute("data-task-id");
       if (!taskId) return;
-      const ref = window.db.collection("users").doc(state.selectedUserId)
-        .collection("subjects").doc(subjectId)
-        .collection("tasks").doc(taskId);
+      const ref = window.db
+        .collection("users")
+        .doc(state.selectedUserId)
+        .collection("subjects")
+        .doc(subjectId)
+        .collection("tasks")
+        .doc(taskId);
       batch.update(ref, buildTaskPayload(row));
     });
     await batch.commit();
@@ -1106,23 +1211,40 @@ async function saveAllTmplInBlock(catalogId) {
     rows.forEach((row) => {
       const id = row.getAttribute("data-tmpl-id");
       if (!id) return;
-      const orderVal = Number(row.querySelector('[data-f="order_index"]')?.value);
+      const orderVal = Number(
+        row.querySelector('[data-f="order_index"]')?.value,
+      );
       const payload = {
-        title:       (row.querySelector('[data-f="title"]')?.value       || "").trim() || "Задание",
-        description: (row.querySelector('[data-f="description"]')?.value || "").trim(),
-        order_index: Number.isFinite(orderVal) && orderVal > 0 ? orderVal : (tmplData.find(x => x.id === id)?.order_index || 1),
+        title:
+          (row.querySelector('[data-f="title"]')?.value || "").trim() ||
+          "Задание",
+        description: (
+          row.querySelector('[data-f="description"]')?.value || ""
+        ).trim(),
+        order_index:
+          Number.isFinite(orderVal) && orderVal > 0
+            ? orderVal
+            : tmplData.find((x) => x.id === id)?.order_index || 1,
         default_details: {
-          lessonNotes:   (row.querySelector('[data-f="lessonNotes"]')?.value || "").trim(),
-          lessonFiles:   readAttachmentsFromRow(row.querySelector('[id^="tmpl-lesson-files-"]')),
-          homework:      splitLines(row.querySelector('[data-f="homework"]')?.value),
-          homeworkFiles: readAttachmentsFromRow(row.querySelector('[id^="tmpl-hw-files-"]')),
-          hints:         splitLines(row.querySelector('[data-f="hints"]')?.value),
-          hintFiles:     readAttachmentsFromRow(row.querySelector('[id^="tmpl-hint-files-"]')),
-          attachments:   [],
+          lessonNotes: (
+            row.querySelector('[data-f="lessonNotes"]')?.value || ""
+          ).trim(),
+          lessonFiles: readAttachmentsFromRow(
+            row.querySelector('[id^="tmpl-lesson-files-"]'),
+          ),
+          homework: splitLines(row.querySelector('[data-f="homework"]')?.value),
+          homeworkFiles: readAttachmentsFromRow(
+            row.querySelector('[id^="tmpl-hw-files-"]'),
+          ),
+          hints: splitLines(row.querySelector('[data-f="hints"]')?.value),
+          hintFiles: readAttachmentsFromRow(
+            row.querySelector('[id^="tmpl-hint-files-"]'),
+          ),
+          attachments: [],
         },
       };
       batch.update(window.db.collection("task_templates").doc(id), payload);
-      const t = tmplData.find(x => x.id === id);
+      const t = tmplData.find((x) => x.id === id);
       if (t) Object.assign(t, payload);
     });
     await batch.commit();
@@ -1141,14 +1263,16 @@ async function moveTmplTask(id, direction) {
   const list = tmplData
     .filter((x) => x.catalog_id === t.catalog_id)
     .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
-  const idx    = list.findIndex((x) => x.id === id);
+  const idx = list.findIndex((x) => x.id === id);
   const newIdx = direction === "up" ? idx - 1 : idx + 1;
   if (idx < 0 || newIdx < 0 || newIdx >= list.length) return;
   [list[idx], list[newIdx]] = [list[newIdx], list[idx]];
   try {
     const batch = window.db.batch();
     list.forEach((item, i) => {
-      batch.update(window.db.collection("task_templates").doc(item.id), { order_index: i + 1 });
+      batch.update(window.db.collection("task_templates").doc(item.id), {
+        order_index: i + 1,
+      });
       const local = tmplData.find((x) => x.id === item.id);
       if (local) local.order_index = i + 1;
     });
@@ -1294,7 +1418,7 @@ function escapeAttr(value) {
 
 // ─── Yandex Object Storage — клиентская подпись (без Cloudflare) ─────────────
 
-const YOS_REGION   = "ru-central1";
+const YOS_REGION = "ru-central1";
 const YOS_ENDPOINT = "https://storage.yandexcloud.net";
 
 let yosCreds = null; // { bucket, accessKey, secretKey }
@@ -1302,10 +1426,13 @@ let yosCreds = null; // { bucket, accessKey, secretKey }
 async function fetchYosCreds() {
   try {
     const snap = await window.db.collection("settings").doc("storage").get();
-    if (!snap.exists) { console.warn("settings/storage не найден в Firestore"); return; }
+    if (!snap.exists) {
+      console.warn("settings/storage не найден в Firestore");
+      return;
+    }
     const d = snap.data();
     yosCreds = {
-      bucket:    (d.yos_bucket    || "").trim(),
+      bucket: (d.yos_bucket || "").trim(),
       accessKey: (d.yos_access_key || "").trim(),
       secretKey: (d.yos_secret_key || "").trim(),
     };
@@ -1315,100 +1442,150 @@ async function fetchYosCreds() {
 }
 
 // Web Crypto helpers (аналог кода в upload-worker.js)
-const _te  = (s) => new TextEncoder().encode(s);
+const _te = (s) => new TextEncoder().encode(s);
 const _enc = encodeURIComponent;
 
-function _yosPathEncode(path) { return path.split("/").map(_enc).join("/"); }
+function _yosPathEncode(path) {
+  return path.split("/").map(_enc).join("/");
+}
 
 /** Превращает произвольную строку в безопасный сегмент пути */
 function yosSlug(s) {
-  return String(s || "").trim()
-    .replace(/[/\\:*?"<>|]+/g, "")   // убираем опасные символы
-    .replace(/\s+/g, "_")             // пробелы → подчёркивания
-    .replace(/_{2,}/g, "_")
-    .slice(0, 60) || "untitled";
+  return (
+    String(s || "")
+      .trim()
+      .replace(/[/\\:*?"<>|]+/g, "") // убираем опасные символы
+      .replace(/\s+/g, "_") // пробелы → подчёркивания
+      .replace(/_{2,}/g, "_")
+      .slice(0, 60) || "untitled"
+  );
 }
 
 async function _sha256hex(data) {
-  const h = await crypto.subtle.digest("SHA-256", typeof data === "string" ? _te(data) : data);
-  return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, "0")).join("");
+  const h = await crypto.subtle.digest(
+    "SHA-256",
+    typeof data === "string" ? _te(data) : data,
+  );
+  return Array.from(new Uint8Array(h))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 async function _hmacBytes(keyBuf, msg) {
   const kb = typeof keyBuf === "string" ? _te(keyBuf) : keyBuf;
-  const k  = await crypto.subtle.importKey("raw", kb, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const k = await crypto.subtle.importKey(
+    "raw",
+    kb,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
   return new Uint8Array(await crypto.subtle.sign("HMAC", k, _te(msg)));
 }
 
 async function _hmacHex(key, msg) {
   const buf = await crypto.subtle.sign("HMAC", key, _te(msg));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 async function _deriveSigKey(secretKey, dateStr) {
-  const kDate    = await _hmacBytes("AWS4" + secretKey, dateStr);
-  const kRegion  = await _hmacBytes(kDate,   YOS_REGION);
+  const kDate = await _hmacBytes("AWS4" + secretKey, dateStr);
+  const kRegion = await _hmacBytes(kDate, YOS_REGION);
   const kService = await _hmacBytes(kRegion, "s3");
-  const kFinal   = await _hmacBytes(kService, "aws4_request");
-  return crypto.subtle.importKey("raw", kFinal, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const kFinal = await _hmacBytes(kService, "aws4_request");
+  return crypto.subtle.importKey(
+    "raw",
+    kFinal,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
 }
 
-function _yosFmtDate(d) { return d.toISOString().slice(0, 10).replace(/-/g, ""); }
-function _yosFmtDT(d)   { return d.toISOString().replace(/[:\-]/g, "").replace(/\.\d+/, ""); }
+function _yosFmtDate(d) {
+  return d.toISOString().slice(0, 10).replace(/-/g, "");
+}
+function _yosFmtDT(d) {
+  return d.toISOString().replace(/[:\-]/g, "").replace(/\.\d+/, "");
+}
 
 function _yosSortedQs(params) {
   const pairs = params.map(([k, v]) => [_enc(k), _enc(v)]);
-  pairs.sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
+  pairs.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   return pairs.map(([k, v]) => `${k}=${v}`).join("&");
 }
 
 async function yosPresignPut(key, ct) {
   const { bucket, accessKey, secretKey } = yosCreds;
-  const now  = new Date(), date = _yosFmtDate(now), dt = _yosFmtDT(now);
+  const now = new Date(),
+    date = _yosFmtDate(now),
+    dt = _yosFmtDT(now);
   const scope = `${date}/${YOS_REGION}/s3/aws4_request`;
-  const host  = "storage.yandexcloud.net";
-  const uri   = `/${bucket}/${_yosPathEncode(key)}`;
+  const host = "storage.yandexcloud.net";
+  const uri = `/${bucket}/${_yosPathEncode(key)}`;
 
   const qs = _yosSortedQs([
-    ["X-Amz-Algorithm",    "AWS4-HMAC-SHA256"],
-    ["X-Amz-Credential",   `${accessKey}/${scope}`],
-    ["X-Amz-Date",         dt],
-    ["X-Amz-Expires",      "600"],
+    ["X-Amz-Algorithm", "AWS4-HMAC-SHA256"],
+    ["X-Amz-Credential", `${accessKey}/${scope}`],
+    ["X-Amz-Date", dt],
+    ["X-Amz-Expires", "600"],
     ["X-Amz-SignedHeaders", "host"],
   ]);
 
-  const canon  = ["PUT", uri, qs, `host:${host}\n`, "host", "UNSIGNED-PAYLOAD"].join("\n");
-  const toSign = ["AWS4-HMAC-SHA256", dt, scope, await _sha256hex(canon)].join("\n");
-  const sig    = await _hmacHex(await _deriveSigKey(secretKey, date), toSign);
+  const canon = [
+    "PUT",
+    uri,
+    qs,
+    `host:${host}\n`,
+    "host",
+    "UNSIGNED-PAYLOAD",
+  ].join("\n");
+  const toSign = ["AWS4-HMAC-SHA256", dt, scope, await _sha256hex(canon)].join(
+    "\n",
+  );
+  const sig = await _hmacHex(await _deriveSigKey(secretKey, date), toSign);
 
   return {
     presignedUrl: `https://${host}${uri}?${qs}&X-Amz-Signature=${sig}`,
-    publicUrl:    `${YOS_ENDPOINT}/${bucket}/${_yosPathEncode(key)}`,
+    publicUrl: `${YOS_ENDPOINT}/${bucket}/${_yosPathEncode(key)}`,
   };
 }
 
 async function yosPresignList(prefix = "") {
   const { bucket, accessKey, secretKey } = yosCreds;
-  const now  = new Date(), date = _yosFmtDate(now), dt = _yosFmtDT(now);
+  const now = new Date(),
+    date = _yosFmtDate(now),
+    dt = _yosFmtDT(now);
   const scope = `${date}/${YOS_REGION}/s3/aws4_request`;
-  const host  = "storage.yandexcloud.net";
-  const uri   = `/${bucket}`;
+  const host = "storage.yandexcloud.net";
+  const uri = `/${bucket}`;
 
   const baseParams = [
-    ["X-Amz-Algorithm",    "AWS4-HMAC-SHA256"],
-    ["X-Amz-Credential",   `${accessKey}/${scope}`],
-    ["X-Amz-Date",         dt],
-    ["X-Amz-Expires",      "60"],
+    ["X-Amz-Algorithm", "AWS4-HMAC-SHA256"],
+    ["X-Amz-Credential", `${accessKey}/${scope}`],
+    ["X-Amz-Date", dt],
+    ["X-Amz-Expires", "60"],
     ["X-Amz-SignedHeaders", "host"],
-    ["list-type",           "2"],
-    ["max-keys",            "1000"],
+    ["list-type", "2"],
+    ["max-keys", "1000"],
   ];
   if (prefix) baseParams.push(["prefix", prefix]);
   const qs = _yosSortedQs(baseParams);
 
-  const canon  = ["GET", uri, qs, `host:${host}\n`, "host", "UNSIGNED-PAYLOAD"].join("\n");
-  const toSign = ["AWS4-HMAC-SHA256", dt, scope, await _sha256hex(canon)].join("\n");
-  const sig    = await _hmacHex(await _deriveSigKey(secretKey, date), toSign);
+  const canon = [
+    "GET",
+    uri,
+    qs,
+    `host:${host}\n`,
+    "host",
+    "UNSIGNED-PAYLOAD",
+  ].join("\n");
+  const toSign = ["AWS4-HMAC-SHA256", dt, scope, await _sha256hex(canon)].join(
+    "\n",
+  );
+  const sig = await _hmacHex(await _deriveSigKey(secretKey, date), toSign);
 
   return `https://${host}${uri}?${qs}&X-Amz-Signature=${sig}`;
 }
@@ -1416,27 +1593,34 @@ async function yosPresignList(prefix = "") {
 async function yosDeleteObject(publicUrl) {
   const { accessKey, secretKey } = yosCreds;
   const parsed = new URL(publicUrl);
-  const host   = parsed.hostname;
-  const path   = parsed.pathname;
-  const now    = new Date(), date = _yosFmtDate(now), dt = _yosFmtDT(now);
-  const emptyHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-  const scope  = `${date}/${YOS_REGION}/s3/aws4_request`;
+  const host = parsed.hostname;
+  const path = parsed.pathname;
+  const now = new Date(),
+    date = _yosFmtDate(now),
+    dt = _yosFmtDT(now);
+  const emptyHash =
+    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+  const scope = `${date}/${YOS_REGION}/s3/aws4_request`;
 
   const canon = [
-    "DELETE", path, "",
+    "DELETE",
+    path,
+    "",
     `host:${host}\nx-amz-content-sha256:${emptyHash}\nx-amz-date:${dt}\n`,
     "host;x-amz-content-sha256;x-amz-date",
     emptyHash,
   ].join("\n");
 
-  const toSign = ["AWS4-HMAC-SHA256", dt, scope, await _sha256hex(canon)].join("\n");
-  const sig    = await _hmacHex(await _deriveSigKey(secretKey, date), toSign);
+  const toSign = ["AWS4-HMAC-SHA256", dt, scope, await _sha256hex(canon)].join(
+    "\n",
+  );
+  const sig = await _hmacHex(await _deriveSigKey(secretKey, date), toSign);
 
   const resp = await fetch(publicUrl, {
     method: "DELETE",
     headers: {
-      "Authorization":        `AWS4-HMAC-SHA256 Credential=${accessKey}/${scope}, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=${sig}`,
-      "x-amz-date":           dt,
+      Authorization: `AWS4-HMAC-SHA256 Credential=${accessKey}/${scope}, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=${sig}`,
+      "x-amz-date": dt,
       "x-amz-content-sha256": emptyHash,
     },
   });
@@ -1475,35 +1659,54 @@ function attachmentRowHtml(label, url) {
 
 async function uploadAttachmentToRow(file, row) {
   if (!yosCreds?.accessKey) {
-    setStatus("Ключи Yandex Storage не загружены. Проверь settings/storage в Firestore.", "error");
+    setStatus(
+      "Ключи Yandex Storage не загружены. Проверь settings/storage в Firestore.",
+      "error",
+    );
     return;
   }
 
-  const urlInput   = row.querySelector(".att-url");
+  const urlInput = row.querySelector(".att-url");
   const labelInput = row.querySelector(".att-label");
-  const uploadBtn  = row.querySelector(".att-upload-btn");
+  const uploadBtn = row.querySelector(".att-upload-btn");
   const taskRow = row.closest("[data-task-id]");
   const tmplRow = row.closest("[data-tmpl-id]");
   let storagePath;
   if (taskRow) {
-    const userName    = yosSlug(state.users.find(u => u.id === state.selectedUserId)?.name || state.selectedUserId);
-    const subjectId   = taskRow.getAttribute("data-subject-id-tr") || "";
-    const subjectTitle = yosSlug(state.selectedUserSubjects.find(s => s.id === subjectId)?.title || subjectId);
-    const taskTitle   = yosSlug(taskRow.querySelector('[data-f="title"]')?.value || taskRow.getAttribute("data-task-id"));
+    const userName = yosSlug(
+      state.users.find((u) => u.id === state.selectedUserId)?.name ||
+        state.selectedUserId,
+    );
+    const subjectId = taskRow.getAttribute("data-subject-id-tr") || "";
+    const subjectTitle = yosSlug(
+      state.selectedUserSubjects.find((s) => s.id === subjectId)?.title ||
+        subjectId,
+    );
+    const taskTitle = yosSlug(
+      taskRow.querySelector('[data-f="title"]')?.value ||
+        taskRow.getAttribute("data-task-id"),
+    );
     storagePath = `${userName}/${subjectTitle}/${taskTitle}/${file.name}`;
   } else if (tmplRow) {
-    const tmplId      = tmplRow.getAttribute("data-tmpl-id") || "";
-    const catalogId   = tmplData.find(t => t.id === tmplId)?.catalog_id || "";
-    const catalogTitle = yosSlug(tmplCatalog.find(c => c.id === catalogId)?.title || catalogId);
-    const tmplTitle   = yosSlug(tmplRow.querySelector('[data-f="title"]')?.value || tmplId);
+    const tmplId = tmplRow.getAttribute("data-tmpl-id") || "";
+    const catalogId = tmplData.find((t) => t.id === tmplId)?.catalog_id || "";
+    const catalogTitle = yosSlug(
+      tmplCatalog.find((c) => c.id === catalogId)?.title || catalogId,
+    );
+    const tmplTitle = yosSlug(
+      tmplRow.querySelector('[data-f="title"]')?.value || tmplId,
+    );
     storagePath = `templates/${catalogTitle}/${tmplTitle}/${file.name}`;
   } else {
     storagePath = `uploads/${file.name}`;
   }
 
   const origText = uploadBtn?.textContent || "📎";
-  if (uploadBtn)  uploadBtn.textContent = "⏳";
-  if (urlInput) { urlInput.value = "Проверяю…"; urlInput.disabled = true; }
+  if (uploadBtn) uploadBtn.textContent = "⏳";
+  if (urlInput) {
+    urlInput.value = "Проверяю…";
+    urlInput.disabled = true;
+  }
 
   try {
     const ct = file.type || "application/octet-stream";
@@ -1513,27 +1716,43 @@ async function uploadAttachmentToRow(file, row) {
     try {
       const headRes = await fetch(publicUrl, { method: "HEAD" });
       if (headRes.ok) {
-        if (urlInput)  { urlInput.value = publicUrl; urlInput.disabled = false; }
-        if (labelInput && !labelInput.value.trim()) labelInput.value = file.name.replace(/\.[^.]+$/, "");
-        setStatus(`Файл уже загружен, ссылка подставлена: ${file.name}`, "success");
+        if (urlInput) {
+          urlInput.value = publicUrl;
+          urlInput.disabled = false;
+        }
+        if (labelInput && !labelInput.value.trim())
+          labelInput.value = file.name.replace(/\.[^.]+$/, "");
+        setStatus(
+          `Файл уже загружен, ссылка подставлена: ${file.name}`,
+          "success",
+        );
         return;
       }
-    } catch { /* HEAD заблокирован CORS — просто загружаем */ }
+    } catch {
+      /* HEAD заблокирован CORS — просто загружаем */
+    }
 
     // Загружаем напрямую в Yandex Object Storage
     if (urlInput) urlInput.value = "Загружается…";
     const putRes = await fetch(presignedUrl, {
-      method:  "PUT",
+      method: "PUT",
       headers: { "Content-Type": ct },
-      body:    file,
+      body: file,
     });
     if (!putRes.ok) throw new Error(`Upload failed ${putRes.status}`);
 
-    if (urlInput)  { urlInput.value = publicUrl; urlInput.disabled = false; }
-    if (labelInput && !labelInput.value.trim()) labelInput.value = file.name.replace(/\.[^.]+$/, "");
+    if (urlInput) {
+      urlInput.value = publicUrl;
+      urlInput.disabled = false;
+    }
+    if (labelInput && !labelInput.value.trim())
+      labelInput.value = file.name.replace(/\.[^.]+$/, "");
     setStatus(`Файл загружен: ${file.name}`, "success");
   } catch (err) {
-    if (urlInput) { urlInput.value = ""; urlInput.disabled = false; }
+    if (urlInput) {
+      urlInput.value = "";
+      urlInput.disabled = false;
+    }
     setStatus("Ошибка загрузки: " + err.message, "error");
     console.error(err);
   } finally {
@@ -1546,7 +1765,10 @@ async function deleteFromStorage(publicUrl) {
   try {
     await yosDeleteObject(publicUrl);
   } catch (err) {
-    setStatus(`Файл удалён с сайта, но не из хранилища: ${err.message}`, "error");
+    setStatus(
+      `Файл удалён с сайта, но не из хранилища: ${err.message}`,
+      "error",
+    );
   }
 }
 
@@ -1556,7 +1778,7 @@ function readAttachmentsFromRow(container) {
   return Array.from(container.querySelectorAll(".attachment-row"))
     .map((r) => {
       const label = (r.querySelector(".att-label")?.value || "").trim();
-      const url   = (r.querySelector(".att-url")?.value   || "").trim();
+      const url = (r.querySelector(".att-url")?.value || "").trim();
       if (!url) return null;
       return label ? `${label}|${url}` : url;
     })
@@ -1566,72 +1788,109 @@ function readAttachmentsFromRow(container) {
 // ─── Вкладки страницы ─────────────────────────────────────────────────────────
 
 function initPageTabs() {
-  const tabs   = document.querySelectorAll("[data-page-tab]");
+  const tabs = document.querySelectorAll("[data-page-tab]");
   const panels = document.querySelectorAll("[data-page-panel]");
 
   tabs.forEach((btn) => {
     btn.addEventListener("click", () => {
       const target = btn.getAttribute("data-page-tab");
       tabs.forEach((b) => b.classList.toggle("is-active", b === btn));
-      panels.forEach((p) => { p.hidden = p.getAttribute("data-page-panel") !== target; });
+      panels.forEach((p) => {
+        p.hidden = p.getAttribute("data-page-panel") !== target;
+      });
     });
   });
 
   // Обработчики базы данных и шаблонов — вешаем один раз здесь
-  document.getElementById("checkBtn")?.addEventListener("click", () => checkState());
-  document.getElementById("seedBtn")?.addEventListener("click", () => seedDatabase(false));
+  document
+    .getElementById("checkBtn")
+    ?.addEventListener("click", () => checkState());
+  document
+    .getElementById("seedBtn")
+    ?.addEventListener("click", () => seedDatabase(false));
   document.getElementById("resetBtn")?.addEventListener("click", () => {
-    if (window.confirm("Удалить subject_catalog и task_templates и пересоздать?\n\nДанные учеников не затрагиваются.")) {
+    if (
+      window.confirm(
+        "Удалить subject_catalog и task_templates и пересоздать?\n\nДанные учеников не затрагиваются.",
+      )
+    ) {
       seedDatabase(true);
     }
   });
   document.getElementById("copyRulesBtn")?.addEventListener("click", () => {
     // Копируем правила как чистый текст без HTML-энтити
     const raw = document.getElementById("rulesBlock")?.textContent || "";
-    navigator.clipboard.writeText(raw).then(() => {
-      const btn = document.getElementById("copyRulesBtn");
-      const orig = btn.textContent;
-      btn.textContent = "Скопировано ✓";
-      setTimeout(() => { btn.textContent = orig; }, 2000);
-    }).catch(() => alert("Не удалось скопировать — выдели текст вручную."));
+    navigator.clipboard
+      .writeText(raw)
+      .then(() => {
+        const btn = document.getElementById("copyRulesBtn");
+        const orig = btn.textContent;
+        btn.textContent = "Скопировано ✓";
+        setTimeout(() => {
+          btn.textContent = orig;
+        }, 2000);
+      })
+      .catch(() => alert("Не удалось скопировать — выдели текст вручную."));
   });
-  document.getElementById("loadTemplatesBtn")?.addEventListener("click", () => loadTemplates());
+  document
+    .getElementById("loadTemplatesBtn")
+    ?.addEventListener("click", () => loadTemplates());
 }
 
 // ─── Каталог предметов ────────────────────────────────────────────────────────
 
 const SUBJECT_CATALOG = [
   {
-    slug: "oge_math", title: "ОГЭ Математика", emoji: "📐", sort_order: 1,
-    default_tasks_total: 25, default_duration_minutes: 235,
-    default_exam_date: "2026-06-02", default_exam_time: "10:00",
+    slug: "oge_math",
+    title: "ОГЭ Математика",
+    emoji: "📐",
+    sort_order: 1,
+    default_tasks_total: 25,
+    default_duration_minutes: 235,
+    default_exam_date: "2026-06-02",
+    default_exam_time: "10:00",
     default_tips: [
       "Сделай 1 задание на время, затем разбор по конспекту.",
       "Веди журнал ошибок: тема → ошибка → правильный ход.",
     ],
   },
   {
-    slug: "oge_info", title: "ОГЭ Информатика", emoji: "💻", sort_order: 2,
-    default_tasks_total: 16, default_duration_minutes: 150,
-    default_exam_date: "2026-06-15", default_exam_time: "10:00",
+    slug: "oge_info",
+    title: "ОГЭ Информатика",
+    emoji: "💻",
+    sort_order: 2,
+    default_tasks_total: 16,
+    default_duration_minutes: 150,
+    default_exam_date: "2026-06-15",
+    default_exam_time: "10:00",
     default_tips: [
       "Чередуй теорию и практику по таймеру.",
       "Делай шаблоны кода под типовые задачи.",
     ],
   },
   {
-    slug: "ege_math", title: "ЕГЭ Математика", emoji: "📐", sort_order: 3,
-    default_tasks_total: 19, default_duration_minutes: 235,
-    default_exam_date: "2026-05-31", default_exam_time: "10:00",
+    slug: "ege_math",
+    title: "ЕГЭ Математика",
+    emoji: "📐",
+    sort_order: 3,
+    default_tasks_total: 19,
+    default_duration_minutes: 235,
+    default_exam_date: "2026-05-31",
+    default_exam_time: "10:00",
     default_tips: [
       "Один блок за раз: первично точность, потом скорость.",
       "Фиксируй типовые промахи по профилю.",
     ],
   },
   {
-    slug: "ege_info", title: "ЕГЭ Информатика", emoji: "💻", sort_order: 4,
-    default_tasks_total: 27, default_duration_minutes: 235,
-    default_exam_date: "2026-06-10", default_exam_time: "10:00",
+    slug: "ege_info",
+    title: "ЕГЭ Информатика",
+    emoji: "💻",
+    sort_order: 4,
+    default_tasks_total: 27,
+    default_duration_minutes: 235,
+    default_exam_date: "2026-06-10",
+    default_exam_time: "10:00",
     default_tips: [
       "Разбор ограничений и краевых случаев обязателен.",
       "Тренируй ввод/вывод и устойчивость к мусору во вводе.",
@@ -1662,12 +1921,21 @@ async function checkState() {
   dbLogClear();
   dbLog("🔍 Проверяю состояние Firestore...", "log-inf");
   try {
-    const catSnap  = await window.db.collection("subject_catalog").orderBy("sort_order").get();
+    const catSnap = await window.db
+      .collection("subject_catalog")
+      .orderBy("sort_order")
+      .get();
     const tmplSnap = await window.db.collection("task_templates").get();
     const usersSnap = await window.db.collection("users").get();
 
-    dbLog(`📚 subject_catalog: ${catSnap.size} документов`,  catSnap.size  > 0 ? "log-ok" : "log-inf");
-    dbLog(`📝 task_templates: ${tmplSnap.size} документов`,  tmplSnap.size > 0 ? "log-ok" : "log-inf");
+    dbLog(
+      `📚 subject_catalog: ${catSnap.size} документов`,
+      catSnap.size > 0 ? "log-ok" : "log-inf",
+    );
+    dbLog(
+      `📝 task_templates: ${tmplSnap.size} документов`,
+      tmplSnap.size > 0 ? "log-ok" : "log-inf",
+    );
     dbLog(`👤 users: ${usersSnap.size} документов`, "log-dim");
 
     if (catSnap.size > 0) {
@@ -1675,7 +1943,10 @@ async function checkState() {
       dbLog("Предметы в каталоге:", "log-inf");
       catSnap.docs.forEach((d) => {
         const c = d.data();
-        dbLog(`  ${c.emoji} ${c.title} (${c.default_tasks_total} заданий)`, "log-ok");
+        dbLog(
+          `  ${c.emoji} ${c.title} (${c.default_tasks_total} заданий)`,
+          "log-ok",
+        );
       });
     }
 
@@ -1685,7 +1956,10 @@ async function checkState() {
     } else if (tmplSnap.size > 0) {
       dbLog("✅ Всё готово", "log-ok");
     } else {
-      dbLog("⚠️  Каталог есть, но шаблонов нет — нажми «Заполнить базу»", "log-err");
+      dbLog(
+        "⚠️  Каталог есть, но шаблонов нет — нажми «Заполнить базу»",
+        "log-err",
+      );
     }
   } catch (err) {
     dbLog("❌ Ошибка: " + err.message, "log-err");
@@ -1707,10 +1981,10 @@ async function seedDatabase(forceReset) {
 
   dbLog("📚 Создаю subject_catalog...", "log-inf");
   const existingCat = await window.db.collection("subject_catalog").get();
-  const existingSlugs   = {};
+  const existingSlugs = {};
   const catalogIdBySlug = {};
   existingCat.docs.forEach((d) => {
-    existingSlugs[d.data().slug]   = true;
+    existingSlugs[d.data().slug] = true;
     catalogIdBySlug[d.data().slug] = d.id;
   });
 
@@ -1726,37 +2000,60 @@ async function seedDatabase(forceReset) {
 
   dbLog("", "");
   dbLog("📝 Создаю task_templates...", "log-inf");
-  const existingTmpl      = await window.db.collection("task_templates").get();
+  const existingTmpl = await window.db.collection("task_templates").get();
   const existingByCatalog = {};
-  existingTmpl.docs.forEach((d) => { existingByCatalog[d.data().catalog_id] = true; });
+  existingTmpl.docs.forEach((d) => {
+    existingByCatalog[d.data().catalog_id] = true;
+  });
 
   for (const c of SUBJECT_CATALOG) {
     const catalogId = catalogIdBySlug[c.slug];
-    if (!catalogId) { dbLog(`  ⚠️  Нет ID для ${c.slug}`, "log-err"); continue; }
+    if (!catalogId) {
+      dbLog(`  ⚠️  Нет ID для ${c.slug}`, "log-err");
+      continue;
+    }
     if (existingByCatalog[catalogId]) {
-      const cnt = existingTmpl.docs.filter((d) => d.data().catalog_id === catalogId).length;
-      dbLog(`  ⏭  ${c.emoji} ${c.title} — уже есть ${cnt} шаблонов`, "log-dim");
+      const cnt = existingTmpl.docs.filter(
+        (d) => d.data().catalog_id === catalogId,
+      ).length;
+      dbLog(
+        `  ⏭  ${c.emoji} ${c.title} — уже есть ${cnt} шаблонов`,
+        "log-dim",
+      );
       continue;
     }
     const batch = window.db.batch();
-    const now   = new Date().toISOString();
+    const now = new Date().toISOString();
     for (let n = 1; n <= c.default_tasks_total; n++) {
       const ref = window.db.collection("task_templates").doc();
       batch.set(ref, {
-        catalog_id: catalogId, order_index: n,
-        title: `Задание ${n}`, description: "",
-        default_details: { lessonNotes: "", homework: [], hints: [], attachments: [] },
+        catalog_id: catalogId,
+        order_index: n,
+        title: `Задание ${n}`,
+        description: "",
+        default_details: {
+          lessonNotes: "",
+          homework: [],
+          hints: [],
+          attachments: [],
+        },
         created_at: now,
       });
     }
     await batch.commit();
-    dbLog(`  ✓ ${c.emoji} ${c.title}: создано ${c.default_tasks_total} шаблонов`, "log-ok");
+    dbLog(
+      `  ✓ ${c.emoji} ${c.title}: создано ${c.default_tasks_total} шаблонов`,
+      "log-ok",
+    );
   }
 
   dbLog("", "");
-  const finalCat  = await window.db.collection("subject_catalog").get();
+  const finalCat = await window.db.collection("subject_catalog").get();
   const finalTmpl = await window.db.collection("task_templates").get();
-  dbLog(`✅ Готово! subject_catalog: ${finalCat.size} | task_templates: ${finalTmpl.size}`, "log-ok");
+  dbLog(
+    `✅ Готово! subject_catalog: ${finalCat.size} | task_templates: ${finalTmpl.size}`,
+    "log-ok",
+  );
 }
 
 async function clearDbCollection(name) {
@@ -1771,7 +2068,7 @@ async function clearDbCollection(name) {
 // ─── Редактор шаблонов ────────────────────────────────────────────────────────
 
 let tmplCatalog = [];
-let tmplData    = [];
+let tmplData = [];
 let activeTmplSubject = null;
 
 async function loadTemplates() {
@@ -1779,8 +2076,11 @@ async function loadTemplates() {
   if (!editorEl) return;
   editorEl.innerHTML = '<p class="muted" style="padding:0 18px">Загружаю…</p>';
   try {
-    const catSnap = await window.db.collection("subject_catalog").orderBy("sort_order").get();
-    tmplCatalog   = catSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const catSnap = await window.db
+      .collection("subject_catalog")
+      .orderBy("sort_order")
+      .get();
+    tmplCatalog = catSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
     const tmplSnap = await window.db.collection("task_templates").get();
     tmplData = tmplSnap.docs
@@ -1788,7 +2088,8 @@ async function loadTemplates() {
       .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 
     if (!tmplCatalog.length) {
-      editorEl.innerHTML = '<p class="muted" style="padding:0 18px;color:var(--red)">Каталог пуст — сначала заполни базу на вкладке «База данных».</p>';
+      editorEl.innerHTML =
+        '<p class="muted" style="padding:0 18px;color:var(--red)">Каталог пуст — сначала заполни базу на вкладке «База данных».</p>';
       return;
     }
     activeTmplSubject = tmplCatalog[0].id;
@@ -1802,68 +2103,123 @@ function renderTmplEditor() {
   const editorEl = document.getElementById("templatesEditor");
   if (!editorEl) return;
 
-  const tabs = tmplCatalog.map((c) =>
-    `<button class="chip ${c.id === activeTmplSubject ? "is-active" : ""}" type="button" data-tmpl-cat="${escapeAttr(c.id)}">${escapeHtml(c.emoji || "📘")} ${escapeHtml(c.title)}</button>`
-  ).join("");
+  const tabs = tmplCatalog
+    .map(
+      (c) =>
+        `<button class="chip ${c.id === activeTmplSubject ? "is-active" : ""}" type="button" data-tmpl-cat="${escapeAttr(c.id)}">${escapeHtml(c.emoji || "📘")} ${escapeHtml(c.title)}</button>`,
+    )
+    .join("");
 
-  const blocks = tmplCatalog.map((c) => {
-    const isActive  = c.id === activeTmplSubject;
-    const templates = tmplData.filter((t) => t.catalog_id === c.id);
-    const rows = templates.length
-      ? templates.map(renderTmplRow).join("")
-      : `<p class="muted" style="padding:0 18px">Шаблонов нет.</p>`;
-    return `<div data-tmpl-block="${escapeAttr(c.id)}" style="display:${isActive ? "grid" : "none"};gap:8px;">
+  const blocks = tmplCatalog
+    .map((c) => {
+      const isActive = c.id === activeTmplSubject;
+      const templates = tmplData.filter((t) => t.catalog_id === c.id);
+      const rows = templates.length
+        ? templates.map(renderTmplRow).join("")
+        : `<p class="muted" style="padding:0 18px">Шаблонов нет.</p>`;
+      return `<div data-tmpl-block="${escapeAttr(c.id)}" style="display:${isActive ? "grid" : "none"};gap:8px;">
       <div style="display:flex;gap:8px;justify-content:flex-end;padding:0 18px;">
         <button class="icon-btn" type="button" data-save-all-tmpl="${escapeAttr(c.id)}">💾 Сохранить все</button>
         <button class="icon-btn" type="button" data-add-tmpl-task="${escapeAttr(c.id)}">+ Добавить шаблон</button>
       </div>
       ${rows}
     </div>`;
-  }).join("");
+    })
+    .join("");
 
   editorEl.innerHTML = `<div class="tasks-subject-tabs" style="padding:0 18px 10px;">${tabs}</div>${blocks}`;
 
   editorEl.querySelectorAll("[data-tmpl-cat]").forEach((btn) => {
     btn.addEventListener("click", () => {
       activeTmplSubject = btn.getAttribute("data-tmpl-cat");
-      editorEl.querySelectorAll("[data-tmpl-cat]").forEach((b) => b.classList.toggle("is-active", b === btn));
+      editorEl
+        .querySelectorAll("[data-tmpl-cat]")
+        .forEach((b) => b.classList.toggle("is-active", b === btn));
       editorEl.querySelectorAll("[data-tmpl-block]").forEach((block) => {
-        block.style.display = block.getAttribute("data-tmpl-block") === activeTmplSubject ? "grid" : "none";
+        block.style.display =
+          block.getAttribute("data-tmpl-block") === activeTmplSubject
+            ? "grid"
+            : "none";
       });
     });
   });
 
   editorEl.querySelectorAll("[data-save-tmpl]").forEach((btn) => {
-    btn.addEventListener("click", () => saveTmplRow(btn.closest("[data-tmpl-id]")));
+    btn.addEventListener("click", () =>
+      saveTmplRow(btn.closest("[data-tmpl-id]")),
+    );
   });
   editorEl.querySelectorAll("[data-delete-tmpl]").forEach((btn) => {
-    btn.addEventListener("click", () => void deleteTmplTask(btn.getAttribute("data-delete-tmpl")));
+    btn.addEventListener(
+      "click",
+      () => void deleteTmplTask(btn.getAttribute("data-delete-tmpl")),
+    );
   });
   editorEl.querySelectorAll("[data-add-tmpl-task]").forEach((btn) => {
-    btn.addEventListener("click", () => void addTmplTask(btn.getAttribute("data-add-tmpl-task")));
+    btn.addEventListener(
+      "click",
+      () => void addTmplTask(btn.getAttribute("data-add-tmpl-task")),
+    );
   });
   editorEl.querySelectorAll("[data-save-all-tmpl]").forEach((btn) => {
-    btn.addEventListener("click", () => void saveAllTmplInBlock(btn.getAttribute("data-save-all-tmpl")));
+    btn.addEventListener(
+      "click",
+      () => void saveAllTmplInBlock(btn.getAttribute("data-save-all-tmpl")),
+    );
   });
   editorEl.querySelectorAll("[data-tmpl-move-up]").forEach((btn) => {
-    btn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); void moveTmplTask(btn.getAttribute("data-tmpl-move-up"), "up"); });
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      void moveTmplTask(btn.getAttribute("data-tmpl-move-up"), "up");
+    });
   });
   editorEl.querySelectorAll("[data-tmpl-move-down]").forEach((btn) => {
-    btn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); void moveTmplTask(btn.getAttribute("data-tmpl-move-down"), "down"); });
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      void moveTmplTask(btn.getAttribute("data-tmpl-move-down"), "down");
+    });
   });
 }
 
 function renderTmplRow(t) {
-  const details  = (t.default_details && typeof t.default_details === "object") ? t.default_details : {};
-  const homework = Array.isArray(details.homework) ? details.homework.join("\n") : "";
-  const hints    = Array.isArray(details.hints)    ? details.hints.join("\n")    : "";
-  const lessonFilesRaw  = Array.isArray(details.lessonFiles)  ? details.lessonFiles  : [];
-  const homeworkFilesRaw = Array.isArray(details.homeworkFiles) ? details.homeworkFiles : [];
-  const hintFilesRaw    = Array.isArray(details.hintFiles)    ? details.hintFiles    : [];
+  const details =
+    t.default_details && typeof t.default_details === "object"
+      ? t.default_details
+      : {};
+  const homework = Array.isArray(details.homework)
+    ? details.homework.join("\n")
+    : "";
+  const hints = Array.isArray(details.hints) ? details.hints.join("\n") : "";
+  const lessonFilesRaw = Array.isArray(details.lessonFiles)
+    ? details.lessonFiles
+    : [];
+  const homeworkFilesRaw = Array.isArray(details.homeworkFiles)
+    ? details.homeworkFiles
+    : [];
+  const hintFilesRaw = Array.isArray(details.hintFiles)
+    ? details.hintFiles
+    : [];
 
-  const lessonFilesHtml   = lessonFilesRaw.map((a)  => { const p = parseStoredAttachment(a); return attachmentRowHtml(p.label, p.url); }).join("");
-  const homeworkFilesHtml = homeworkFilesRaw.map((a) => { const p = parseStoredAttachment(a); return attachmentRowHtml(p.label, p.url); }).join("");
-  const hintFilesHtml     = hintFilesRaw.map((a)    => { const p = parseStoredAttachment(a); return attachmentRowHtml(p.label, p.url); }).join("");
+  const lessonFilesHtml = lessonFilesRaw
+    .map((a) => {
+      const p = parseStoredAttachment(a);
+      return attachmentRowHtml(p.label, p.url);
+    })
+    .join("");
+  const homeworkFilesHtml = homeworkFilesRaw
+    .map((a) => {
+      const p = parseStoredAttachment(a);
+      return attachmentRowHtml(p.label, p.url);
+    })
+    .join("");
+  const hintFilesHtml = hintFilesRaw
+    .map((a) => {
+      const p = parseStoredAttachment(a);
+      return attachmentRowHtml(p.label, p.url);
+    })
+    .join("");
 
   return `
     <details class="task-row tmpl-row" data-tmpl-id="${escapeAttr(t.id)}" style="margin:0 18px;">
@@ -1916,21 +2272,38 @@ async function saveTmplRow(row) {
 
   const orderVal = Number(row.querySelector('[data-f="order_index"]')?.value);
   const payload = {
-    title:       (row.querySelector('[data-f="title"]')?.value       || "").trim() || "Задание",
-    description: (row.querySelector('[data-f="description"]')?.value || "").trim(),
-    order_index: Number.isFinite(orderVal) && orderVal > 0 ? orderVal : (tmplData.find(x => x.id === id)?.order_index || 1),
+    title:
+      (row.querySelector('[data-f="title"]')?.value || "").trim() || "Задание",
+    description: (
+      row.querySelector('[data-f="description"]')?.value || ""
+    ).trim(),
+    order_index:
+      Number.isFinite(orderVal) && orderVal > 0
+        ? orderVal
+        : tmplData.find((x) => x.id === id)?.order_index || 1,
     default_details: {
-      lessonNotes:   (row.querySelector('[data-f="lessonNotes"]')?.value || "").trim(),
-      lessonFiles:   readAttachmentsFromRow(row.querySelector('[id^="tmpl-lesson-files-"]')),
-      homework:      splitLines(row.querySelector('[data-f="homework"]')?.value),
-      homeworkFiles: readAttachmentsFromRow(row.querySelector('[id^="tmpl-hw-files-"]')),
-      hints:         splitLines(row.querySelector('[data-f="hints"]')?.value),
-      hintFiles:     readAttachmentsFromRow(row.querySelector('[id^="tmpl-hint-files-"]')),
-      attachments:   [],
+      lessonNotes: (
+        row.querySelector('[data-f="lessonNotes"]')?.value || ""
+      ).trim(),
+      lessonFiles: readAttachmentsFromRow(
+        row.querySelector('[id^="tmpl-lesson-files-"]'),
+      ),
+      homework: splitLines(row.querySelector('[data-f="homework"]')?.value),
+      homeworkFiles: readAttachmentsFromRow(
+        row.querySelector('[id^="tmpl-hw-files-"]'),
+      ),
+      hints: splitLines(row.querySelector('[data-f="hints"]')?.value),
+      hintFiles: readAttachmentsFromRow(
+        row.querySelector('[id^="tmpl-hint-files-"]'),
+      ),
+      attachments: [],
     },
   };
 
-  if (statusEl) { statusEl.textContent = "Сохраняю…"; statusEl.className = "tmpl-save-status"; }
+  if (statusEl) {
+    statusEl.textContent = "Сохраняю…";
+    statusEl.className = "tmpl-save-status";
+  }
   try {
     await window.db.collection("task_templates").doc(id).update(payload);
     const t = tmplData.find((x) => x.id === id);
@@ -1938,14 +2311,20 @@ async function saveTmplRow(row) {
     tmplData.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
     renderTmplEditor();
   } catch (err) {
-    if (statusEl) { statusEl.textContent = "Ошибка: " + err.message; statusEl.className = "tmpl-save-status err"; }
+    if (statusEl) {
+      statusEl.textContent = "Ошибка: " + err.message;
+      statusEl.className = "tmpl-save-status err";
+    }
   }
 }
 
 async function addTmplTask(catalogId) {
   if (!catalogId) return;
   const existing = tmplData.filter((t) => t.catalog_id === catalogId);
-  const maxOrder = existing.reduce((m, t) => Math.max(m, t.order_index || 0), 0);
+  const maxOrder = existing.reduce(
+    (m, t) => Math.max(m, t.order_index || 0),
+    0,
+  );
   try {
     await window.db.collection("task_templates").add({
       catalog_id: catalogId,
@@ -1953,9 +2332,12 @@ async function addTmplTask(catalogId) {
       description: "",
       order_index: maxOrder + 1,
       default_details: {
-        lessonNotes: "", lessonFiles: [],
-        homework: [],   homeworkFiles: [],
-        hints: [],      hintFiles: [],
+        lessonNotes: "",
+        lessonFiles: [],
+        homework: [],
+        homeworkFiles: [],
+        hints: [],
+        hintFiles: [],
         attachments: [],
       },
     });
@@ -1979,7 +2361,7 @@ async function deleteTmplTask(id) {
 // ─── Браузер файлов хранилища ─────────────────────────────────────────────────
 
 let fileBrowserTargetRow = null;
-let fileBrowserItems     = [];
+let fileBrowserItems = [];
 
 async function openFileBrowser(row) {
   fileBrowserTargetRow = row;
@@ -1987,7 +2369,8 @@ async function openFileBrowser(row) {
   if (!modal) return;
   modal.hidden = false;
   document.getElementById("fileBrowserSearch").value = "";
-  document.getElementById("fileBrowserList").innerHTML = '<p class="muted" style="padding:12px 16px">Загрузка…</p>';
+  document.getElementById("fileBrowserList").innerHTML =
+    '<p class="muted" style="padding:12px 16px">Загрузка…</p>';
   await loadStorageFiles();
 }
 
@@ -1999,7 +2382,8 @@ function closeFileBrowser() {
 
 async function loadStorageFiles() {
   if (!yosCreds?.accessKey) {
-    document.getElementById("fileBrowserList").innerHTML = '<p class="muted" style="padding:12px 16px;color:var(--red)">Ключи не загружены. Проверь settings/storage в Firestore.</p>';
+    document.getElementById("fileBrowserList").innerHTML =
+      '<p class="muted" style="padding:12px 16px;color:var(--red)">Ключи не загружены. Проверь settings/storage в Firestore.</p>';
     return;
   }
   try {
@@ -2020,7 +2404,7 @@ function parseListXml(xml, publicBase) {
   const re = /<Contents>([\s\S]*?)<\/Contents>/g;
   let m;
   while ((m = re.exec(xml)) !== null) {
-    const keyM  = /<Key>([^<]+)<\/Key>/.exec(m[1]);
+    const keyM = /<Key>([^<]+)<\/Key>/.exec(m[1]);
     const sizeM = /<Size>([^<]+)<\/Size>/.exec(m[1]);
     if (!keyM) continue;
     const key = keyM[1];
@@ -2033,37 +2417,44 @@ function parseListXml(xml, publicBase) {
 function renderFileBrowserList() {
   const listEl = document.getElementById("fileBrowserList");
   if (!listEl) return;
-  const q        = (document.getElementById("fileBrowserSearch")?.value || "").trim().toLowerCase();
-  const filtered = q ? fileBrowserItems.filter((f) => f.key.toLowerCase().includes(q)) : fileBrowserItems;
+  const q = (document.getElementById("fileBrowserSearch")?.value || "")
+    .trim()
+    .toLowerCase();
+  const filtered = q
+    ? fileBrowserItems.filter((f) => f.key.toLowerCase().includes(q))
+    : fileBrowserItems;
   if (!filtered.length) {
-    listEl.innerHTML = '<p class="muted" style="padding:12px 16px">Файлов не найдено</p>';
+    listEl.innerHTML =
+      '<p class="muted" style="padding:12px 16px">Файлов не найдено</p>';
     return;
   }
-  listEl.innerHTML = filtered.map((f) => {
-    const name = f.key.split("/").pop();
-    return `<div class="fb-row" data-fb-url="${escapeAttr(f.url)}" data-fb-name="${escapeAttr(name)}">
+  listEl.innerHTML = filtered
+    .map((f) => {
+      const name = f.key.split("/").pop();
+      return `<div class="fb-row" data-fb-url="${escapeAttr(f.url)}" data-fb-name="${escapeAttr(name)}">
       <span class="fb-icon">${fileIconByName(name)}</span>
       <span class="fb-name" title="${escapeAttr(f.key)}">${escapeHtml(f.key)}</span>
       <span class="fb-size muted">${fmtBytes(f.size)}</span>
       <button class="icon-btn" type="button" data-fb-pick>Выбрать</button>
     </div>`;
-  }).join("");
+    })
+    .join("");
 }
 
 function fileIconByName(name) {
   const s = name.toLowerCase();
   if (/\.(jpe?g|png|gif|webp|svg|bmp|heic)$/.test(s)) return "🖼️";
-  if (/\.pdf$/.test(s))                                 return "📄";
-  if (/\.(mp4|mov|avi|mkv|webm|m4v)$/.test(s))        return "🎬";
-  if (/\.(mp3|wav|ogg|m4a|aac)$/.test(s))             return "🎵";
-  if (/\.(docx?|pages)$/.test(s))                      return "📝";
-  if (/\.(xlsx?|numbers|csv)$/.test(s))                return "📊";
+  if (/\.pdf$/.test(s)) return "📄";
+  if (/\.(mp4|mov|avi|mkv|webm|m4v)$/.test(s)) return "🎬";
+  if (/\.(mp3|wav|ogg|m4a|aac)$/.test(s)) return "🎵";
+  if (/\.(docx?|pages)$/.test(s)) return "📝";
+  if (/\.(xlsx?|numbers|csv)$/.test(s)) return "📊";
   return "📎";
 }
 
 function fmtBytes(n) {
   if (!n) return "";
-  if (n < 1024)    return `${n} B`;
+  if (n < 1024) return `${n} B`;
   if (n < 1048576) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / 1048576).toFixed(1)} MB`;
 }
