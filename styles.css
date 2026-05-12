@@ -301,13 +301,30 @@ body.is-app-loading #appShell {
   font-weight: 600;
   color: var(--muted);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
 }
 
 .section-tab.is-active {
   background: #fff;
   color: var(--text);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Точка-уведомление «есть ДЗ» на вкладке пробников */
+.section-tab.has-homework::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f97316;
+  margin-left: 5px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
 }
 
 /* ─── Заголовок части заданий ────────────────────────────────────────────── */
@@ -332,11 +349,64 @@ body.is-app-loading #appShell {
   background: rgba(15, 23, 42, 0.1);
 }
 
-/* ─── Заглушка пробников ─────────────────────────────────────────────────── */
+/* ─── Панель пробников: секции и разделители ─────────────────────────────── */
 
 .trials-panel {
   padding: 0 18px 18px;
 }
+
+/* Отступы под заголовками и шкалой внутри панели пробников */
+.trials-panel .task-part-label {
+  padding-top: 18px;
+  padding-bottom: 10px;
+}
+
+.trials-panel .score-bar {
+  margin-bottom: 6px;
+}
+
+.trials-panel .trials-grid {
+  margin-top: 4px;
+}
+
+/* ─── Lookup-сетка шкалы ЕГЭ ────────────────────────────────────────────── */
+
+.score-lookup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+
+.score-lookup__item {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  border-radius: 7px;
+  padding: 4px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.score-lookup__primary {
+  opacity: 0.55;
+}
+
+.score-lookup__sep {
+  opacity: 0.3;
+  font-size: 9px;
+}
+
+.score-lookup__test {
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.score-lookup__item--fail  { background: rgba(185, 28,  28, 0.08); color: #b91c1c; }
+.score-lookup__item--low   { background: rgba(180, 83,   9, 0.08); color: #b45309; }
+.score-lookup__item--mid   { background: rgba( 29, 78, 216, 0.08); color: #1d4ed8; }
+.score-lookup__item--high  { background: rgba( 21, 128,  61, 0.08); color: #15803d; }
 
 .trials-empty {
   display: flex;
@@ -350,140 +420,276 @@ body.is-app-loading #appShell {
   gap: 8px;
 }
 
-.trials-empty__icon { font-size: 32px; }
-.trials-empty__title { font-weight: 700; font-size: 16px; }
-.trials-empty__text { font-size: 14px; color: var(--muted); max-width: 320px; line-height: 1.5; }
+.trials-empty__icon {
+  font-size: 32px;
+}
+.trials-empty__title {
+  font-weight: 700;
+  font-size: 16px;
+}
+.trials-empty__text {
+  font-size: 14px;
+  color: var(--muted);
+  max-width: 320px;
+  line-height: 1.5;
+}
 
-/* ─── Карточки пробников ─────────────────────────────────────────────────── */
+/* ─── Полоса-шкала перевода баллов ───────────────────────────────────────── */
 
-.trial-card {
+.score-bar {
+  margin-bottom: 14px;
+}
+
+.score-bar__label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.score-bar__track {
+  display: flex;
+  border-radius: 10px;
+  overflow: hidden;
+  height: 52px;
+  gap: 2px;
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.score-bar__zone {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px 16px;
-  background: var(--surface, #fff);
-  border: 1px solid rgba(15, 23, 42, 0.1);
-  border-radius: 14px;
-  margin-bottom: 10px;
-}
-.trial-card:last-child { margin-bottom: 0; }
-
-.trial-card__header {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 4px;
+  min-width: 0;
+  border-radius: 8px;
+}
+
+.score-bar__zone-range {
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.65;
+  white-space: nowrap;
+}
+
+.score-bar__zone-val {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.score-bar__zone--grade-2, .score-bar__zone--fail  { background: rgba(185, 28, 28, 0.10); color: #b91c1c; }
+.score-bar__zone--grade-3, .score-bar__zone--low   { background: rgba(180, 83,  9, 0.10); color: #b45309; }
+.score-bar__zone--grade-4, .score-bar__zone--mid   { background: rgba(29,  78, 216, 0.10); color: #1d4ed8; }
+.score-bar__zone--grade-5, .score-bar__zone--high  { background: rgba(21, 128,  61, 0.10); color: #15803d; }
+
+/* ─── Бенто-сетка пробников ──────────────────────────────────────────────── */
+
+.trials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 12px;
 }
 
-.trial-card__title {
-  font-weight: 600;
-  font-size: 15px;
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+@media (max-width: 480px) {
+  .trials-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-.trial-card__meta {
+/* ─── Карточка пробника (как карточка задания) ───────────────────────────── */
+
+.trial-card {
+  text-align: left;
+  width: 100%;
+  color: var(--text);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 18px;
+  padding: 14px;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 10px;
+  appearance: none;
+  font: inherit;
+}
+
+.trial-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
+}
+
+.trial-card:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-soft), var(--ring);
+}
+
+.trial-card__top {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.trial-card__title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.trial-card__title {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.trial-card__hw-badge {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #ea580c;
+  background: rgba(249, 115, 22, 0.12);
+  border-radius: 6px;
+  padding: 3px 7px;
   flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .trial-card__date {
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.trial-card__result {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.trial-card__score {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.trial-card__result-arrow {
   font-size: 12px;
   color: var(--muted);
-  opacity: 0.6;
 }
 
-.trial-card__files {
-  display: flex;
+/* ─── Мини-бенто со статистикой (используется и в карточке, и в модалке) ── */
+
+.trial-card__stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
-  flex-wrap: wrap;
 }
 
-.trial-card__file-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--accent, #007aff);
-  text-decoration: none;
-  background: rgba(0, 122, 255, 0.07);
-  padding: 4px 12px;
-  border-radius: 20px;
-  border: 1px solid rgba(0, 122, 255, 0.18);
-  transition: background 0.15s;
-}
-.trial-card__file-link:hover {
-  background: rgba(0, 122, 255, 0.14);
+
+.trial-card__stat {
+  background: rgba(15, 23, 42, 0.04);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid transparent;
 }
 
-/* Бейдж с оценкой / тестовым баллом */
-.trial-card__grade {
-  font-size: 14px;
+.trial-card__stat-value {
+  font-size: 20px;
   font-weight: 800;
-  padding: 2px 10px;
-  border-radius: 20px;
-  white-space: nowrap;
-  letter-spacing: 0.01em;
+  line-height: 1.1;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.trial-card__stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
 }
 
 /* ОГЭ оценки */
-.trial-card__grade--grade-2 {
+.trial-card__stat--grade-2 {
+  background: rgba(185, 28, 28, 0.07);
+  border-color: rgba(185, 28, 28, 0.14);
+}
+.trial-card__stat--grade-2 .trial-card__stat-value {
   color: #b91c1c;
-  background: rgba(185, 28, 28, 0.1);
 }
-.trial-card__grade--grade-3 {
+.trial-card__stat--grade-3 {
+  background: rgba(180, 83, 9, 0.07);
+  border-color: rgba(180, 83, 9, 0.14);
+}
+.trial-card__stat--grade-3 .trial-card__stat-value {
   color: #b45309;
-  background: rgba(180, 83, 9, 0.1);
 }
-.trial-card__grade--grade-4 {
+.trial-card__stat--grade-4 {
+  background: rgba(29, 78, 216, 0.07);
+  border-color: rgba(29, 78, 216, 0.14);
+}
+.trial-card__stat--grade-4 .trial-card__stat-value {
   color: #1d4ed8;
-  background: rgba(29, 78, 216, 0.1);
 }
-.trial-card__grade--grade-5 {
+.trial-card__stat--grade-5 {
+  background: rgba(21, 128, 61, 0.07);
+  border-color: rgba(21, 128, 61, 0.14);
+}
+.trial-card__stat--grade-5 .trial-card__stat-value {
   color: #15803d;
-  background: rgba(21, 128, 61, 0.1);
 }
 
 /* ЕГЭ уровни */
-.trial-card__grade--fail {
+.trial-card__stat--fail {
+  background: rgba(185, 28, 28, 0.07);
+  border-color: rgba(185, 28, 28, 0.14);
+}
+.trial-card__stat--fail .trial-card__stat-value {
   color: #b91c1c;
-  background: rgba(185, 28, 28, 0.1);
 }
-.trial-card__grade--low {
+.trial-card__stat--low {
+  background: rgba(180, 83, 9, 0.07);
+  border-color: rgba(180, 83, 9, 0.14);
+}
+.trial-card__stat--low .trial-card__stat-value {
   color: #b45309;
-  background: rgba(180, 83, 9, 0.1);
 }
-.trial-card__grade--mid {
+.trial-card__stat--mid {
+  background: rgba(29, 78, 216, 0.07);
+  border-color: rgba(29, 78, 216, 0.14);
+}
+.trial-card__stat--mid .trial-card__stat-value {
   color: #1d4ed8;
-  background: rgba(29, 78, 216, 0.1);
 }
-.trial-card__grade--high {
+.trial-card__stat--high {
+  background: rgba(21, 128, 61, 0.07);
+  border-color: rgba(21, 128, 61, 0.14);
+}
+.trial-card__stat--high .trial-card__stat-value {
   color: #15803d;
+}
+
+/* ─── Badge для модалки пробника ─────────────────────────────────────────── */
+
+.badge--trial {
+  background: rgba(15, 23, 42, 0.07);
+  color: var(--text);
+}
+.badge--trial-grade-2,
+.badge--trial-fail {
+  background: rgba(185, 28, 28, 0.1);
+  color: #b91c1c;
+}
+.badge--trial-grade-3,
+.badge--trial-low {
+  background: rgba(180, 83, 9, 0.1);
+  color: #b45309;
+}
+.badge--trial-grade-4,
+.badge--trial-mid {
+  background: rgba(29, 78, 216, 0.1);
+  color: #1d4ed8;
+}
+.badge--trial-grade-5,
+.badge--trial-high {
   background: rgba(21, 128, 61, 0.1);
+  color: #15803d;
 }
 
 .tab {
@@ -750,28 +956,36 @@ body.is-app-loading #appShell {
 /* ─── KPI статусные цвета ────────────────────────────────────────────────── */
 
 .kpi--completed {
-  background: rgba(52, 199, 89, 0.10);
+  background: rgba(52, 199, 89, 0.1);
   border-color: rgba(52, 199, 89, 0.28);
 }
-.kpi--completed .kpi__value { color: #0f6e2b; }
+.kpi--completed .kpi__value {
+  color: #0f6e2b;
+}
 
 .kpi--in_progress {
   background: rgba(0, 122, 255, 0.08);
   border-color: rgba(0, 122, 255, 0.25);
 }
-.kpi--in_progress .kpi__value { color: #00408c; }
+.kpi--in_progress .kpi__value {
+  color: #00408c;
+}
 
 .kpi--homework {
-  background: rgba(255, 159, 10, 0.10);
+  background: rgba(255, 159, 10, 0.1);
   border-color: rgba(255, 159, 10, 0.28);
 }
-.kpi--homework .kpi__value { color: #7a4500; }
+.kpi--homework .kpi__value {
+  color: #7a4500;
+}
 
 .kpi--not_started {
   background: rgba(100, 116, 139, 0.07);
   border-color: rgba(100, 116, 139, 0.18);
 }
-.kpi--not_started .kpi__value { color: #475569; }
+.kpi--not_started .kpi__value {
+  color: #475569;
+}
 
 .progress {
   margin-top: 14px;
@@ -847,6 +1061,16 @@ body.is-app-loading #appShell {
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+@media (max-width: 600px) {
+  .card--tasks .card__header {
+    flex-wrap: wrap;
+  }
+  .card--tasks .filters {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 
 .chip {
