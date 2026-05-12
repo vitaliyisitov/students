@@ -1676,7 +1676,7 @@ function attachmentRowHtml(label, url) {
   return `<div class="attachment-row">
     <input class="att-label" type="text" placeholder="Название (напр. Запись урока)" value="${escapeAttr(label)}" />
     <input class="att-url"   type="url"  placeholder="https://... или загрузи файл →" value="${escapeAttr(url)}" />
-    <label class="icon-btn att-upload-btn" title="Загрузить файл">📎<input type="file" class="att-file-input" style="display:none" /></label>
+    <label class="icon-btn att-upload-btn" title="Загрузить файл"><span class="att-upload-icon">📎</span><input type="file" class="att-file-input" style="display:none" /></label>
     <button class="icon-btn att-browse-btn" type="button" title="Найти файл в хранилище">📂</button>
     <button class="icon-btn danger" type="button" data-remove-attachment title="Удалить">✕</button>
   </div>`;
@@ -1694,6 +1694,9 @@ async function uploadAttachmentToRow(file, row) {
   const urlInput = row.querySelector(".att-url");
   const labelInput = row.querySelector(".att-label");
   const uploadBtn = row.querySelector(".att-upload-btn");
+  const uploadIcon = uploadBtn?.querySelector(".att-upload-icon");
+  // Безопасное имя: пробелы → _, убираем символы опасные для URL
+  const safeFileName = file.name.replace(/\s+/g, "_").replace(/[<>:"/\\|?*]+/g, "");
   const taskRow = row.closest("[data-task-id]");
   const tmplRow = row.closest("[data-tmpl-id]");
   let storagePath;
@@ -1711,7 +1714,7 @@ async function uploadAttachmentToRow(file, row) {
       taskRow.querySelector('[data-f="title"]')?.value ||
         taskRow.getAttribute("data-task-id"),
     );
-    storagePath = `${userName}/${subjectTitle}/${taskTitle}/${file.name}`;
+    storagePath = `${userName}/${subjectTitle}/${taskTitle}/${safeFileName}`;
   } else if (row.closest("[data-trial-id]")) {
     const trialRow = row.closest("[data-trial-id]");
     const userName = yosSlug(
@@ -1724,7 +1727,7 @@ async function uploadAttachmentToRow(file, row) {
       trialRow.querySelector('[data-tf="title"]')?.value ||
         trialRow.getAttribute("data-trial-id"),
     );
-    storagePath = `${userName}/${subjectTitle}/пробники/${trialTitle}/${file.name}`;
+    storagePath = `${userName}/${subjectTitle}/пробники/${trialTitle}/${safeFileName}`;
   } else if (tmplRow) {
     const tmplId = tmplRow.getAttribute("data-tmpl-id") || "";
     const catalogId = tmplData.find((t) => t.id === tmplId)?.catalog_id || "";
@@ -1734,13 +1737,13 @@ async function uploadAttachmentToRow(file, row) {
     const tmplTitle = yosSlug(
       tmplRow.querySelector('[data-f="title"]')?.value || tmplId,
     );
-    storagePath = `templates/${catalogTitle}/${tmplTitle}/${file.name}`;
+    storagePath = `templates/${catalogTitle}/${tmplTitle}/${safeFileName}`;
   } else {
-    storagePath = `uploads/${file.name}`;
+    storagePath = `uploads/${safeFileName}`;
   }
 
-  const origText = uploadBtn?.textContent || "📎";
-  if (uploadBtn) uploadBtn.textContent = "⏳";
+  const origText = uploadIcon?.textContent || "📎";
+  if (uploadIcon) uploadIcon.textContent = "⏳";
   if (urlInput) {
     urlInput.value = "Проверяю…";
     urlInput.disabled = true;
@@ -1794,7 +1797,7 @@ async function uploadAttachmentToRow(file, row) {
     setStatus("Ошибка загрузки: " + err.message, "error");
     console.error(err);
   } finally {
-    if (uploadBtn) uploadBtn.textContent = origText;
+    if (uploadIcon) uploadIcon.textContent = origText;
   }
 }
 
@@ -1971,13 +1974,13 @@ function trialRowHtml(t) {
         <div class="trial-file-field">
           <span class="trial-file-label">Вариант</span>
           <input type="text" class="att-url" data-tf="variant_url" value="${escapeAttrAdmin(t.variant_url || "")}" placeholder="URL файла…" />
-          <label class="icon-btn att-upload-btn" title="Загрузить файл">📎<input type="file" class="att-file-input" style="display:none" /></label>
+          <label class="icon-btn att-upload-btn" title="Загрузить файл"><span class="att-upload-icon">📎</span><input type="file" class="att-file-input" style="display:none" /></label>
           <button class="icon-btn" type="button" data-fb-trial="${t.id}" data-fb-ctx="variant" title="Выбрать из хранилища">📂</button>
         </div>
         <div class="trial-file-field">
           <span class="trial-file-label">Решение</span>
           <input type="text" class="att-url" data-tf="solution_url" value="${escapeAttrAdmin(t.solution_url || "")}" placeholder="URL файла…" />
-          <label class="icon-btn att-upload-btn" title="Загрузить файл">📎<input type="file" class="att-file-input" style="display:none" /></label>
+          <label class="icon-btn att-upload-btn" title="Загрузить файл"><span class="att-upload-icon">📎</span><input type="file" class="att-file-input" style="display:none" /></label>
           <button class="icon-btn" type="button" data-fb-trial="${t.id}" data-fb-ctx="solution" title="Выбрать из хранилища">📂</button>
         </div>
       </div>
