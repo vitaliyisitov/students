@@ -6,7 +6,8 @@ const state = {
   selectedUserId: null,
   selectedUserSubjects: [],
   tasksBySubjectId: {},
-  trials: [],          // пробники текущего ученика
+  trials: [],                  // пробники выбранного предмета
+  selectedTrialSubjectId: null, // предмет в редакторе пробников
 };
 
 const els = {
@@ -205,9 +206,9 @@ function bindEvents() {
     }
   });
 
-  // Применяем события загрузки и drag-drop к обоим редакторам
+  // Применяем события загрузки и drag-drop ко всем редакторам
   const tmplEditorEl = document.getElementById("templatesEditor");
-  [els.tasksEditor, tmplEditorEl].forEach((container) => {
+  [els.tasksEditor, tmplEditorEl, els.trialsEditor].forEach((container) => {
     if (!container) return;
 
     container.addEventListener("change", (e) => {
@@ -388,14 +389,24 @@ async function loadUsers(preserveSelected = true, autoSelect = true) {
 async function selectUser(userId) {
   state.selectedUserId = userId;
   renderStudentsList();
-  await Promise.all([loadUserSubjects(userId), loadUserTrials(userId)]);
+  state.selectedTrialSubjectId = null;
+  state.trials = [];
+  await loadUserSubjects(userId);
+  // Загружаем пробники первого предмета
+  if (state.selectedUserSubjects.length) {
+    state.selectedTrialSubjectId = state.selectedUserSubjects[0].id;
+    await loadUserTrials(userId, state.selectedTrialSubjectId);
+  }
   renderEditPanel();
 }
 
-async function loadUserTrials(userId) {
+async function loadUserTrials(userId, subjectId) {
+  if (!userId || !subjectId) { state.trials = []; return; }
   try {
     const snap = await window.db
-      .collection("users").doc(userId).collection("trials")
+      .collection("users").doc(userId)
+      .collection("subjects").doc(subjectId)
+      .collection("trials")
       .orderBy("order_index").get();
     state.trials = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   } catch {
@@ -1701,6 +1712,19 @@ async function uploadAttachmentToRow(file, row) {
         taskRow.getAttribute("data-task-id"),
     );
     storagePath = `${userName}/${subjectTitle}/${taskTitle}/${file.name}`;
+  } else if (row.closest("[data-trial-id]")) {
+    const trialRow = row.closest("[data-trial-id]");
+    const userName = yosSlug(
+      state.users.find((u) => u.id === state.selectedUserId)?.name ||
+        state.selectedUserId,
+    );
+    const subject = state.selectedUserSubjects.find((s) => s.id === state.selectedTrialSubjectId);
+    const subjectTitle = yosSlug(subject?.title || "пробники");
+    const trialTitle = yosSlug(
+      trialRow.querySelector('[data-tf="title"]')?.value ||
+        trialRow.getAttribute("data-trial-id"),
+    );
+    storagePath = `${userName}/${subjectTitle}/пробники/${trialTitle}/${file.name}`;
   } else if (tmplRow) {
     const tmplId = tmplRow.getAttribute("data-tmpl-id") || "";
     const catalogId = tmplData.find((t) => t.id === tmplId)?.catalog_id || "";
@@ -1862,14 +1886,44 @@ function renderTrialsEditor() {
     return;
   }
 
+  const subjects = state.selectedUserSubjects || [];
+  if (!subjects.length) {
+    root.innerHTML = `<p class="muted admin-empty">У ученика нет предметов.</p>`;
+    return;
+  }
+
+  // Инициализируем выбранный предмет
+  if (!state.selectedTrialSubjectId || !subjects.find(s => s.id === state.selectedTrialSubjectId)) {
+    state.selectedTrialSubjectId = subjects[0].id;
+  }
+
+  const tabsHtml = subjects.map((s) => {
+    const active = s.id === state.selectedTrialSubjectId ? "is-active" : "";
+    return `<button class="admin-page-tab ${active}" type="button" data-trial-subject="${escapeAttr(s.id)}">${escapeHtml(s.title || s.id)}</button>`;
+  }).join("");
+
   const rows = state.trials.map((t) => trialRowHtml(t)).join("");
 
   root.innerHTML = `
-    <div style="display:flex;gap:8px;justify-content:flex-end;padding:0 2px 4px;">
-      <button class="icon-btn" type="button" id="addTrialBtn">+ Добавить пробник</button>
+    <div class="trial-subject-tabs">${tabsHtml}</div>
+    <div class="trial-rows-wrap">
+      <div style="display:flex;gap:8px;justify-content:flex-end;padding:0 2px 6px;">
+        <button class="icon-btn" type="button" id="addTrialBtn">+ Добавить пробник</button>
+      </div>
+      ${rows || `<p class="muted" style="margin:0;padding:4px 2px;">Пробников пока нет.</p>`}
     </div>
-    ${rows || `<p class="muted" style="margin:0;padding:4px 2px;">Пробников пока нет.</p>`}
   `;
+
+  // Переключение предмета
+  root.querySelectorAll("[data-trial-subject]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const sid = btn.dataset.trialSubject;
+      if (sid === state.selectedTrialSubjectId) return;
+      state.selectedTrialSubjectId = sid;
+      await loadUserTrials(state.selectedUserId, sid);
+      renderTrialsEditor();
+    });
+  });
 
   root.querySelector("#addTrialBtn")?.addEventListener("click", addTrial);
 
@@ -1887,15 +1941,16 @@ function renderTrialsEditor() {
   });
 }
 
-function trialRowHtml(t) {
-  const subjectOptions = (state.selectedUserSubjects || [])
-    .map((s) => {
-      const slug = s.catalog_slug || "";
-      const sel = t.catalog_slug === slug ? " selected" : "";
-      return `<option value="${escapeAttrAdmin(slug)}"${sel}>${escapeAttrAdmin(s.title || slug)}</option>`;
-    })
-    .join("");
+// Вызывается при открытии вкладки «Ученики» или выборе ученика
+async function initTrialsEditorSubject() {
+  const subjects = state.selectedUserSubjects || [];
+  if (!subjects.length) return;
+  if (!state.selectedTrialSubjectId) state.selectedTrialSubjectId = subjects[0].id;
+  await loadUserTrials(state.selectedUserId, state.selectedTrialSubjectId);
+  renderTrialsEditor();
+}
 
+function trialRowHtml(t) {
   return `
     <div class="trial-row" data-trial-id="${t.id}">
       <div class="trial-row__fields">
@@ -1911,23 +1966,18 @@ function trialRowHtml(t) {
           <span>Результат</span>
           <input type="text" data-tf="score" value="${escapeAttrAdmin(t.score || "")}" placeholder="18 / 25" />
         </label>
-        <label class="trial-field">
-          <span>Предмет</span>
-          <select data-tf="catalog_slug">
-            <option value="">— не выбран —</option>
-            ${subjectOptions}
-          </select>
-        </label>
       </div>
       <div class="trial-row__files">
         <div class="trial-file-field">
           <span class="trial-file-label">Вариант</span>
-          <input type="text" class="att-url" data-tf="variant_url" value="${escapeAttrAdmin(t.variant_url || "")}" placeholder="URL файла с вариантом…" />
+          <input type="text" class="att-url" data-tf="variant_url" value="${escapeAttrAdmin(t.variant_url || "")}" placeholder="URL файла…" />
+          <label class="icon-btn att-upload-btn" title="Загрузить файл">📎<input type="file" class="att-file-input" style="display:none" /></label>
           <button class="icon-btn" type="button" data-fb-trial="${t.id}" data-fb-ctx="variant" title="Выбрать из хранилища">📂</button>
         </div>
         <div class="trial-file-field">
           <span class="trial-file-label">Решение</span>
-          <input type="text" class="att-url" data-tf="solution_url" value="${escapeAttrAdmin(t.solution_url || "")}" placeholder="URL файла с решением…" />
+          <input type="text" class="att-url" data-tf="solution_url" value="${escapeAttrAdmin(t.solution_url || "")}" placeholder="URL файла…" />
+          <label class="icon-btn att-upload-btn" title="Загрузить файл">📎<input type="file" class="att-file-input" style="display:none" /></label>
           <button class="icon-btn" type="button" data-fb-trial="${t.id}" data-fb-ctx="solution" title="Выбрать из хранилища">📂</button>
         </div>
       </div>
@@ -1945,19 +1995,22 @@ function escapeAttrAdmin(v) {
 async function addTrial() {
   if (!state.selectedUserId) return;
   try {
+    const subjectId = state.selectedTrialSubjectId;
+    if (!subjectId) { setStatus("Сначала выбери предмет в редакторе пробников", "error"); return; }
     const ref = await window.db
-      .collection("users").doc(state.selectedUserId).collection("trials")
+      .collection("users").doc(state.selectedUserId)
+      .collection("subjects").doc(subjectId)
+      .collection("trials")
       .add({
         title: "",
         date: new Date().toISOString().slice(0, 10),
         score: "",
-        catalog_slug: state.selectedUserSubjects?.[0]?.catalog_slug || "",
         variant_url: "",
         solution_url: "",
         order_index: (state.trials.length + 1),
         created_at: new Date().toISOString(),
       });
-    state.trials.push({ id: ref.id, title: "", date: new Date().toISOString().slice(0, 10), score: "", catalog_slug: state.selectedUserSubjects?.[0]?.catalog_slug || "", variant_url: "", solution_url: "", order_index: state.trials.length });
+    state.trials.push({ id: ref.id, title: "", date: new Date().toISOString().slice(0, 10), score: "", variant_url: "", solution_url: "", order_index: state.trials.length });
     renderTrialsEditor();
   } catch (err) {
     setStatus("Ошибка при создании пробника", "error");
@@ -1973,13 +2026,15 @@ async function saveTrial(trialId) {
     title:        row.querySelector('[data-tf="title"]')?.value.trim() || "",
     date:         row.querySelector('[data-tf="date"]')?.value || "",
     score:        row.querySelector('[data-tf="score"]')?.value.trim() || "",
-    catalog_slug: row.querySelector('[data-tf="catalog_slug"]')?.value || "",
     variant_url:  row.querySelector('[data-tf="variant_url"]')?.value.trim() || "",
     solution_url: row.querySelector('[data-tf="solution_url"]')?.value.trim() || "",
   };
+  const subjectId = state.selectedTrialSubjectId;
   try {
     await window.db
-      .collection("users").doc(state.selectedUserId).collection("trials")
+      .collection("users").doc(state.selectedUserId)
+      .collection("subjects").doc(subjectId)
+      .collection("trials")
       .doc(trialId).update(payload);
     const local = state.trials.find((t) => t.id === trialId);
     if (local) Object.assign(local, payload);
@@ -1993,9 +2048,12 @@ async function saveTrial(trialId) {
 async function deleteTrial(trialId) {
   if (!state.selectedUserId || !trialId) return;
   if (!confirm("Удалить пробник?")) return;
+  const subjectId = state.selectedTrialSubjectId;
   try {
     await window.db
-      .collection("users").doc(state.selectedUserId).collection("trials")
+      .collection("users").doc(state.selectedUserId)
+      .collection("subjects").doc(subjectId)
+      .collection("trials")
       .doc(trialId).delete();
     state.trials = state.trials.filter((t) => t.id !== trialId);
     renderTrialsEditor();
