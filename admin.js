@@ -1879,9 +1879,23 @@ function renderTrialsEditor() {
   root.querySelectorAll("[data-delete-trial]").forEach((btn) => {
     btn.addEventListener("click", () => deleteTrial(btn.dataset.deleteTrial));
   });
+  root.querySelectorAll("[data-fb-trial]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const fileField = btn.closest(".trial-file-field");
+      if (fileField) openFileBrowser(fileField);
+    });
+  });
 }
 
 function trialRowHtml(t) {
+  const subjectOptions = (state.selectedUserSubjects || [])
+    .map((s) => {
+      const slug = s.catalog_slug || "";
+      const sel = t.catalog_slug === slug ? " selected" : "";
+      return `<option value="${escapeAttrAdmin(slug)}"${sel}>${escapeAttrAdmin(s.title || slug)}</option>`;
+    })
+    .join("");
+
   return `
     <div class="trial-row" data-trial-id="${t.id}">
       <div class="trial-row__fields">
@@ -1897,6 +1911,25 @@ function trialRowHtml(t) {
           <span>Результат</span>
           <input type="text" data-tf="score" value="${escapeAttrAdmin(t.score || "")}" placeholder="18 / 25" />
         </label>
+        <label class="trial-field">
+          <span>Предмет</span>
+          <select data-tf="catalog_slug">
+            <option value="">— не выбран —</option>
+            ${subjectOptions}
+          </select>
+        </label>
+      </div>
+      <div class="trial-row__files">
+        <div class="trial-file-field">
+          <span class="trial-file-label">Вариант</span>
+          <input type="text" class="att-url" data-tf="variant_url" value="${escapeAttrAdmin(t.variant_url || "")}" placeholder="URL файла с вариантом…" />
+          <button class="icon-btn" type="button" data-fb-trial="${t.id}" data-fb-ctx="variant" title="Выбрать из хранилища">📂</button>
+        </div>
+        <div class="trial-file-field">
+          <span class="trial-file-label">Решение</span>
+          <input type="text" class="att-url" data-tf="solution_url" value="${escapeAttrAdmin(t.solution_url || "")}" placeholder="URL файла с решением…" />
+          <button class="icon-btn" type="button" data-fb-trial="${t.id}" data-fb-ctx="solution" title="Выбрать из хранилища">📂</button>
+        </div>
       </div>
       <div class="trial-row__actions">
         <button class="icon-btn" type="button" data-save-trial="${t.id}">Сохранить</button>
@@ -1918,10 +1951,13 @@ async function addTrial() {
         title: "",
         date: new Date().toISOString().slice(0, 10),
         score: "",
+        catalog_slug: state.selectedUserSubjects?.[0]?.catalog_slug || "",
+        variant_url: "",
+        solution_url: "",
         order_index: (state.trials.length + 1),
         created_at: new Date().toISOString(),
       });
-    state.trials.push({ id: ref.id, title: "", date: new Date().toISOString().slice(0, 10), score: "", order_index: state.trials.length });
+    state.trials.push({ id: ref.id, title: "", date: new Date().toISOString().slice(0, 10), score: "", catalog_slug: state.selectedUserSubjects?.[0]?.catalog_slug || "", variant_url: "", solution_url: "", order_index: state.trials.length });
     renderTrialsEditor();
   } catch (err) {
     setStatus("Ошибка при создании пробника", "error");
@@ -1934,9 +1970,12 @@ async function saveTrial(trialId) {
   const row = els.trialsEditor.querySelector(`[data-trial-id="${trialId}"]`);
   if (!row) return;
   const payload = {
-    title: row.querySelector('[data-tf="title"]')?.value.trim() || "",
-    date:  row.querySelector('[data-tf="date"]')?.value  || "",
-    score: row.querySelector('[data-tf="score"]')?.value.trim() || "",
+    title:        row.querySelector('[data-tf="title"]')?.value.trim() || "",
+    date:         row.querySelector('[data-tf="date"]')?.value || "",
+    score:        row.querySelector('[data-tf="score"]')?.value.trim() || "",
+    catalog_slug: row.querySelector('[data-tf="catalog_slug"]')?.value || "",
+    variant_url:  row.querySelector('[data-tf="variant_url"]')?.value.trim() || "",
+    solution_url: row.querySelector('[data-tf="solution_url"]')?.value.trim() || "",
   };
   try {
     await window.db
