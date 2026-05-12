@@ -358,9 +358,8 @@ body.is-app-loading #appShell {
 
 .trial-card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
   padding: 14px 16px;
   background: var(--surface, #fff);
   border: 1px solid rgba(15, 23, 42, 0.1);
@@ -368,6 +367,13 @@ body.is-app-loading #appShell {
   margin-bottom: 10px;
 }
 .trial-card:last-child { margin-bottom: 0; }
+
+.trial-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
 
 .trial-card__title {
   font-weight: 600;
@@ -399,6 +405,76 @@ body.is-app-loading #appShell {
   padding: 3px 10px;
   border-radius: 20px;
   white-space: nowrap;
+}
+
+.trial-card__files {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.trial-card__file-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent, #007aff);
+  text-decoration: none;
+  background: rgba(0, 122, 255, 0.07);
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 122, 255, 0.18);
+  transition: background 0.15s;
+}
+.trial-card__file-link:hover {
+  background: rgba(0, 122, 255, 0.14);
+}
+
+/* Бейдж с оценкой / тестовым баллом */
+.trial-card__grade {
+  font-size: 14px;
+  font-weight: 800;
+  padding: 2px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+/* ОГЭ оценки */
+.trial-card__grade--grade-2 {
+  color: #b91c1c;
+  background: rgba(185, 28, 28, 0.1);
+}
+.trial-card__grade--grade-3 {
+  color: #b45309;
+  background: rgba(180, 83, 9, 0.1);
+}
+.trial-card__grade--grade-4 {
+  color: #1d4ed8;
+  background: rgba(29, 78, 216, 0.1);
+}
+.trial-card__grade--grade-5 {
+  color: #15803d;
+  background: rgba(21, 128, 61, 0.1);
+}
+
+/* ЕГЭ уровни */
+.trial-card__grade--fail {
+  color: #b91c1c;
+  background: rgba(185, 28, 28, 0.1);
+}
+.trial-card__grade--low {
+  color: #b45309;
+  background: rgba(180, 83, 9, 0.1);
+}
+.trial-card__grade--mid {
+  color: #1d4ed8;
+  background: rgba(29, 78, 216, 0.1);
+}
+.trial-card__grade--high {
+  color: #15803d;
+  background: rgba(21, 128, 61, 0.1);
 }
 
 .tab {
