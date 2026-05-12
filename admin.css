@@ -20,7 +20,10 @@
   font-weight: 500;
   color: var(--muted);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
 }
 
 .admin-page-tab.is-active {
@@ -52,10 +55,18 @@
   white-space: pre-wrap;
 }
 
-.log-ok  { color: #56d364; }
-.log-err { color: #f85149; }
-.log-inf { color: #79c0ff; }
-.log-dim { color: #8b949e; }
+.log-ok {
+  color: #56d364;
+}
+.log-err {
+  color: #f85149;
+}
+.log-inf {
+  color: #79c0ff;
+}
+.log-dim {
+  color: #8b949e;
+}
 
 /* ─── Блок правил Firestore ──────────────────────────────────────────────── */
 
@@ -81,8 +92,12 @@
   color: var(--muted);
 }
 
-.tmpl-save-status.ok  { color: var(--green); }
-.tmpl-save-status.err { color: var(--red);   }
+.tmpl-save-status.ok {
+  color: var(--green);
+}
+.tmpl-save-status.err {
+  color: var(--red);
+}
 
 /* ─── Редактор вложений ──────────────────────────────────────────────────── */
 
@@ -139,7 +154,9 @@
   .attachment-row {
     grid-template-columns: minmax(0, 1fr) auto auto auto;
   }
-  .att-label { display: none; }
+  .att-label {
+    display: none;
+  }
 }
 
 /* ─── Браузер файлов ──────────────────────────────────────────────────────── */
@@ -155,7 +172,9 @@
   padding: 20px;
 }
 
-.fb-overlay[hidden] { display: none !important; }
+.fb-overlay[hidden] {
+  display: none !important;
+}
 
 .fb-panel {
   background: #fff;
@@ -211,9 +230,14 @@
   cursor: default;
 }
 
-.fb-row:hover { background: rgba(0, 122, 255, 0.04); }
+.fb-row:hover {
+  background: rgba(0, 122, 255, 0.04);
+}
 
-.fb-icon { font-size: 18px; text-align: center; }
+.fb-icon {
+  font-size: 18px;
+  text-align: center;
+}
 
 .fb-name {
   font-size: 13px;
