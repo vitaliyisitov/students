@@ -214,7 +214,7 @@ function bindEvents() {
     container.addEventListener("change", (e) => {
       const fileInput = e.target.closest(".att-file-input");
       if (fileInput && fileInput.files?.[0]) {
-        const row = fileInput.closest(".attachment-row");
+        const row = fileInput.closest(".attachment-row, .trial-file-field");
         void uploadAttachmentToRow(fileInput.files[0], row);
         fileInput.value = "";
       }
