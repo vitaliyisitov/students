@@ -8,6 +8,7 @@ let data = {
   },
   subjects: [],
   tasks: [],
+  trials: [],
 };
 
 const DASHBOARD_ACCESS_TOKEN = getDashboardAccessTokenFromUrl();
@@ -20,7 +21,9 @@ const state = loadState() || {
   selectedSubjectId: data.subjects[0]?.id || null,
   taskStatusById: {},
   filter: "all",
+  section: "tasks",
 };
+if (!state.section) state.section = "tasks";
 
 const els = {
   nowDate: document.getElementById("nowDate"),
@@ -48,6 +51,8 @@ const els = {
   examTaskCount: document.getElementById("examTaskCount"),
 
   tasksGrid: document.getElementById("tasksGrid"),
+  taskFilters: document.getElementById("taskFilters"),
+  trialsPanel: document.getElementById("trialsPanel"),
   cardTasks: document.getElementById("cardTasks"),
 
   modal: document.getElementById("modal"),
@@ -185,7 +190,21 @@ async function loadDataFromFirebase() {
       snap.docs.map((d) => ({ id: d.id, ...d.data() })),
     );
 
+    let trialRows = [];
+    try {
+      const trialsSnap = await window.db
+        .collection("users")
+        .doc(userId)
+        .collection("trials")
+        .orderBy("order_index")
+        .get();
+      trialRows = trialsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    } catch {
+      /* trials необязательны */
+    }
+
     data = buildDataFromPayload(userRow, subjectRows, taskRows);
+    data.trials = trialRows;
     setDashboardGate(null);
   } catch (err) {
     console.error("Firebase load error:", err);
@@ -330,6 +349,18 @@ function bindEvents() {
     renderTasks();
   });
 
+  els.cardTasks
+    .querySelector(".section-switcher")
+    ?.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-section]");
+      if (!btn) return;
+      const section = btn.dataset.section;
+      if (!section || section === state.section) return;
+      state.section = section;
+      saveState(state);
+      renderTasks();
+    });
+
   els.modalClose.addEventListener("click", closeModal);
   els.modal.addEventListener("click", (e) => {
     if (e.target?.dataset?.close === "true") closeModal();
@@ -369,8 +400,9 @@ function renderGreeting() {
   const greeting = getGreeting();
 
   els.greetingEyebrow.textContent = greeting.subtitle;
-  els.greetingTitle.textContent = `${greeting.title}, ${name}`;
-  if (els.subjectPillText) els.subjectPillText.textContent = subject ? subject.title : "—";
+  els.greetingTitle.innerHTML = `${escapeHtml(greeting.title)}, ${escapeHtml(name)} <img src="./icons/wave.png" alt="" aria-hidden="true" class="greeting-icon" width="36" height="36" />`;
+  if (els.subjectPillText)
+    els.subjectPillText.textContent = subject ? subject.title : "—";
   if (els.subjectPillIcon) {
     els.subjectPillIcon.src = subjectIconSrc(subject?.catalogSlug);
     els.subjectPillIcon.hidden = !subject;
@@ -424,9 +456,83 @@ function renderExam() {
   els.examTaskCount.textContent = `${exam.tasksTotal} заданий`;
 }
 
+// ─── Группировка заданий по частям ───────────────────────────────────────────
+// split: tasks с orderIndex <= split → тестовая, > split → развернутая
+const PART_CONFIG = {
+  oge_math: {
+    parts: [
+      { label: "Практические задания", from: 1, to: 7 },
+      { label: "Алгебра", from: 8, to: 16 },
+      { label: "Геометрия", from: 17, to: 21 },
+      { label: "Вторая часть", from: 22, to: Infinity },
+    ],
+  },
+  oge_info: {
+    parts: [
+      { label: "Тестовая часть", from: 1, to: 10 },
+      { label: "Компьютерная часть", from: 11, to: Infinity },
+    ],
+  },
+  ege_math: {
+    parts: [
+      { label: "Тестовая часть", from: 1, to: 12 },
+      { label: "Развернутая часть", from: 13, to: Infinity },
+    ],
+  },
+  ege_info: {
+    parts: [
+      { label: "Тестовая часть", from: 1, to: 17 },
+      { label: "Развернутая часть", from: 18, to: Infinity },
+    ],
+  },
+};
+
+function groupTasksByPart(tasks, catalogSlug) {
+  const cfg = PART_CONFIG[catalogSlug];
+  if (!cfg) return [{ label: null, tasks }];
+
+  const groups = cfg.parts
+    .map((part) => ({
+      label: part.label,
+      tasks: tasks.filter((t) => {
+        const idx = getTaskOrderIndex(t);
+        return idx >= part.from && idx <= part.to;
+      }),
+    }))
+    .filter((g) => g.tasks.length);
+
+  return groups.length ? groups : [{ label: null, tasks }];
+}
+
 function renderTasks() {
   setActiveFilterChip(state.filter);
 
+  // переключение видимости секций
+  const isTrials = state.section === "trials";
+  if (els.taskFilters) els.taskFilters.hidden = isTrials;
+  if (els.trialsPanel) els.trialsPanel.hidden = !isTrials;
+  els.tasksGrid.hidden = isTrials;
+
+  // обновить активную кнопку переключателя
+  els.cardTasks.querySelectorAll("[data-section]").forEach((btn) => {
+    btn.classList.toggle("is-active", btn.dataset.section === state.section);
+  });
+
+  if (isTrials) {
+    const trials = data.trials || [];
+    if (!trials.length) {
+      els.trialsPanel.innerHTML = `<div class="trials-empty">
+        <div class="trials-empty__icon">📋</div>
+        <div class="trials-empty__title">Пробные варианты</div>
+        <div class="trials-empty__text">Здесь будут появляться результаты пробных экзаменов и полных вариантов.</div>
+      </div>`;
+    } else {
+      els.trialsPanel.innerHTML = trials.map(renderTrialCard).join("");
+    }
+    return;
+  }
+
+  const subject = getSelectedSubject();
   const tasks = getTasksForSelectedSubject()
     .map((t) => ({ ...t, status: state.taskStatusById[t.id] || t.status }))
     .sort((a, b) => {
@@ -448,7 +554,18 @@ function renderTasks() {
     return;
   }
 
-  els.tasksGrid.innerHTML = filtered.map((t) => renderTaskCard(t)).join("");
+  const groups = groupTasksByPart(filtered, subject?.catalogSlug);
+  const showLabels = groups.length > 1 || groups[0]?.label;
+
+  let html = "";
+  for (const group of groups) {
+    if (showLabels && group.label) {
+      html += `<div class="task-part-label" role="heading" aria-level="3">${escapeHtml(group.label)}</div>`;
+    }
+    html += group.tasks.map((t) => renderTaskCard(t)).join("");
+  }
+  els.tasksGrid.innerHTML = html;
+
   els.tasksGrid.querySelectorAll("[data-task]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const task = tasks.find((x) => x.id === btn.getAttribute("data-task"));
@@ -528,6 +645,31 @@ function renderTaskCard(task) {
         <span class="meta">Открыть детали →</span>
       </div>
     </button>`;
+}
+
+function renderTrialCard(trial) {
+  const title = trial.title || "Пробный вариант";
+  const dateStr = trial.date ? formatTrialDate(trial.date) : null;
+  const score = trial.score ? String(trial.score).trim() : null;
+
+  return `<div class="trial-card">
+    <div class="trial-card__title">${escapeHtml(title)}</div>
+    <div class="trial-card__meta">
+      ${dateStr ? `<span class="trial-card__date">${escapeHtml(dateStr)}</span>` : ""}
+      ${score ? `<span class="trial-card__score">${escapeHtml(score)}</span>` : ""}
+    </div>
+  </div>`;
+}
+
+function formatTrialDate(dateStr) {
+  if (!dateStr) return null;
+  const d = parseISODate(dateStr);
+  if (!d) return dateStr;
+  return d.toLocaleDateString("ru-RU", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }
 
 function renderRichSection(title, rawValue) {
