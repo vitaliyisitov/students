@@ -37,7 +37,7 @@
   color: var(--muted);
 }
 
-.trial-field input,
+.trial-field input:not([type="checkbox"]),
 .trial-field select {
   width: 100%;
   appearance: none;
