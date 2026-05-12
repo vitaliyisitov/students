@@ -2086,22 +2086,21 @@ async function moveTrialUpOrDown(trialId, dir) {
   const tmpIdx = a.order_index ?? idx + 1;
   a.order_index = b.order_index ?? swapIdx + 1;
   b.order_index = tmpIdx;
-  try {
-    await Promise.all([
-      window.db.collection("users").doc(state.selectedUserId)
-        .collection("subjects").doc(subjectId)
-        .collection("trials").doc(a.id).update({ order_index: a.order_index }),
-      window.db.collection("users").doc(state.selectedUserId)
-        .collection("subjects").doc(subjectId)
-        .collection("trials").doc(b.id).update({ order_index: b.order_index }),
-    ]);
-    state.trials = sorted;
-    renderTrialsEditor();
-    setStatus("Порядок обновлён ✅", "success");
-  } catch (err) {
-    setStatus("Ошибка при изменении порядка", "error");
+  // Оптимистичный рендер — обновляем UI сразу, Firestore сохраняем в фоне
+  state.trials = sorted;
+  renderTrialsEditor();
+
+  Promise.all([
+    window.db.collection("users").doc(state.selectedUserId)
+      .collection("subjects").doc(subjectId)
+      .collection("trials").doc(a.id).update({ order_index: a.order_index }),
+    window.db.collection("users").doc(state.selectedUserId)
+      .collection("subjects").doc(subjectId)
+      .collection("trials").doc(b.id).update({ order_index: b.order_index }),
+  ]).catch((err) => {
+    setStatus("Ошибка при сохранении порядка", "error");
     console.error(err);
-  }
+  });
 }
 
 async function deleteTrial(trialId) {
