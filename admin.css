@@ -82,9 +82,55 @@
   font-size: 13px;
 }
 
+.trial-row__meta {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: end;
+  padding-top: 4px;
+}
+
+.trial-field--section {
+  min-width: 0;
+}
+
+.trial-field--hw {
+  flex-shrink: 0;
+}
+
+.trial-hw-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 0 2px;
+}
+
+.trial-hw-wrap input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #f97316;
+  flex-shrink: 0;
+}
+
+.trial-hw-label {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .trial-row__actions {
   display: flex;
   gap: 8px;
+  align-items: center;
+}
+
+.icon-btn--sq {
+  min-width: 32px;
+  padding-left: 0;
+  padding-right: 0;
+  text-align: center;
+  font-size: 16px;
 }
 
 @media (max-width: 768px) {
