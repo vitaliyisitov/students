@@ -2074,22 +2074,33 @@ async function saveTrial(trialId) {
   }
 }
 
-async function moveTrialUpOrDown(trialId, dir) {
+function moveTrialUpOrDown(trialId, dir) {
   const subjectId = state.selectedTrialSubjectId;
   if (!state.selectedUserId || !subjectId) return;
+
   const sorted = [...state.trials].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
   const idx = sorted.findIndex((t) => t.id === trialId);
   const swapIdx = dir === "up" ? idx - 1 : idx + 1;
   if (swapIdx < 0 || swapIdx >= sorted.length) return;
+
   const a = sorted[idx];
   const b = sorted[swapIdx];
   const tmpIdx = a.order_index ?? idx + 1;
   a.order_index = b.order_index ?? swapIdx + 1;
   b.order_index = tmpIdx;
-  // Оптимистичный рендер — обновляем UI сразу, Firestore сохраняем в фоне
   state.trials = sorted;
-  renderTrialsEditor();
 
+  // DOM-swap: двигаем узлы без полного перестроения
+  const wrap = els.trialsEditor.querySelector(".trial-rows-wrap");
+  const nodeA = wrap?.querySelector(`[data-trial-id="${a.id}"]`);
+  const nodeB = wrap?.querySelector(`[data-trial-id="${b.id}"]`);
+  if (nodeA && nodeB) {
+    const after = dir === "up" ? nodeA : nodeB;
+    const before = dir === "up" ? nodeB : nodeA;
+    wrap.insertBefore(after, before);
+  }
+
+  // Firestore в фоне
   Promise.all([
     window.db.collection("users").doc(state.selectedUserId)
       .collection("subjects").doc(subjectId)
