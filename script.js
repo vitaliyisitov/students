@@ -553,7 +553,7 @@ function renderTasks() {
       els.trialsPanel.innerHTML =
         scaleSection +
         `<div class="trials-empty">
-          <div class="trials-empty__icon">📋</div>
+          <img class="trials-empty__icon" src="./icons/trials_empty.png" alt="" />
           <div class="trials-empty__title">Пробные варианты</div>
           <div class="trials-empty__text">Здесь будут появляться результаты пробных экзаменов и полных вариантов.</div>
         </div>`;
