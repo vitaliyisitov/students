@@ -549,12 +549,9 @@ function renderTasks() {
     const scaleSection = barHtml
       ? `<div class="task-part-label" role="heading" aria-level="3">Шкала перевода</div>${barHtml}`
       : "";
-    const resultsHeading = `<div class="task-part-label" role="heading" aria-level="3">Результаты</div>`;
-
     if (!trials.length) {
       els.trialsPanel.innerHTML =
         scaleSection +
-        resultsHeading +
         `<div class="trials-empty">
           <div class="trials-empty__icon">📋</div>
           <div class="trials-empty__title">Пробные варианты</div>
@@ -567,14 +564,13 @@ function renderTasks() {
       for (const t of trials) {
         const label = t.section_label?.trim() || "";
         if (label && label !== lastLabel) {
-          gridHtml += `<div class="task-part-label">${escapeHtml(label)}</div>`;
+          gridHtml += `<div class="task-part-label" role="heading" aria-level="3">${escapeHtml(label)}</div>`;
           lastLabel = label;
         }
         gridHtml += renderTrialCard(t, subject?.catalogSlug);
       }
       els.trialsPanel.innerHTML =
         scaleSection +
-        resultsHeading +
         `<div class="trials-grid">${gridHtml}</div>`;
     }
     return;
