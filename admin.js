@@ -1905,7 +1905,12 @@ function renderTrialsEditor() {
     return `<button class="admin-page-tab ${active}" type="button" data-trial-subject="${escapeAttr(s.id)}">${escapeHtml(s.title || s.id)}</button>`;
   }).join("");
 
-  const rows = state.trials.map((t) => trialRowHtml(t)).join("");
+  // Нормализуем order_index перед рендером — гарантирует последовательность 1,2,3…
+  state.trials
+    .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+    .forEach((t, i) => { t.order_index = i + 1; });
+
+  const rows = state.trials.map((t, i) => trialRowHtml(t, i + 1)).join("");
 
   root.innerHTML = `
     <div class="trial-subject-tabs">${tabsHtml}</div>
@@ -1942,6 +1947,12 @@ function renderTrialsEditor() {
   root.querySelectorAll("[data-trial-down]").forEach((btn) => {
     btn.addEventListener("click", () => moveTrialUpOrDown(btn.dataset.trialDown, "down"));
   });
+  root.querySelectorAll("[data-pos-trial]").forEach((inp) => {
+    inp.addEventListener("change", () => {
+      const newPos = parseInt(inp.value, 10);
+      if (!isNaN(newPos)) setTrialPosition(inp.dataset.posTrial, newPos);
+    });
+  });
   root.querySelectorAll("[data-fb-trial]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const fileField = btn.closest(".trial-file-field");
@@ -1959,7 +1970,7 @@ async function initTrialsEditorSubject() {
   renderTrialsEditor();
 }
 
-function trialRowHtml(t) {
+function trialRowHtml(t, pos = t.order_index ?? 1) {
   const hwChecked = t.is_homework ? "checked" : "";
   return `
     <div class="trial-row" data-trial-id="${t.id}">
@@ -2005,8 +2016,11 @@ function trialRowHtml(t) {
         </div>
       </div>
       <div class="trial-row__actions">
-        <button class="icon-btn icon-btn--sq" type="button" data-trial-up="${t.id}" title="Переместить вверх">↑</button>
-        <button class="icon-btn icon-btn--sq" type="button" data-trial-down="${t.id}" title="Переместить вниз">↓</button>
+        <div class="trial-pos-wrap">
+          <input class="trial-pos-input" type="number" min="1" value="${pos}" data-pos-trial="${t.id}" title="Позиция" />
+          <button class="icon-btn icon-btn--sq" type="button" data-trial-up="${t.id}" title="Вверх">↑</button>
+          <button class="icon-btn icon-btn--sq" type="button" data-trial-down="${t.id}" title="Вниз">↓</button>
+        </div>
         <button class="icon-btn" type="button" data-save-trial="${t.id}">Сохранить</button>
         <button class="icon-btn danger" type="button" data-delete-trial="${t.id}">Удалить</button>
       </div>
@@ -2075,40 +2089,60 @@ async function saveTrial(trialId) {
 }
 
 function moveTrialUpOrDown(trialId, dir) {
+  // Берём текущий порядок из DOM (state.trials уже нормализован при рендере)
+  const idx = state.trials.findIndex((t) => t.id === trialId);
+  const swapIdx = dir === "up" ? idx - 1 : idx + 1;
+  if (idx === -1 || swapIdx < 0 || swapIdx >= state.trials.length) return;
+
+  // Меняем местами в массиве и нормализуем
+  [state.trials[idx], state.trials[swapIdx]] = [state.trials[swapIdx], state.trials[idx]];
+  state.trials.forEach((t, i) => { t.order_index = i + 1; });
+
+  // DOM-swap без перестроения
+  const wrap = els.trialsEditor.querySelector(".trial-rows-wrap");
+  const nodeA = wrap?.querySelector(`[data-trial-id="${state.trials[idx].id}"]`);
+  const nodeB = wrap?.querySelector(`[data-trial-id="${state.trials[swapIdx].id}"]`);
+  if (nodeA && nodeB) {
+    wrap.insertBefore(dir === "up" ? nodeB : nodeA, dir === "up" ? nodeA : nodeB);
+  }
+  // Обновляем номера в инпутах без перерисовки
+  updateTrialPositionInputs();
+
+  saveTrialOrder();
+}
+
+function setTrialPosition(trialId, newPos) {
+  const idx = state.trials.findIndex((t) => t.id === trialId);
+  if (idx === -1) return;
+  const clamped = Math.max(1, Math.min(newPos, state.trials.length)) - 1;
+  const [item] = state.trials.splice(idx, 1);
+  state.trials.splice(clamped, 0, item);
+  state.trials.forEach((t, i) => { t.order_index = i + 1; });
+  renderTrialsEditor(); // Полный рендер т.к. порядок мог измениться сильно
+  saveTrialOrder();
+}
+
+function updateTrialPositionInputs() {
+  const wrap = els.trialsEditor.querySelector(".trial-rows-wrap");
+  if (!wrap) return;
+  state.trials.forEach((t, i) => {
+    const inp = wrap.querySelector(`[data-pos-trial="${t.id}"]`);
+    if (inp) inp.value = i + 1;
+  });
+}
+
+function saveTrialOrder() {
   const subjectId = state.selectedTrialSubjectId;
   if (!state.selectedUserId || !subjectId) return;
-
-  const sorted = [...state.trials].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
-  const idx = sorted.findIndex((t) => t.id === trialId);
-  const swapIdx = dir === "up" ? idx - 1 : idx + 1;
-  if (swapIdx < 0 || swapIdx >= sorted.length) return;
-
-  const a = sorted[idx];
-  const b = sorted[swapIdx];
-  const tmpIdx = a.order_index ?? idx + 1;
-  a.order_index = b.order_index ?? swapIdx + 1;
-  b.order_index = tmpIdx;
-  state.trials = sorted;
-
-  // DOM-swap: двигаем узлы без полного перестроения
-  const wrap = els.trialsEditor.querySelector(".trial-rows-wrap");
-  const nodeA = wrap?.querySelector(`[data-trial-id="${a.id}"]`);
-  const nodeB = wrap?.querySelector(`[data-trial-id="${b.id}"]`);
-  if (nodeA && nodeB) {
-    const after = dir === "up" ? nodeA : nodeB;
-    const before = dir === "up" ? nodeB : nodeA;
-    wrap.insertBefore(after, before);
-  }
-
-  // Firestore в фоне
-  Promise.all([
-    window.db.collection("users").doc(state.selectedUserId)
+  const batch = window.db.batch();
+  state.trials.forEach((t) => {
+    const ref = window.db
+      .collection("users").doc(state.selectedUserId)
       .collection("subjects").doc(subjectId)
-      .collection("trials").doc(a.id).update({ order_index: a.order_index }),
-    window.db.collection("users").doc(state.selectedUserId)
-      .collection("subjects").doc(subjectId)
-      .collection("trials").doc(b.id).update({ order_index: b.order_index }),
-  ]).catch((err) => {
+      .collection("trials").doc(t.id);
+    batch.update(ref, { order_index: t.order_index });
+  });
+  batch.commit().catch((err) => {
     setStatus("Ошибка при сохранении порядка", "error");
     console.error(err);
   });
