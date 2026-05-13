@@ -558,16 +558,25 @@ function renderTasks() {
           <div class="trials-empty__text">Здесь будут появляться результаты пробных экзаменов и полных вариантов.</div>
         </div>`;
     } else {
-      // Группируем пробники по section_label (новый label = новый раздел)
-      let gridHtml = "";
-      let lastLabel = null;
+      // Группируем пробники по section_label — одинаковые метки всегда под одним хедером
+      // Порядок групп = порядок первого появления метки среди отсортированных пробников
+      const seenLabels = new Set();
+      const labelOrder = [];
       for (const t of trials) {
-        const label = t.section_label?.trim() || "";
-        if (label && label !== lastLabel) {
-          gridHtml += `<div class="task-part-label" role="heading" aria-level="3">${escapeHtml(label)}</div>`;
-          lastLabel = label;
+        const lbl = t.section_label?.trim() || "";
+        if (!seenLabels.has(lbl)) { seenLabels.add(lbl); labelOrder.push(lbl); }
+      }
+
+      let gridHtml = "";
+      for (const lbl of labelOrder) {
+        if (lbl) {
+          gridHtml += `<div class="task-part-label" role="heading" aria-level="3">${escapeHtml(lbl)}</div>`;
         }
-        gridHtml += renderTrialCard(t, subject?.catalogSlug);
+        for (const t of trials) {
+          if ((t.section_label?.trim() || "") === lbl) {
+            gridHtml += renderTrialCard(t, subject?.catalogSlug);
+          }
+        }
       }
       els.trialsPanel.innerHTML =
         scaleSection +
