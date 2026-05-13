@@ -125,6 +125,31 @@
   align-items: center;
 }
 
+.trial-pos-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.trial-pos-input {
+  width: 44px;
+  text-align: center;
+  appearance: none;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 8px;
+  padding: 5px 4px;
+  background: rgba(255, 255, 255, 0.9);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.trial-pos-input::-webkit-inner-spin-button,
+.trial-pos-input::-webkit-outer-spin-button {
+  opacity: 0.4;
+}
+
 .icon-btn--sq {
   min-width: 32px;
   padding-left: 0;
