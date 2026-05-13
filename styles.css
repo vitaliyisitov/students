@@ -421,7 +421,9 @@ body.is-app-loading #appShell {
 }
 
 .trials-empty__icon {
-  font-size: 32px;
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
 }
 .trials-empty__title {
   font-weight: 700;
