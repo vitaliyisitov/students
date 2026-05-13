@@ -648,13 +648,9 @@ function openModal(task) {
     ? details.attachments
     : [];
   els.modalContent.innerHTML = [
-    renderSectionWithFiles("Конспект", details.lessonNotes || "", lessonFiles),
-    renderSectionWithFiles(
-      "Домашнее задание",
-      details.homework || [],
-      homeworkFiles,
-    ),
-    renderSectionWithFiles("Подсказки", details.hints || [], hintFiles),
+    renderSectionWithFiles("Конспект", details.lessonNotes || "", lessonFiles, "./icons/notes.png"),
+    renderSectionWithFiles("Домашнее задание", details.homework || [], homeworkFiles, "./icons/homework.png"),
+    renderSectionWithFiles("Подсказки", details.hints || [], hintFiles, "./icons/hints.png"),
     attachments.length ? renderAttachmentsSection(attachments) : "",
   ].join("");
 
@@ -847,7 +843,7 @@ function renderRichSection(title, rawValue) {
     </div>`;
 }
 
-function renderSectionWithFiles(title, rawValue, files) {
+function renderSectionWithFiles(title, rawValue, files, iconSrc) {
   const lines = normalizeRichLines(rawValue);
   const parsed = lines.reduce(
     (acc, line) => {
@@ -896,7 +892,11 @@ function renderSectionWithFiles(title, rawValue, files) {
               .map(
                 (a) => `
         <a class="attachment-link" href="${escapeAttr(a.href)}" target="_blank" rel="noreferrer">
-          <span class="attachment-link__icon" aria-hidden="true">${getFileIcon(a.href, a.label)}</span>
+          <span class="attachment-link__icon" aria-hidden="true">${
+            iconSrc
+              ? `<img src="${escapeAttr(iconSrc)}" width="16" height="16" alt="" />`
+              : getFileIcon(a.href, a.label)
+          }</span>
           <span>${escapeHtml(a.label)}</span>
         </a>`,
               )
@@ -1138,32 +1138,32 @@ const SCORE_CONVERSION = {
       { min: 0,  max: 7,        grade: 2 },
       { min: 8,  max: 14,       grade: 3 },
       { min: 15, max: 21,       grade: 4 },
-      { min: 22, max: 31, grade: 5 },
+      { min: 22, max: Infinity, grade: 5 },
     ],
   },
   oge_info: {
     type: "grade",
     thresholds: [
       { min: 0,  max: 4,        grade: 2 },
-      { min: 5,  max: 10,       grade: 3 },
-      { min: 11, max: 16,       grade: 4 },
-      { min: 17, max: 21, grade: 5 },
+      { min: 5,  max: 12,       grade: 3 },
+      { min: 13, max: 18,       grade: 4 },
+      { min: 19, max: Infinity, grade: 5 },
     ],
   },
   ege_math: {
     type: "test",
     // индекс = первичный балл → тестовый балл (шкала 2025, профиль)
     table: [
-      0, 6, 11, 17, 22, 27, 34, 40, 46,
-      52, 58, 64, 70, 72,
-      74, 76, 78, 80, 82, 84, 86, 88, 90, 92, 94,
-      95,96,97, 98,99, 100,100,100,
+      0, 6, 12, 17, 22, 27, 34, 40, 43, 46,
+      48, 52, 54, 56, 60, 64, 66, 68, 70, 73,
+      75, 77, 79, 82, 84, 86, 88, 90, 92, 94,
+      96, 98, 100,
     ],
     thresholds: [
-      { min: 0,  max: 22,  level: "fail" },
-      { min: 27, max: 34,  level: "low"  },
-      { min: 40, max: 92,  level: "mid"  },
-      { min: 94, max: 100, level: "high" },
+      { min: 0,  max: 26,  level: "fail" },
+      { min: 27, max: 49,  level: "low"  },
+      { min: 50, max: 74,  level: "mid"  },
+      { min: 75, max: 100, level: "high" },
     ],
   },
   ege_info: {
@@ -1171,14 +1171,14 @@ const SCORE_CONVERSION = {
     // индекс = первичный балл → тестовый балл (шкала 2025)
     table: [
       0, 7, 14, 20, 27, 34, 40, 43, 46, 48,
-      51, 54, 56, 59, 62, 64, 67, 70, 72, 75,
-      78, 80, 83, 85, 88, 90, 93, 95,
+      51, 54, 56, 58, 60, 63, 65, 68, 70, 72,
+      74, 76, 79, 81, 83, 85, 88, 90, 92, 95,
       98, 100,
     ],
     thresholds: [
-      { min: 0,  max: 34,  level: "fail" },
-      { min: 40, max: 43,  level: "low"  },
-      { min: 46, max: 78,  level: "mid"  },
+      { min: 0,  max: 39,  level: "fail" },
+      { min: 40, max: 59,  level: "low"  },
+      { min: 60, max: 79,  level: "mid"  },
       { min: 80, max: 100, level: "high" },
     ],
   },
