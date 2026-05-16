@@ -688,7 +688,10 @@ function isModalOpen() {
 
 function renderTaskCard(task) {
   const badgeClass = `badge badge--${task.status}`;
-  const pin = isTaskPinned(task) ? "📌 " : "";
+  const flagKey = getTaskFlag(task);
+  const flagImg = flagKey
+    ? `<img src="${escapeAttr(TASK_FLAGS[flagKey].src)}" width="15" height="15" alt="${escapeAttr(TASK_FLAGS[flagKey].alt)}" class="task__flag-icon" />`
+    : "";
   const hideUpdated = task.status === "not_started";
   const updated = task.updatedAtISO ? new Date(task.updatedAtISO) : null;
   const updatedText = updated
@@ -701,7 +704,7 @@ function renderTaskCard(task) {
   return `
     <button class="task" type="button" data-task="${escapeAttr(task.id)}">
       <div class="task__top">
-        <div><div class="task__title">${escapeHtml(`${pin}${task.title}`)}</div></div>
+        <div><div class="task__title">${flagImg}${escapeHtml(task.title)}</div></div>
         <span class="${badgeClass}">${escapeHtml(formatStatus(task.status))}</span>
       </div>
       <div class="task__desc">${escapeHtml(task.description || "")}</div>
@@ -1012,8 +1015,22 @@ function isValidHttpUrl(value) {
   }
 }
 
+const TASK_FLAGS = {
+  pinned:    { src: "./icons/flag_pinned.png",    alt: "Закреплено" },
+  redo:      { src: "./icons/flag_redo.png",      alt: "Перерешать" },
+  new_topic: { src: "./icons/flag_new.png",       alt: "Новая тема" },
+};
+
+function getTaskFlag(task) {
+  const flag = task?.details?.flag;
+  if (flag && TASK_FLAGS[flag]) return flag;
+  // обратная совместимость
+  if (task?.details?.isPinned === true) return "pinned";
+  return null;
+}
+
 function isTaskPinned(task) {
-  return task?.details?.isPinned === true;
+  return !!getTaskFlag(task);
 }
 
 function getTaskOrderIndex(task) {
