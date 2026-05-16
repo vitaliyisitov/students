@@ -661,13 +661,11 @@ function openModal(task) {
   const attachments = Array.isArray(details.attachments)
     ? details.attachments
     : [];
-  const history = Array.isArray(details.history) ? details.history : [];
   els.modalContent.innerHTML = [
     renderSectionWithFiles("Конспект", details.lessonNotes || "", lessonFiles, "./icons/notes.png"),
     renderSectionWithFiles("Домашнее задание", details.homework || [], homeworkFiles, "./icons/homework.png"),
     renderSectionWithFiles("Подсказки", details.hints || [], hintFiles, "./icons/hints.png"),
     attachments.length ? renderAttachmentsSection(attachments) : "",
-    renderHistorySection(history),
   ].join("");
 
   els.modal.classList.add("is-open");
