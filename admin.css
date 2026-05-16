@@ -937,7 +937,7 @@ details.task-row:not([open]) .task-row__summary {
 
 .task-block-actions {
   position: sticky;
-  top: 0;
+  top: 0; /* перезаписывается JS-ом после замера высоты хедера */
   z-index: 10;
   display: flex;
   gap: 8px;
