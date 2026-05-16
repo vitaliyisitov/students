@@ -661,11 +661,13 @@ function openModal(task) {
   const attachments = Array.isArray(details.attachments)
     ? details.attachments
     : [];
+  const history = Array.isArray(details.history) ? details.history : [];
   els.modalContent.innerHTML = [
     renderSectionWithFiles("Конспект", details.lessonNotes || "", lessonFiles, "./icons/notes.png"),
     renderSectionWithFiles("Домашнее задание", details.homework || [], homeworkFiles, "./icons/homework.png"),
     renderSectionWithFiles("Подсказки", details.hints || [], hintFiles, "./icons/hints.png"),
     attachments.length ? renderAttachmentsSection(attachments) : "",
+    renderHistorySection(history),
   ].join("");
 
   els.modal.classList.add("is-open");
@@ -955,6 +957,24 @@ function parseRichLink(line) {
   }
   if (isValidHttpUrl(value)) return { label: "Ссылка", href: value };
   return null;
+}
+
+function renderHistorySection(history) {
+  if (!Array.isArray(history) || !history.length) return "";
+  const itemsHtml = history.map((entry) => {
+    const date = entry.date ? new Date(entry.date) : null;
+    const dateStr = date && !isNaN(date.getTime())
+      ? date.toLocaleDateString("ru-RU", { year: "numeric", month: "short", day: "numeric" })
+      : "";
+    return `<div class="history-entry">
+      ${dateStr ? `<span class="history-entry__date">${escapeHtml(dateStr)}</span>` : ""}
+      <span class="history-entry__text">${escapeHtml(entry.text || "")}</span>
+    </div>`;
+  }).join("");
+  return `<div class="section section--history">
+    <div class="section__title">История</div>
+    <div class="history-list">${itemsHtml}</div>
+  </div>`;
 }
 
 function renderAttachmentsSection(attachments) {
