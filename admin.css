@@ -1,3 +1,99 @@
+/* ─── История задания (админка) ──────────────────────────────────────────── */
+
+.task-history {
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  padding-top: 12px;
+  margin-top: 4px;
+  display: grid;
+  gap: 8px;
+}
+
+.task-history__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-history__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.task-history__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-history__entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(15, 23, 42, 0.03);
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.task-history__date {
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 80px;
+}
+
+.task-history__text {
+  flex: 1;
+  color: var(--text);
+}
+
+.task-history__del {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.task-history__del:hover {
+  color: var(--red);
+  background: rgba(255, 59, 48, 0.08);
+}
+
+.task-history__empty {
+  font-size: 12px;
+  padding: 4px 0;
+}
+
+.task-history__add {
+  display: flex;
+  gap: 6px;
+}
+
+.task-history__note-input {
+  flex: 1;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 10px;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.9);
+  font: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+.task-history__note-input:focus {
+  border-color: rgba(0, 122, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+}
+
 /* ─── Пробники (админка) ─────────────────────────────────────────────────── */
 
 .trial-subject-tabs {
