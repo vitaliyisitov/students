@@ -932,7 +932,7 @@ async function renderTasksEditor() {
 function renderTaskRow(task) {
   const details =
     task.details && typeof task.details === "object" ? task.details : {};
-  const isPinned = details.isPinned === true;
+  const flag = details.flag || (details.isPinned === true ? "pinned" : "");
   const homework = Array.isArray(details.homework)
     ? details.homework.join("\n")
     : "";
@@ -982,10 +982,12 @@ function renderTaskRow(task) {
         <div class="task-row__grid">
           <label><span>Порядок</span>
             <input data-f="order_index" type="number" min="1" step="1" value="${escapeAttr(orderVal)}" /></label>
-          <label><span>Закрепить</span>
-            <select data-f="isPinned">
-              <option value="false" ${!isPinned ? "selected" : ""}>Нет</option>
-              <option value="true" ${isPinned ? "selected" : ""}>Да (📌)</option>
+          <label><span>Метка</span>
+            <select data-f="flag">
+              <option value=""       ${flag === ""          ? "selected" : ""}>Без метки</option>
+              <option value="pinned" ${flag === "pinned"    ? "selected" : ""}>Закреплено</option>
+              <option value="redo"   ${flag === "redo"      ? "selected" : ""}>Перерешать</option>
+              <option value="new_topic" ${flag === "new_topic" ? "selected" : ""}>Новая тема</option>
             </select></label>
           <label><span>Статус</span>
             <select data-f="status">
@@ -1034,7 +1036,7 @@ function buildTaskPayload(row) {
     Number.isFinite(orderInput) && orderInput > 0
       ? orderInput
       : Number(row.getAttribute("data-order-index")) || 1;
-  const isPinned = row.querySelector('[data-f="isPinned"]')?.value === "true";
+  const flag = row.querySelector('[data-f="flag"]')?.value || "";
   const statusVal =
     row.querySelector('[data-f="status"]')?.value || "not_started";
   const updatedFromForm = fromDateTimeLocalValue(
@@ -1064,7 +1066,7 @@ function buildTaskPayload(row) {
         row.querySelector('[id^="hint-files-"]'),
       ),
       attachments: [],
-      isPinned,
+      flag,
     },
   };
   if (updatedAtIso) payload.updated_at = updatedAtIso;
@@ -1134,7 +1136,7 @@ async function addTask(subjectId) {
           homework: [],
           hints: [],
           attachments: [],
-          isPinned: false,
+          flag: "",
         },
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
