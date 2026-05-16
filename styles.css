@@ -151,6 +151,52 @@ a {
   color: var(--muted);
 }
 
+.topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.topbar__action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  transition: background 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.topbar__action-btn:hover {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.topbar__action-btn img {
+  flex-shrink: 0;
+}
+
+@media (max-width: 540px) {
+  .topbar__action-btn span {
+    display: none;
+  }
+  .topbar__action-btn {
+    padding: 6px 8px;
+  }
+}
+
 .clock {
   text-align: right;
   display: grid;
@@ -421,8 +467,8 @@ body.is-app-loading #appShell {
 }
 
 .trials-empty__icon {
-  width: 32px;
-  height: 32px;
+  width: 64px;
+  height: 64px;
   object-fit: contain;
 }
 .trials-empty__title {
