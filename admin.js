@@ -21,6 +21,7 @@ const els = {
   editName: document.getElementById("editName"),
   editActive: document.getElementById("editActive"),
   editToken: document.getElementById("editToken"),
+  editMiroUrl: document.getElementById("editMiroUrl"),
   editSubjects: document.getElementById("editSubjects"),
   subjectSettings: document.getElementById("subjectSettings"),
   emptyEditHint: document.getElementById("emptyEditHint"),
@@ -472,6 +473,7 @@ function renderEditPanel() {
   els.editName.value = user.name || "";
   els.editActive.value = String(user.is_active !== false);
   els.editToken.textContent = user.access_token || "—";
+  if (els.editMiroUrl) els.editMiroUrl.value = user.miro_url || "";
 
   renderCatalogChecks(
     els.editSubjects,
@@ -676,6 +678,7 @@ async function handleSaveStudent(e) {
       .update({
         name: name || user.name,
         is_active: isActive,
+        miro_url: els.editMiroUrl?.value.trim() || "",
       });
 
     for (const s of toRemove) {
