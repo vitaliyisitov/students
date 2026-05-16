@@ -865,7 +865,7 @@ async function renderTasksEditor() {
       const rows = tasks.length
         ? tasks.map(renderTaskRow).join("")
         : `<p class="muted">Заданий нет. <button class="icon-btn" type="button" data-add-task="${escapeAttr(s.id)}">Добавить первое задание</button></p>`;
-      return `<div class="task-subject-block" data-task-block="${escapeAttr(s.id)}" style="display:${s.id === firstId ? "grid" : "none"};gap:10px;grid-template-columns:repeat(3,minmax(0,1fr));"><div style="grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end;padding:0 2px;"><button class="icon-btn" type="button" data-save-all-block="${escapeAttr(s.id)}">💾 Сохранить все</button><button class="icon-btn" type="button" data-add-task="${escapeAttr(s.id)}">+ Добавить задание</button></div>${rows}</div>`;
+      return `<div class="task-subject-block" data-task-block="${escapeAttr(s.id)}" style="display:${s.id === firstId ? "grid" : "none"};gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));"><div style="grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end;padding:0 2px;"><button class="icon-btn" type="button" data-save-all-block="${escapeAttr(s.id)}">💾 Сохранить все</button><button class="icon-btn" type="button" data-add-task="${escapeAttr(s.id)}">+ Добавить задание</button></div>${rows}</div>`;
     })
     .join("");
 
@@ -881,7 +881,7 @@ async function renderTasksEditor() {
         const isActive = block.getAttribute("data-task-block") === sid;
         block.style.display = isActive ? "grid" : "none";
         if (isActive)
-          block.style.gridTemplateColumns = "repeat(3,minmax(0,1fr))";
+          block.style.gridTemplateColumns = "repeat(2,minmax(0,1fr))";
       });
     });
   });
@@ -941,6 +941,7 @@ async function renderTasksEditor() {
 function renderTaskRow(task) {
   const details =
     task.details && typeof task.details === "object" ? task.details : {};
+  const userName = state.users.find((u) => u.id === state.selectedUserId)?.name || "";
   const flag = details.flag || (details.isPinned === true ? "pinned" : "");
   const homework = Array.isArray(details.homework)
     ? details.homework.join("\n")
@@ -980,8 +981,11 @@ function renderTaskRow(task) {
   return `
      <details class="task-row" open data-task-id="${escapeAttr(task.id)}" data-subject-id-tr="${escapeAttr(task.subject_id || "")}" data-order-index="${escapeAttr(orderVal)}">
       <summary class="task-row__summary">
-        <span>${escapeHtml(task.title || "Задание")}</span>
-        <span class="muted">${escapeHtml(formatStatus(task.status))}${lessonFilesRaw.length + homeworkFilesRaw.length ? ` · 📎 ${lessonFilesRaw.length + homeworkFilesRaw.length}` : ""}</span>
+        <div class="task-row__summary-main">
+          ${userName ? `<span class="task-row__student">${escapeHtml(userName)}</span>` : ""}
+          <span class="task-row__title">${escapeHtml(task.title || "Задание")}</span>
+        </div>
+        <span class="task-row__meta">${escapeHtml(formatStatus(task.status))}${lessonFilesRaw.length + homeworkFilesRaw.length ? ` · 📎 ${lessonFilesRaw.length + homeworkFilesRaw.length}` : ""}</span>
       </summary>
       <div class="task-row__body">
         <div class="task-order-bar" role="group">
@@ -1012,23 +1016,23 @@ function renderTaskRow(task) {
           <input data-f="title" value="${escapeAttr(task.title || "")}" /></label>
         <label><span>Описание</span>
           <input data-f="description" value="${escapeAttr(task.description || "")}" /></label>
-        <div class="admin-field">
+        <div class="admin-field admin-field--files">
           <span>Конспект</span>
-          <textarea data-f="lessonNotes" rows="3">${escapeHtml(details.lessonNotes || "")}</textarea>
+          <textarea data-f="lessonNotes" rows="2">${escapeHtml(details.lessonNotes || "")}</textarea>
+          <button class="icon-btn" type="button" data-add-lesson-file="${escapeAttr(task.id)}">+ Файл</button>
           <div class="attachments-editor" id="lesson-files-${escapeAttr(task.id)}">${lessonFilesHtml}</div>
-          <button class="icon-btn" type="button" data-add-lesson-file="${escapeAttr(task.id)}">+ Добавить файл к конспекту</button>
         </div>
-        <div class="admin-field">
+        <div class="admin-field admin-field--files">
           <span>Домашнее задание (1 строка = 1 пункт)</span>
-          <textarea data-f="homework" rows="3">${escapeHtml(homework)}</textarea>
+          <textarea data-f="homework" rows="2">${escapeHtml(homework)}</textarea>
+          <button class="icon-btn" type="button" data-add-hw-file="${escapeAttr(task.id)}">+ Файл</button>
           <div class="attachments-editor" id="hw-files-${escapeAttr(task.id)}">${homeworkFilesHtml}</div>
-          <button class="icon-btn" type="button" data-add-hw-file="${escapeAttr(task.id)}">+ Добавить файл к домашке</button>
         </div>
-        <div class="admin-field">
+        <div class="admin-field admin-field--files">
           <span>Подсказки (1 строка = 1 пункт)</span>
-          <textarea data-f="hints" rows="3">${escapeHtml(hints)}</textarea>
+          <textarea data-f="hints" rows="2">${escapeHtml(hints)}</textarea>
+          <button class="icon-btn" type="button" data-add-hint-file="${escapeAttr(task.id)}">+ Файл</button>
           <div class="attachments-editor" id="hint-files-${escapeAttr(task.id)}">${hintFilesHtml}</div>
-          <button class="icon-btn" type="button" data-add-hint-file="${escapeAttr(task.id)}">+ Добавить файл к подсказкам</button>
         </div>
 
         <div class="task-actions">
