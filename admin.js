@@ -1991,33 +1991,29 @@ async function uploadAttachmentToRow(file, row) {
   const tmplRow = row.closest("[data-tmpl-id]");
   let storagePath;
   if (taskRow) {
-    const userName = yosSlug(
-      state.users.find((u) => u.id === state.selectedUserId)?.name ||
-        state.selectedUserId,
-    );
     const subjectId = taskRow.getAttribute("data-subject-id-tr") || "";
-    const subjectTitle = yosSlug(
-      state.selectedUserSubjects.find((s) => s.id === subjectId)?.title ||
-        subjectId,
+    const subject = state.selectedUserSubjects.find((s) => s.id === subjectId);
+    const catalogTitle = yosSlug(
+      state.catalog.find((c) => c.id === subject?.catalog_id)?.title ||
+        subject?.title || subjectId,
     );
     const taskTitle = yosSlug(
       taskRow.querySelector('[data-f="title"]')?.value ||
         taskRow.getAttribute("data-task-id"),
     );
-    storagePath = `${userName}/${subjectTitle}/${taskTitle}/${safeFileName}`;
+    storagePath = `${catalogTitle}/${taskTitle}/${safeFileName}`;
   } else if (row.closest("[data-trial-id]")) {
     const trialRow = row.closest("[data-trial-id]");
-    const userName = yosSlug(
-      state.users.find((u) => u.id === state.selectedUserId)?.name ||
-        state.selectedUserId,
-    );
     const subject = state.selectedUserSubjects.find((s) => s.id === state.selectedTrialSubjectId);
-    const subjectTitle = yosSlug(subject?.title || "пробники");
+    const catalogTitle = yosSlug(
+      state.catalog.find((c) => c.id === subject?.catalog_id)?.title ||
+        subject?.title || "пробники",
+    );
     const trialTitle = yosSlug(
       trialRow.querySelector('[data-tf="title"]')?.value ||
         trialRow.getAttribute("data-trial-id"),
     );
-    storagePath = `${userName}/${subjectTitle}/пробники/${trialTitle}/${safeFileName}`;
+    storagePath = `${catalogTitle}/пробники/${trialTitle}/${safeFileName}`;
   } else if (tmplRow) {
     const tmplId = tmplRow.getAttribute("data-tmpl-id") || "";
     const catalogId = tmplData.find((t) => t.id === tmplId)?.catalog_id || "";
@@ -2166,6 +2162,79 @@ function initPageTabs() {
   document
     .getElementById("loadTemplatesBtn")
     ?.addEventListener("click", () => loadTemplates());
+
+  initSubjectFileUpload();
+}
+
+function initSubjectFileUpload() {
+  const subjectSelect = document.getElementById("subjectFileSubject");
+  const folderInput   = document.getElementById("subjectFileFolder");
+  const fileInput     = document.getElementById("subjectFileInput");
+  const fileNameEl    = document.getElementById("subjectFileName");
+  const uploadBtn     = document.getElementById("subjectFileUploadBtn");
+  const logEl         = document.getElementById("subjectFileLog");
+  if (!subjectSelect || !uploadBtn) return;
+
+  // Заполняем список предметов из каталога — ждём загрузки каталога
+  function populateSubjects() {
+    subjectSelect.innerHTML = state.catalog.length
+      ? state.catalog
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+          .map((c) => `<option value="${escapeAttr(c.id)}">${escapeHtml(c.title || c.id)}</option>`)
+          .join("")
+      : `<option value="">— каталог не загружен —</option>`;
+  }
+  populateSubjects();
+
+  // Если каталог загрузится позже — перезаполним
+  const origLoadCatalog = window._catalogLoaded;
+  document.addEventListener("catalogLoaded", populateSubjects);
+
+  // Выбор файла
+  fileInput?.addEventListener("change", () => {
+    const f = fileInput.files?.[0];
+    fileNameEl.textContent = f ? f.name : "Файл не выбран";
+    uploadBtn.disabled = !f;
+  });
+
+  uploadBtn.addEventListener("click", async () => {
+    const file    = fileInput?.files?.[0];
+    const folder  = folderInput?.value?.trim();
+    const catId   = subjectSelect?.value;
+    if (!file) { logEl.textContent = "Выбери файл."; logEl.style.display = "block"; return; }
+    if (!folder) { logEl.textContent = "Укажи название папки/задания."; logEl.style.display = "block"; return; }
+
+    const catalogTitle = yosSlug(
+      state.catalog.find((c) => c.id === catId)?.title || catId,
+    );
+    const safeFolder   = yosSlug(folder);
+    const safeFile     = file.name.replace(/\s+/g, "_").replace(/[<>:"/\\|?*]+/g, "");
+    const storagePath  = `${catalogTitle}/${safeFolder}/${safeFile}`;
+
+    logEl.textContent  = `Загружаю → ${storagePath}…`;
+    logEl.style.display = "block";
+    uploadBtn.disabled = true;
+
+    try {
+      const ct = file.type || "application/octet-stream";
+      const { presignedUrl, publicUrl } = await yosPresignPut(storagePath, ct);
+      const res = await fetch(presignedUrl, {
+        method: "PUT",
+        headers: { "Content-Type": ct },
+        body: file,
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      logEl.innerHTML = `✅ Загружено: <a href="${escapeAttr(publicUrl)}" target="_blank" rel="noreferrer" style="word-break:break-all">${escapeHtml(publicUrl)}</a>`;
+      fileInput.value   = "";
+      fileNameEl.textContent = "Файл не выбран";
+      uploadBtn.disabled = true;
+    } catch (err) {
+      logEl.textContent = `❌ Ошибка: ${err.message}`;
+      console.error(err);
+    } finally {
+      if (fileInput?.files?.length) uploadBtn.disabled = false;
+    }
+  });
 }
 
 // ─── Пробники ─────────────────────────────────────────────────────────────────
