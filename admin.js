@@ -6,8 +6,10 @@ const state = {
   selectedUserId: null,
   selectedUserSubjects: [],
   tasksBySubjectId: {},
-  trials: [],                  // пробники выбранного предмета
+  trials: [],                   // пробники выбранного предмета
   selectedTrialSubjectId: null, // предмет в редакторе пробников
+  subjectsByUserId: {},         // кэш предметов всех учеников
+  studentFilter: "all",         // "all" | "oge" | "ege" | "archive"
 };
 
 const els = {
@@ -135,6 +137,7 @@ async function init() {
   await fetchYosCreds();
   await loadCatalog();
   await loadUsers();
+  void preloadAllUserSubjects(); // фоновая подгрузка предметов для бейджей
   setStatus("Данные загружены ✅", "success");
 }
 
@@ -422,13 +425,56 @@ async function loadUserSubjects(userId) {
       .doc(userId)
       .collection("subjects")
       .get();
-    state.selectedUserSubjects = snap.docs
+    const subjects = snap.docs
       .map((d) => ({ id: d.id, ...d.data() }))
       .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+    state.selectedUserSubjects = subjects;
+    state.subjectsByUserId[userId] = subjects; // кэш для списка
   } catch (err) {
     setStatus("Не удалось загрузить предметы ученика", "error");
     console.error(err);
   }
+}
+
+// Подгружаем предметы всех учеников в фоне (для бейджей ОГЭ/ЕГЭ в списке)
+async function preloadAllUserSubjects() {
+  const uncached = state.users.filter((u) => !state.subjectsByUserId[u.id]);
+  if (!uncached.length) return;
+  await Promise.all(
+    uncached.map(async (u) => {
+      try {
+        const snap = await window.db
+          .collection("users").doc(u.id)
+          .collection("subjects").get();
+        state.subjectsByUserId[u.id] = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      } catch {
+        state.subjectsByUserId[u.id] = [];
+      }
+    }),
+  );
+  renderStudentsList();
+}
+
+function getExamTypesForUser(userId) {
+  const subjects = state.subjectsByUserId[userId] || [];
+  const types = new Set();
+  for (const s of subjects) {
+    const slug = String(s.catalog_slug || s.slug || "").toLowerCase();
+    if (slug.startsWith("oge")) types.add("ОГЭ");
+    if (slug.startsWith("ege")) types.add("ЕГЭ");
+  }
+  return [...types];
+}
+
+function userMatchesFilter(u) {
+  if (state.studentFilter === "archive") return u.is_active === false;
+  if (state.studentFilter === "all") return u.is_active !== false;
+  // oge / ege filter — только активные
+  if (u.is_active === false) return false;
+  const types = getExamTypesForUser(u.id);
+  if (state.studentFilter === "oge") return types.includes("ОГЭ");
+  if (state.studentFilter === "ege") return types.includes("ЕГЭ");
+  return true;
 }
 
 // ─── Рендер ───────────────────────────────────────────────────────────────────
@@ -439,18 +485,50 @@ function renderStudentsList() {
     return;
   }
 
-  els.studentsList.innerHTML = state.users
-    .map((u) => {
-      const active = u.id === state.selectedUserId ? "is-active" : "";
-      const tokenSuffix = String(u.access_token || "").slice(-8);
-      const stateLabel = u.is_active === false ? "архив" : "активен";
-      return `
-        <button class="student-row ${active}" type="button" data-user-id="${escapeAttr(u.id)}">
-          <div class="student-name">${escapeHtml(u.name || "Без имени")}</div>
-          <div class="student-meta">${stateLabel} • токен …${escapeHtml(tokenSuffix || "—")}</div>
-        </button>`;
-    })
-    .join("");
+  const filters = [
+    { key: "all",     label: "Активные" },
+    { key: "oge",     label: "ОГЭ" },
+    { key: "ege",     label: "ЕГЭ" },
+    { key: "archive", label: "Архив" },
+  ];
+
+  const filtersHtml = `<div class="students-filter">
+    ${filters.map((f) => `
+      <button class="chip ${state.studentFilter === f.key ? "is-active" : ""}"
+        type="button" data-student-filter="${escapeAttr(f.key)}">${escapeHtml(f.label)}</button>`
+    ).join("")}
+  </div>`;
+
+  const filtered = state.users.filter(userMatchesFilter);
+
+  const listHtml = filtered.length
+    ? filtered.map((u) => {
+        const active = u.id === state.selectedUserId ? "is-active" : "";
+        const tokenSuffix = String(u.access_token || "").slice(-8);
+        const archived = u.is_active === false;
+        const examTypes = getExamTypesForUser(u.id);
+        const badgesHtml = examTypes
+          .map((t) => `<span class="student-exam-badge student-exam-badge--${t === "ОГЭ" ? "oge" : "ege"}">${t}</span>`)
+          .join("");
+        return `
+          <button class="student-row ${active}" type="button" data-user-id="${escapeAttr(u.id)}">
+            <div class="student-row__top">
+              <div class="student-name">${escapeHtml(u.name || "Без имени")}</div>
+              <div class="student-badges">${badgesHtml}</div>
+            </div>
+            <div class="student-meta">${archived ? "📦 архив" : "активен"} • …${escapeHtml(tokenSuffix || "—")}</div>
+          </button>`;
+      }).join("")
+    : `<p class="muted" style="padding:10px 14px;font-size:13px">Нет учеников.</p>`;
+
+  els.studentsList.innerHTML = filtersHtml + listHtml;
+
+  els.studentsList.querySelectorAll("[data-student-filter]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.studentFilter = btn.getAttribute("data-student-filter");
+      renderStudentsList();
+    });
+  });
 
   els.studentsList.querySelectorAll("[data-user-id]").forEach((btn) => {
     btn.addEventListener(
