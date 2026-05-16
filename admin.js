@@ -136,6 +136,7 @@ async function init() {
   bindEvents();
   await fetchYosCreds();
   await loadCatalog();
+  initSubjectFileUpload(); // каталог уже загружен — список предметов заполнится
   await loadUsers();
   void preloadAllUserSubjects(); // фоновая подгрузка предметов для бейджей
   setStatus("Данные загружены ✅", "success");
@@ -2162,8 +2163,6 @@ function initPageTabs() {
   document
     .getElementById("loadTemplatesBtn")
     ?.addEventListener("click", () => loadTemplates());
-
-  initSubjectFileUpload();
 }
 
 function initSubjectFileUpload() {
