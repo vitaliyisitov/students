@@ -927,6 +927,15 @@ async function renderTasksEditor() {
       void moveTaskInOrder(btn.getAttribute("data-task-move-down"), "down");
     });
   });
+
+  // История заданий
+  els.tasksEditor.querySelectorAll("[data-history-for]").forEach((wrap) => {
+    const taskId    = wrap.getAttribute("data-history-for");
+    const row       = wrap.closest("[data-task-id]");
+    const subjectId = row?.getAttribute("data-subject-id-tr");
+    if (!taskId || !subjectId) return;
+    bindHistoryHandlers(wrap, taskId, subjectId);
+  });
 }
 
 function renderTaskRow(task) {
@@ -1026,11 +1035,178 @@ function renderTaskRow(task) {
           <button class="icon-btn" type="button" data-save-task="${escapeAttr(task.id)}">Сохранить задание</button>
           <button class="icon-btn danger" type="button" data-delete-task="${escapeAttr(task.id)}">Удалить задание</button>
         </div>
+
+        ${renderTaskHistoryHtml(task.id, Array.isArray(details.history) ? details.history : [])}
       </div>
     </details>`;
 }
 
-function buildTaskPayload(row) {
+// ─── История задания ──────────────────────────────────────────────────────────
+
+const HISTORY_STATUS_LABELS = {
+  not_started: "Не начато",
+  in_progress: "В процессе",
+  homework: "Сделать ДЗ",
+  completed: "Пройдено",
+};
+
+const HISTORY_FLAG_LABELS = {
+  pinned: "Закреплено",
+  redo: "Перерешать",
+  new_topic: "Новая тема",
+};
+
+function generateHistoryEntries(oldTask, newPayload) {
+  const entries = [];
+  const now = new Date().toISOString();
+  const oldDetails = oldTask?.details || {};
+  const newDetails = newPayload?.details || {};
+
+  // Изменение статуса
+  const oldStatus = oldTask?.status || "not_started";
+  const newStatus = newPayload.status;
+  if (oldStatus !== newStatus) {
+    const from = HISTORY_STATUS_LABELS[oldStatus] || oldStatus;
+    const to   = HISTORY_STATUS_LABELS[newStatus] || newStatus;
+    entries.push({ date: now, text: `Статус: «${from}» → «${to}»` });
+  }
+
+  // Изменение метки
+  const oldFlag = oldDetails.flag || (oldDetails.isPinned === true ? "pinned" : "");
+  const newFlag = newDetails.flag || "";
+  if (oldFlag !== newFlag) {
+    if (newFlag) {
+      entries.push({ date: now, text: `Метка: «${HISTORY_FLAG_LABELS[newFlag] || newFlag}»` });
+    } else {
+      entries.push({ date: now, text: "Метка убрана" });
+    }
+  }
+
+  // Изменение домашнего задания
+  const oldHw = (Array.isArray(oldDetails.homework) ? oldDetails.homework : []).filter(Boolean).join("\n").trim();
+  const newHw = (Array.isArray(newDetails.homework) ? newDetails.homework : []).filter(Boolean).join("\n").trim();
+  if (oldHw !== newHw) {
+    if (!oldHw && newHw)       entries.push({ date: now, text: "Домашнее задание добавлено" });
+    else if (oldHw && !newHw) entries.push({ date: now, text: "Домашнее задание убрано" });
+    else                       entries.push({ date: now, text: "Домашнее задание обновлено" });
+  }
+
+  return entries;
+}
+
+function formatHistoryDate(isoStr) {
+  if (!isoStr) return "—";
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return isoStr;
+  return d.toLocaleDateString("ru-RU", { year: "numeric", month: "short", day: "numeric" });
+}
+
+function renderTaskHistoryHtml(taskId, history) {
+  const rows = Array.isArray(history) ? history : [];
+  const entriesHtml = rows.length
+    ? rows.map((entry, i) => `
+        <div class="task-history__entry" data-history-idx="${i}">
+          <span class="task-history__date">${escapeHtml(formatHistoryDate(entry.date))}</span>
+          <span class="task-history__text">${escapeHtml(entry.text || "")}</span>
+          <button class="task-history__del" type="button"
+            data-del-history="${escapeAttr(taskId)}"
+            data-del-idx="${i}"
+            title="Удалить запись">×</button>
+        </div>`).join("")
+    : `<div class="task-history__empty muted">История пуста</div>`;
+
+  return `
+    <div class="task-history" data-history-for="${escapeAttr(taskId)}">
+      <div class="task-history__header">
+        <span class="task-history__label">История</span>
+      </div>
+      <div class="task-history__list">${entriesHtml}</div>
+      <div class="task-history__add">
+        <input class="task-history__note-input" type="text"
+          placeholder="Добавить запись вручную…"
+          data-history-note-for="${escapeAttr(taskId)}" />
+        <button class="icon-btn" type="button"
+          data-add-history-note="${escapeAttr(taskId)}">Добавить</button>
+      </div>
+    </div>`;
+}
+
+async function deleteHistoryEntry(taskId, subjectId, idx) {
+  const tasks = state.tasksBySubjectId[subjectId] || [];
+  const task  = tasks.find((t) => t.id === taskId);
+  if (!task) return;
+  const history = Array.isArray(task.details?.history) ? [...task.details.history] : [];
+  history.splice(idx, 1);
+  task.details = { ...(task.details || {}), history };
+  try {
+    await window.db
+      .collection("users").doc(state.selectedUserId)
+      .collection("subjects").doc(subjectId)
+      .collection("tasks").doc(taskId)
+      .update({ "details.history": history });
+    await refreshHistoryBlock(taskId, subjectId, history);
+    setStatus("Запись удалена", "success");
+  } catch (err) {
+    setStatus("Не удалось удалить запись", "error");
+    console.error(err);
+  }
+}
+
+async function addHistoryNote(taskId, subjectId, text) {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+  const tasks = state.tasksBySubjectId[subjectId] || [];
+  const task  = tasks.find((t) => t.id === taskId);
+  if (!task) return;
+  const newEntry = { date: new Date().toISOString(), text: trimmed };
+  const history  = [newEntry, ...(Array.isArray(task.details?.history) ? task.details.history : [])];
+  task.details = { ...(task.details || {}), history };
+  try {
+    await window.db
+      .collection("users").doc(state.selectedUserId)
+      .collection("subjects").doc(subjectId)
+      .collection("tasks").doc(taskId)
+      .update({ "details.history": history });
+    await refreshHistoryBlock(taskId, subjectId, history);
+    setStatus("Запись добавлена", "success");
+  } catch (err) {
+    setStatus("Не удалось добавить запись", "error");
+    console.error(err);
+  }
+}
+
+async function refreshHistoryBlock(taskId, subjectId, history) {
+  const wrap = els.tasksEditor.querySelector(`[data-history-for="${taskId}"]`);
+  if (!wrap) return;
+  const tmp = document.createElement("div");
+  tmp.innerHTML = renderTaskHistoryHtml(taskId, history);
+  const newWrap = tmp.firstElementChild;
+  wrap.replaceWith(newWrap);
+  bindHistoryHandlers(newWrap, taskId, subjectId);
+}
+
+function bindHistoryHandlers(container, taskId, subjectId) {
+  container.querySelectorAll("[data-del-history]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.getAttribute("data-del-idx"));
+      void deleteHistoryEntry(taskId, subjectId, idx);
+    });
+  });
+  const noteInput = container.querySelector(`[data-history-note-for="${taskId}"]`);
+  const addBtn    = container.querySelector(`[data-add-history-note="${taskId}"]`);
+  if (addBtn && noteInput) {
+    const doAdd = () => {
+      void addHistoryNote(taskId, subjectId, noteInput.value);
+      noteInput.value = "";
+    };
+    addBtn.addEventListener("click", doAdd);
+    noteInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); doAdd(); }
+    });
+  }
+}
+
+function buildTaskPayload(row, oldTask = null) {
   const orderInput = Number(row.querySelector('[data-f="order_index"]')?.value);
   const order_index =
     Number.isFinite(orderInput) && orderInput > 0
@@ -1045,6 +1221,16 @@ function buildTaskPayload(row) {
   const updatedAtIso =
     updatedFromForm ||
     (statusVal === "not_started" ? null : new Date().toISOString());
+
+  const homework = splitLines(row.querySelector('[data-f="homework"]')?.value);
+
+  // Автоматически генерируем записи истории если есть старая версия задания
+  const oldHistory = Array.isArray(oldTask?.details?.history) ? oldTask.details.history : [];
+  const newEntries = oldTask
+    ? generateHistoryEntries(oldTask, { status: statusVal, details: { flag, homework, isPinned: oldTask?.details?.isPinned } })
+    : [];
+  const history = [...newEntries, ...oldHistory];
+
   const payload = {
     title: row.querySelector('[data-f="title"]')?.value?.trim() || "Задание",
     description:
@@ -1057,7 +1243,7 @@ function buildTaskPayload(row) {
       lessonFiles: readAttachmentsFromRow(
         row.querySelector('[id^="lesson-files-"]'),
       ),
-      homework: splitLines(row.querySelector('[data-f="homework"]')?.value),
+      homework,
       homeworkFiles: readAttachmentsFromRow(
         row.querySelector('[id^="hw-files-"]'),
       ),
@@ -1067,6 +1253,7 @@ function buildTaskPayload(row) {
       ),
       attachments: [],
       flag,
+      history,
     },
   };
   if (updatedAtIso) payload.updated_at = updatedAtIso;
@@ -1078,6 +1265,8 @@ async function saveTaskFromRow(row) {
   const taskId = row.getAttribute("data-task-id");
   const subjectId = row.getAttribute("data-subject-id-tr");
   if (!taskId || !subjectId) return;
+  // Находим старую версию задания для генерации истории
+  const oldTask = (state.tasksBySubjectId[subjectId] || []).find((t) => t.id === taskId) || null;
   try {
     await window.db
       .collection("users")
@@ -1086,7 +1275,7 @@ async function saveTaskFromRow(row) {
       .doc(subjectId)
       .collection("tasks")
       .doc(taskId)
-      .update(buildTaskPayload(row));
+      .update(buildTaskPayload(row, oldTask));
     setStatus("Задание сохранено", "success");
     await renderTasksEditor();
   } catch (err) {
@@ -1218,7 +1407,8 @@ async function saveAllTasksInBlock(subjectId) {
         .doc(subjectId)
         .collection("tasks")
         .doc(taskId);
-      batch.update(ref, buildTaskPayload(row));
+      const oldTask = (state.tasksBySubjectId[subjectId] || []).find((t) => t.id === taskId) || null;
+      batch.update(ref, buildTaskPayload(row, oldTask));
     });
     await batch.commit();
     setStatus(`Сохранено ${rows.length} заданий ✅`, "success");
