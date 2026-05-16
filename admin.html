@@ -238,6 +238,42 @@
 
         <!-- ─── Панель: Шаблоны ─── -->
         <div class="admin-tab-panel" data-page-panel="templates" hidden>
+
+          <section class="card admin__card">
+            <div class="card__header">
+              <div>
+                <div class="eyebrow">Файлы заданий</div>
+                <h2 class="h2">Загрузка файлов в предмет</h2>
+              </div>
+            </div>
+            <div class="admin-form" id="subjectFileUploadForm">
+              <p class="muted" style="margin:0;font-size:13px">
+                Файл ляжет в общую папку предмета и станет доступен через браузер файлов для всех учеников.
+              </p>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+                <label class="admin-field" style="flex:1;min-width:160px">
+                  <span>Предмет</span>
+                  <select id="subjectFileSubject"></select>
+                </label>
+                <label class="admin-field" style="flex:2;min-width:200px">
+                  <span>Папка / название задания</span>
+                  <input id="subjectFileFolder" type="text" placeholder="Задание 1-5 Шины" />
+                </label>
+              </div>
+              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                <label class="icon-btn" style="cursor:pointer">
+                  📎 Выбрать файл
+                  <input id="subjectFileInput" type="file" style="display:none" />
+                </label>
+                <span id="subjectFileName" class="muted" style="font-size:13px">Файл не выбран</span>
+              </div>
+              <button class="icon-btn" type="button" id="subjectFileUploadBtn" disabled>
+                Загрузить файл
+              </button>
+              <div id="subjectFileLog" class="setup-log" style="display:none"></div>
+            </div>
+          </section>
+
           <section class="card admin__card">
             <div class="card__header">
               <div>
