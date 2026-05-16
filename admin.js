@@ -943,7 +943,7 @@ async function renderTasksEditor() {
       const rows = tasks.length
         ? tasks.map(renderTaskRow).join("")
         : `<p class="muted">Заданий нет. <button class="icon-btn" type="button" data-add-task="${escapeAttr(s.id)}">Добавить первое задание</button></p>`;
-      return `<div class="task-subject-block" data-task-block="${escapeAttr(s.id)}" style="display:${s.id === firstId ? "grid" : "none"};gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));"><div style="grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end;padding:0 2px;"><button class="icon-btn" type="button" data-save-all-block="${escapeAttr(s.id)}">💾 Сохранить все</button><button class="icon-btn" type="button" data-add-task="${escapeAttr(s.id)}">+ Добавить задание</button></div>${rows}</div>`;
+      return `<div class="task-subject-block" data-task-block="${escapeAttr(s.id)}" style="display:${s.id === firstId ? "grid" : "none"};gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));"><div class="task-block-actions" style="grid-column:1/-1;"><button class="icon-btn" type="button" data-save-all-block="${escapeAttr(s.id)}">💾 Сохранить все</button><button class="icon-btn" type="button" data-add-task="${escapeAttr(s.id)}">+ Добавить задание</button></div>${rows}</div>`;
     })
     .join("");
 
@@ -962,6 +962,17 @@ async function renderTasksEditor() {
           block.style.gridTemplateColumns = "repeat(2,minmax(0,1fr))";
       });
     });
+  });
+
+  // Sticky-панель: добавляем класс is-stuck когда прилипла
+  els.tasksEditor.querySelectorAll(".task-block-actions").forEach((bar) => {
+    const sentinel = document.createElement("div");
+    sentinel.style.cssText = "position:absolute;top:0;height:1px;pointer-events:none";
+    bar.parentElement?.insertBefore(sentinel, bar);
+    new IntersectionObserver(
+      ([entry]) => bar.classList.toggle("is-stuck", !entry.isIntersecting),
+      { threshold: 0 },
+    ).observe(sentinel);
   });
 
   els.tasksEditor.querySelectorAll("[data-save-task]").forEach((btn) => {
