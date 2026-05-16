@@ -2168,13 +2168,14 @@ function initPageTabs() {
 function initSubjectFileUpload() {
   const subjectSelect = document.getElementById("subjectFileSubject");
   const folderInput   = document.getElementById("subjectFileFolder");
+  const folderList    = document.getElementById("subjectFolderList");
   const fileInput     = document.getElementById("subjectFileInput");
   const fileNameEl    = document.getElementById("subjectFileName");
   const uploadBtn     = document.getElementById("subjectFileUploadBtn");
   const logEl         = document.getElementById("subjectFileLog");
   if (!subjectSelect || !uploadBtn) return;
 
-  // Заполняем список предметов из каталога — ждём загрузки каталога
+  // Заполняем список предметов из каталога
   function populateSubjects() {
     subjectSelect.innerHTML = state.catalog.length
       ? state.catalog
@@ -2182,12 +2183,44 @@ function initSubjectFileUpload() {
           .map((c) => `<option value="${escapeAttr(c.id)}">${escapeHtml(c.title || c.id)}</option>`)
           .join("")
       : `<option value="">— каталог не загружен —</option>`;
+    loadSubjectFolders(); // загружаем папки для первого предмета
   }
   populateSubjects();
 
-  // Если каталог загрузится позже — перезаполним
-  const origLoadCatalog = window._catalogLoaded;
-  document.addEventListener("catalogLoaded", populateSubjects);
+  // При смене предмета — обновляем список папок
+  subjectSelect.addEventListener("change", loadSubjectFolders);
+
+  async function loadSubjectFolders() {
+    if (!folderList) return;
+    const catId = subjectSelect.value;
+    if (!catId) return;
+    const catalogTitle = yosSlug(
+      state.catalog.find((c) => c.id === catId)?.title || catId,
+    );
+    folderList.innerHTML = "";
+    if (!yosCreds?.accessKey) return;
+    try {
+      const prefix = `${catalogTitle}/`;
+      const url = await yosPresignList(prefix);
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const xml  = await res.text();
+      // Вытаскиваем уникальные имена папок (второй сегмент пути)
+      const folders = new Set();
+      const re = /<Key>([^<]+)<\/Key>/g;
+      let m;
+      while ((m = re.exec(xml)) !== null) {
+        const parts = m[1].split("/");
+        if (parts.length >= 2 && parts[1]) folders.add(parts[1]);
+      }
+      folderList.innerHTML = [...folders]
+        .sort()
+        .map((f) => `<option value="${escapeAttr(f)}">`)
+        .join("");
+    } catch {
+      // ничего — datalist просто останется пустым
+    }
+  }
 
   // Выбор файла
   fileInput?.addEventListener("change", () => {
