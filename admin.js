@@ -964,8 +964,10 @@ async function renderTasksEditor() {
     });
   });
 
-  // Sticky-панель: добавляем класс is-stuck когда прилипла
+  // Sticky-панель: top = высота прилипшего хедера
+  const topbarH = document.querySelector(".topbar")?.offsetHeight ?? 0;
   els.tasksEditor.querySelectorAll(".task-block-actions").forEach((bar) => {
+    bar.style.top = `${topbarH}px`;
     const sentinel = document.createElement("div");
     sentinel.style.cssText = "position:absolute;top:0;height:1px;pointer-events:none";
     bar.parentElement?.insertBefore(sentinel, bar);
