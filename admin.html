@@ -257,7 +257,9 @@
                 </label>
                 <label class="admin-field" style="flex:2;min-width:200px">
                   <span>Папка / название задания</span>
-                  <input id="subjectFileFolder" type="text" placeholder="Задание 1-5 Шины" />
+                  <input id="subjectFileFolder" type="text" placeholder="Задание 1-5 Шины"
+                    list="subjectFolderList" autocomplete="off" />
+                  <datalist id="subjectFolderList"></datalist>
                 </label>
               </div>
               <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
