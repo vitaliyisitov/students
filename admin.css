@@ -653,6 +653,15 @@
   gap: 8px;
 }
 
+.students-filter {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  margin-bottom: 8px;
+}
+
 .student-row {
   width: 100%;
   text-align: left;
@@ -661,15 +670,52 @@
   background: rgba(255, 255, 255, 0.76);
   padding: 10px 12px;
   cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.student-row:hover {
+  background: rgba(255, 255, 255, 0.95);
 }
 
 .student-row.is-active {
   border-color: rgba(0, 122, 255, 0.4);
-  background: rgba(0, 122, 255, 0.12);
+  background: rgba(0, 122, 255, 0.08);
+}
+
+.student-row__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .student-name {
   font-weight: 700;
+  font-size: 14px;
+}
+
+.student-badges {
+  display: flex;
+  gap: 4px;
+}
+
+.student-exam-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+  line-height: 1.6;
+}
+
+.student-exam-badge--oge {
+  background: rgba(52, 199, 89, 0.15);
+  color: #1a7a35;
+}
+
+.student-exam-badge--ege {
+  background: rgba(0, 122, 255, 0.12);
+  color: #0055cc;
 }
 
 .student-meta {
