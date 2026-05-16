@@ -467,8 +467,8 @@ body.is-app-loading #appShell {
 }
 
 .trials-empty__icon {
-  width: 64px;
-  height: 64px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
 }
 .trials-empty__title {
