@@ -467,8 +467,8 @@ body.is-app-loading #appShell {
 }
 
 .trials-empty__icon {
-  width: 32px;
-  height: 32px;
+  width: 64px;
+  height: 64px;
   object-fit: contain;
 }
 .trials-empty__title {
@@ -613,7 +613,19 @@ body.is-app-loading #appShell {
   margin-top: 1px;
 }
 
+.trial-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .trial-card__date {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.trial-card__time {
   font-size: 12px;
   color: var(--muted);
 }
@@ -1558,6 +1570,7 @@ body.is-app-loading #appShell {
 #appGateMessage {
   padding: 0px 18px;
 }
+
 
 /* ─── История задания (модалка ученика) ────────────────────────────────────── */
 
