@@ -741,6 +741,7 @@ function renderTrialCard(trial, catalogSlug) {
   const hwBadge = trial.is_homework
     ? `<span class="trial-card__hw-badge">ДЗ</span>`
     : "";
+  const timeStr = trial.time ? String(trial.time).trim() : null;
 
   return `<button class="trial-card ${cardLevel}" type="button" data-trial-open="${escapeAttr(trial.id)}">
     <div class="trial-card__top">
@@ -748,7 +749,10 @@ function renderTrialCard(trial, catalogSlug) {
         <div class="trial-card__title">${escapeHtml(title)}</div>
         ${hwBadge}
       </div>
-      ${dateStr ? `<div class="trial-card__date">${escapeHtml(dateStr)}</div>` : ""}
+      <div class="trial-card__meta">
+        ${dateStr ? `<span class="trial-card__date">${escapeHtml(dateStr)}</span>` : ""}
+        ${timeStr ? `<span class="trial-card__time">⏱ ${escapeHtml(timeStr)}</span>` : ""}
+      </div>
     </div>
     ${statsHtml}
   </button>`;
@@ -768,6 +772,7 @@ function openTrialModal(trialId, catalogSlug) {
   const dateStr = trial.date ? formatTrialDate(trial.date) : null;
   const variantUrl = trial.variant_url ? String(trial.variant_url).trim() : null;
   const solutionUrl = trial.solution_url ? String(trial.solution_url).trim() : null;
+  const timeStr = trial.time ? String(trial.time).trim() : null;
 
   els.modalTitle.textContent = trial.title || "Пробный вариант";
   els.modalSubtitle.textContent = dateStr || "";
@@ -778,18 +783,24 @@ function openTrialModal(trialId, catalogSlug) {
 
   let html = "";
 
-  if (score) {
+  if (score || timeStr) {
     html += `<div class="section">
       <div class="section__title">Результат</div>
-      <div class="trial-card__stats" style="max-width:280px;margin-top:14px">
-        <div class="trial-card__stat trial-card__stat--score">
+      <div class="trial-card__stats" style="max-width:340px;margin-top:14px">
+        ${score ? `<div class="trial-card__stat trial-card__stat--score">
           <div class="trial-card__stat-value">${escapeHtml(score)}</div>
           <div class="trial-card__stat-label">Первичные баллы</div>
-        </div>
+        </div>` : ""}
         ${converted
           ? `<div class="trial-card__stat trial-card__stat--${converted.level}">
               <div class="trial-card__stat-value">${escapeHtml(converted.display)}</div>
               <div class="trial-card__stat-label">${escapeHtml(gradeLabel)}</div>
+            </div>`
+          : ""}
+        ${timeStr
+          ? `<div class="trial-card__stat trial-card__stat--time">
+              <div class="trial-card__stat-value">⏱ ${escapeHtml(timeStr)}</div>
+              <div class="trial-card__stat-label">Время</div>
             </div>`
           : ""}
       </div>
@@ -956,6 +967,7 @@ function parseRichLink(line) {
   if (isValidHttpUrl(value)) return { label: "Ссылка", href: value };
   return null;
 }
+
 
 function renderHistorySection(history) {
   if (!Array.isArray(history) || !history.length) return "";
