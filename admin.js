@@ -2344,10 +2344,14 @@ function renderTrialsEditor() {
       if (!isNaN(newPos)) setTrialPosition(inp.dataset.posTrial, newPos);
     });
   });
-  root.querySelectorAll("[data-fb-trial]").forEach((btn) => {
+  root.querySelectorAll("[data-add-trial-file]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const fileField = btn.closest(".trial-file-field");
-      if (fileField) openFileBrowser(fileField);
+      const editor = document.getElementById(`trial-files-${btn.dataset.addTrialFile}`);
+      if (editor) {
+        const tmp = document.createElement("div");
+        tmp.innerHTML = attachmentRowHtml("", "");
+        editor.appendChild(tmp.firstElementChild);
+      }
     });
   });
 }
@@ -2363,6 +2367,10 @@ async function initTrialsEditorSubject() {
 
 function trialRowHtml(t, pos = t.order_index ?? 1) {
   const hwChecked = t.is_homework ? "checked" : "";
+  const existingAtts = Array.isArray(t.attachments) ? t.attachments : [];
+  const attRowsHtml = existingAtts.length
+    ? existingAtts.map((a) => { const p = parseStoredAttachment(a); return attachmentRowHtml(p.label, p.url); }).join("")
+    : "";
   return `
     <div class="trial-row" data-trial-id="${t.id}">
       <div class="trial-row__fields">
@@ -2397,17 +2405,10 @@ function trialRowHtml(t, pos = t.order_index ?? 1) {
         </label>
       </div>
       <div class="trial-row__files">
-        <div class="trial-file-field">
-          <span class="trial-file-label">Вариант</span>
-          <input type="text" class="att-url" data-tf="variant_url" value="${escapeAttrAdmin(t.variant_url || "")}" placeholder="URL файла…" />
-          <label class="icon-btn att-upload-btn" title="Загрузить файл"><span class="att-upload-icon">📎</span><input type="file" class="att-file-input" style="display:none" /></label>
-          <button class="icon-btn" type="button" data-fb-trial="${t.id}" data-fb-ctx="variant" title="Выбрать из хранилища">📂</button>
-        </div>
-        <div class="trial-file-field">
-          <span class="trial-file-label">Решение</span>
-          <input type="text" class="att-url" data-tf="solution_url" value="${escapeAttrAdmin(t.solution_url || "")}" placeholder="URL файла…" />
-          <label class="icon-btn att-upload-btn" title="Загрузить файл"><span class="att-upload-icon">📎</span><input type="file" class="att-file-input" style="display:none" /></label>
-          <button class="icon-btn" type="button" data-fb-trial="${t.id}" data-fb-ctx="solution" title="Выбрать из хранилища">📂</button>
+        <div class="admin-field--files">
+          <span>Файлы</span>
+          <button class="icon-btn" type="button" data-add-trial-file="${escapeAttr(t.id)}">+ Файл</button>
+          <div class="attachments-editor" id="trial-files-${escapeAttr(t.id)}">${attRowsHtml}</div>
         </div>
       </div>
       <div class="trial-row__actions">
@@ -2439,14 +2440,13 @@ async function addTrial() {
         title: "",
         date: new Date().toISOString().slice(0, 10),
         score: "",
-        variant_url: "",
-        solution_url: "",
+        attachments: [],
         section_label: "",
         is_homework: false,
         order_index: (state.trials.length + 1),
         created_at: new Date().toISOString(),
       });
-    state.trials.push({ id: ref.id, title: "", date: new Date().toISOString().slice(0, 10), score: "", variant_url: "", solution_url: "", section_label: "", is_homework: false, order_index: state.trials.length });
+    state.trials.push({ id: ref.id, title: "", date: new Date().toISOString().slice(0, 10), score: "", attachments: [], section_label: "", is_homework: false, order_index: state.trials.length });
     renderTrialsEditor();
   } catch (err) {
     setStatus("Ошибка при создании пробника", "error");
@@ -2458,13 +2458,13 @@ async function saveTrial(trialId) {
   if (!state.selectedUserId || !trialId) return;
   const row = els.trialsEditor.querySelector(`[data-trial-id="${trialId}"]`);
   if (!row) return;
+  const attEditor = document.getElementById(`trial-files-${trialId}`);
   const payload = {
     title:         row.querySelector('[data-tf="title"]')?.value.trim() || "",
     date:          row.querySelector('[data-tf="date"]')?.value || "",
     score:         row.querySelector('[data-tf="score"]')?.value.trim() || "",
     time:          row.querySelector('[data-tf="time"]')?.value.trim() || "",
-    variant_url:   row.querySelector('[data-tf="variant_url"]')?.value.trim() || "",
-    solution_url:  row.querySelector('[data-tf="solution_url"]')?.value.trim() || "",
+    attachments:   readAttachmentsFromRow(attEditor),
     section_label: row.querySelector('[data-tf="section_label"]')?.value.trim() || "",
     is_homework:   row.querySelector('[data-tf="is_homework"]')?.checked ?? false,
   };
