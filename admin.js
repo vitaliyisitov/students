@@ -10,6 +10,7 @@ const state = {
   selectedTrialSubjectId: null, // предмет в редакторе пробников
   subjectsByUserId: {},         // кэш предметов всех учеников
   studentFilter: "all",         // "all" | "oge" | "ege" | "archive"
+  tickers: [],                  // объявления (бегущая строка)
 };
 
 const els = {
@@ -138,6 +139,7 @@ async function init() {
   await loadCatalog();
   initSubjectFileUpload(); // каталог уже загружен — список предметов заполнится
   await loadUsers();
+  await loadTickers();
   void preloadAllUserSubjects(); // фоновая подгрузка предметов для бейджей
   setStatus("Данные загружены ✅", "success");
 }
@@ -2146,8 +2148,11 @@ function initPageTabs() {
       panels.forEach((p) => {
         p.hidden = p.getAttribute("data-page-panel") !== target;
       });
+      if (target === "tickers") renderTickersList();
     });
   });
+
+  document.getElementById("addTickerBtn")?.addEventListener("click", addTicker);
 
   // Обработчики базы данных и шаблонов — вешаем один раз здесь
   document
@@ -3203,4 +3208,129 @@ function fmtBytes(n) {
   if (n < 1024) return `${n} B`;
   if (n < 1048576) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / 1048576).toFixed(1)} MB`;
+}
+
+// ─── Бегущая строка (объявления) ─────────────────────────────────────────────
+
+async function loadTickers() {
+  try {
+    const snap = await window.db.collection("tickers").orderBy("created_at", "desc").get();
+    state.tickers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(e) { console.error("loadTickers:", e); }
+}
+
+function renderTickersList() {
+  const el = document.getElementById("tickersList");
+  if (!el) return;
+  if (!state.tickers.length) {
+    el.innerHTML = `<p class="muted">Объявлений пока нет.</p>`;
+    return;
+  }
+  el.innerHTML = state.tickers.map(t => tickerRowHtml(t)).join("");
+  el.querySelectorAll("[data-save-ticker]").forEach(btn =>
+    btn.addEventListener("click", () => saveTicker(btn.dataset.saveTicker))
+  );
+  el.querySelectorAll("[data-delete-ticker]").forEach(btn =>
+    btn.addEventListener("click", () => deleteTicker(btn.dataset.deleteTicker))
+  );
+  // Live preview on input change
+  el.querySelectorAll(".ticker-row").forEach(row => {
+    const preview = row.querySelector(".ticker-preview");
+    const updatePreview = () => {
+      const bg = row.querySelector("[data-tk='bg']")?.value || "linear-gradient(90deg, #667eea, #764ba2)";
+      const color = row.querySelector("[data-tk='textColor']")?.value || "#ffffff";
+      if (preview) { preview.style.background = bg; preview.style.color = color; }
+    };
+    row.querySelector("[data-tk='bg']")?.addEventListener("input", updatePreview);
+    row.querySelector("[data-tk='textColor']")?.addEventListener("input", updatePreview);
+  });
+}
+
+function tickerRowHtml(t) {
+  const usersCheckboxes = state.users.map(u =>
+    `<label style="display:flex;align-items:center;gap:6px;font-size:13px;">
+      <input type="checkbox" data-tk-user="${escapeAttr(u.id)}" ${(t.userIds||[]).includes(u.id) ? "checked" : ""} />
+      ${escapeHtml(u.name || u.id)}
+    </label>`
+  ).join("");
+  const bg = t.bg || "linear-gradient(90deg, #667eea, #764ba2)";
+  const textColor = t.textColor || "#ffffff";
+  const enabled = t.enabled !== false;
+  return `<div class="ticker-row card" data-ticker-id="${escapeAttr(t.id)}" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+    <div class="ticker-preview" style="background:${escapeAttrAdmin(bg)};color:${escapeAttrAdmin(textColor)};padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">
+      ${escapeHtml(t.text || "Превью бегущей строки")}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr;gap:8px;">
+      <label class="admin-label">
+        <span>Текст (разделяй | для нескольких блоков)</span>
+        <input type="text" data-tk="text" value="${escapeAttrAdmin(t.text || "")}" placeholder="Привет! | Новое задание | Удачи на экзамене" style="width:100%;" />
+      </label>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;">
+        <label class="admin-label">
+          <span>Фон (CSS градиент или URL картинки)</span>
+          <input type="text" data-tk="bg" value="${escapeAttrAdmin(bg)}" placeholder="linear-gradient(90deg, #667eea, #764ba2)" style="width:100%;" />
+        </label>
+        <label class="admin-label" style="width:60px;">
+          <span>Цвет текста</span>
+          <input type="color" data-tk="textColor" value="${escapeAttrAdmin(textColor)}" style="width:100%;height:38px;padding:2px;border-radius:6px;border:1px solid var(--border);cursor:pointer;" />
+        </label>
+      </div>
+      <label class="admin-label" style="flex-direction:row;align-items:center;gap:8px;">
+        <input type="checkbox" data-tk="enabled" ${enabled ? "checked" : ""} />
+        <span>Включена</span>
+      </label>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:8px;">Показывать ученикам</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px 16px;">${usersCheckboxes}</div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="icon-btn" type="button" data-save-ticker="${escapeAttr(t.id)}">Сохранить</button>
+      <button class="icon-btn danger" type="button" data-delete-ticker="${escapeAttr(t.id)}">Удалить</button>
+    </div>
+  </div>`;
+}
+
+async function addTicker() {
+  try {
+    const ref = await window.db.collection("tickers").add({
+      text: "",
+      bg: "linear-gradient(90deg, #667eea 0%, #764ba2 100%)",
+      textColor: "#ffffff",
+      enabled: true,
+      userIds: [],
+      created_at: new Date().toISOString(),
+    });
+    state.tickers.unshift({ id: ref.id, text: "", bg: "linear-gradient(90deg, #667eea 0%, #764ba2 100%)", textColor: "#ffffff", enabled: true, userIds: [] });
+    renderTickersList();
+  } catch(e) { setStatus("Ошибка при создании объявления", "error"); console.error(e); }
+}
+
+async function saveTicker(tickerId) {
+  const row = document.querySelector(`[data-ticker-id="${tickerId}"]`);
+  if (!row) return;
+  const userIds = Array.from(row.querySelectorAll("[data-tk-user]"))
+    .filter(cb => cb.checked).map(cb => cb.dataset.tkUser);
+  const payload = {
+    text:      row.querySelector("[data-tk='text']")?.value.trim() || "",
+    bg:        row.querySelector("[data-tk='bg']")?.value.trim() || "linear-gradient(90deg, #667eea, #764ba2)",
+    textColor: row.querySelector("[data-tk='textColor']")?.value || "#ffffff",
+    enabled:   row.querySelector("[data-tk='enabled']")?.checked ?? true,
+    userIds,
+  };
+  try {
+    await window.db.collection("tickers").doc(tickerId).update(payload);
+    const local = state.tickers.find(t => t.id === tickerId);
+    if (local) Object.assign(local, payload);
+    setStatus("Объявление сохранено ✅", "success");
+  } catch(e) { setStatus("Ошибка при сохранении", "error"); console.error(e); }
+}
+
+async function deleteTicker(tickerId) {
+  if (!confirm("Удалить объявление?")) return;
+  try {
+    await window.db.collection("tickers").doc(tickerId).delete();
+    state.tickers = state.tickers.filter(t => t.id !== tickerId);
+    renderTickersList();
+  } catch(e) { setStatus("Ошибка при удалении", "error"); console.error(e); }
 }
