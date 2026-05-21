@@ -3214,8 +3214,9 @@ function fmtBytes(n) {
 
 async function loadTickers() {
   try {
-    const snap = await window.db.collection("tickers").orderBy("created_at", "desc").get();
-    state.tickers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const snap = await window.db.collection("settings").where("_type", "==", "ticker").get();
+    state.tickers = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
   } catch(e) { console.error("loadTickers:", e); }
 }
 
@@ -3293,7 +3294,8 @@ function tickerRowHtml(t) {
 
 async function addTicker() {
   try {
-    const ref = await window.db.collection("tickers").add({
+    const ref = await window.db.collection("settings").add({
+      _type: "ticker",
       text: "",
       bg: "linear-gradient(90deg, #667eea 0%, #764ba2 100%)",
       textColor: "#ffffff",
@@ -3301,7 +3303,7 @@ async function addTicker() {
       userIds: [],
       created_at: new Date().toISOString(),
     });
-    state.tickers.unshift({ id: ref.id, text: "", bg: "linear-gradient(90deg, #667eea 0%, #764ba2 100%)", textColor: "#ffffff", enabled: true, userIds: [] });
+    state.tickers.unshift({ id: ref.id, _type: "ticker", text: "", bg: "linear-gradient(90deg, #667eea 0%, #764ba2 100%)", textColor: "#ffffff", enabled: true, userIds: [] });
     renderTickersList();
   } catch(e) { setStatus("Ошибка при создании объявления", "error"); console.error(e); }
 }
@@ -3319,7 +3321,7 @@ async function saveTicker(tickerId) {
     userIds,
   };
   try {
-    await window.db.collection("tickers").doc(tickerId).update(payload);
+    await window.db.collection("settings").doc(tickerId).update(payload);
     const local = state.tickers.find(t => t.id === tickerId);
     if (local) Object.assign(local, payload);
     setStatus("Объявление сохранено ✅", "success");
@@ -3329,7 +3331,7 @@ async function saveTicker(tickerId) {
 async function deleteTicker(tickerId) {
   if (!confirm("Удалить объявление?")) return;
   try {
-    await window.db.collection("tickers").doc(tickerId).delete();
+    await window.db.collection("settings").doc(tickerId).delete();
     state.tickers = state.tickers.filter(t => t.id !== tickerId);
     renderTickersList();
   } catch(e) { setStatus("Ошибка при удалении", "error"); console.error(e); }
