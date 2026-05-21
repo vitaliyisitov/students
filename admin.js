@@ -2378,6 +2378,10 @@ function trialRowHtml(t, pos = t.order_index ?? 1) {
           <span>Результат</span>
           <input type="text" data-tf="score" value="${escapeAttrAdmin(t.score || "")}" placeholder="18 / 25" />
         </label>
+        <label class="trial-field">
+          <span>Время (чч:мм или мин)</span>
+          <input type="text" data-tf="time" value="${escapeAttrAdmin(t.time || "")}" placeholder="1:30" />
+        </label>
       </div>
       <div class="trial-row__meta">
         <label class="trial-field trial-field--section">
@@ -2458,6 +2462,7 @@ async function saveTrial(trialId) {
     title:         row.querySelector('[data-tf="title"]')?.value.trim() || "",
     date:          row.querySelector('[data-tf="date"]')?.value || "",
     score:         row.querySelector('[data-tf="score"]')?.value.trim() || "",
+    time:          row.querySelector('[data-tf="time"]')?.value.trim() || "",
     variant_url:   row.querySelector('[data-tf="variant_url"]')?.value.trim() || "",
     solution_url:  row.querySelector('[data-tf="solution_url"]')?.value.trim() || "",
     section_label: row.querySelector('[data-tf="section_label"]')?.value.trim() || "",
