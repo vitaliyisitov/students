@@ -722,26 +722,27 @@ function renderTrialCard(trial, catalogSlug) {
   const converted = score ? convertScore(score, catalogSlug) : null;
   const gradeLabel = catalogSlug?.startsWith("oge") ? "Оценка" : "Тест. балл";
   const cardLevel = converted?.level ? `trial-card--${converted.level}` : "";
+  const timeStr = trial.time ? String(trial.time).trim() : null;
 
-  const statsHtml = score
-    ? `<div class="trial-card__stats">
-        <div class="trial-card__stat trial-card__stat--score">
-          <div class="trial-card__stat-value">${escapeHtml(score)}</div>
-          <div class="trial-card__stat-label">Баллы</div>
-        </div>
-        ${converted
-          ? `<div class="trial-card__stat trial-card__stat--${converted.level}">
-              <div class="trial-card__stat-value">${escapeHtml(converted.display)}</div>
-              <div class="trial-card__stat-label">${gradeLabel}</div>
-            </div>`
-          : ""}
-      </div>`
-    : "";
+  const statsHtml = `<div class="trial-card__stats">
+    <div class="trial-card__stat trial-card__stat--score ${score ? "" : "trial-card__stat--empty"}">
+      <div class="trial-card__stat-value">${score ? escapeHtml(score) : "—"}</div>
+      <div class="trial-card__stat-label">Баллы</div>
+    </div>
+    <div class="trial-card__stat ${converted ? `trial-card__stat--${converted.level}` : "trial-card__stat--empty"}">
+      <div class="trial-card__stat-value">${converted ? escapeHtml(converted.display) : "—"}</div>
+      <div class="trial-card__stat-label">${gradeLabel}</div>
+    </div>
+  </div>`;
 
   const hwBadge = trial.is_homework
     ? `<span class="trial-card__hw-badge">ДЗ</span>`
     : "";
-  const timeStr = trial.time ? String(trial.time).trim() : null;
+
+  const metaItems = [
+    dateStr ? `<span class="trial-card__date"><img src="./icons/calendar.png" width="12" height="12" alt="" aria-hidden="true" class="trial-card__meta-icon"> ${escapeHtml(dateStr)}</span>` : "",
+    `<span class="trial-card__time ${timeStr ? "" : "trial-card__time--empty"}"><img src="./icons/clock.png" width="12" height="12" alt="" aria-hidden="true" class="trial-card__meta-icon"> ${timeStr ? escapeHtml(timeStr) : "—"}</span>`,
+  ].filter(Boolean);
 
   return `<button class="trial-card ${cardLevel}" type="button" data-trial-open="${escapeAttr(trial.id)}">
     <div class="trial-card__top">
@@ -749,12 +750,9 @@ function renderTrialCard(trial, catalogSlug) {
         <div class="trial-card__title">${escapeHtml(title)}</div>
         ${hwBadge}
       </div>
-      <div class="trial-card__meta">
-        ${dateStr ? `<span class="trial-card__date">${escapeHtml(dateStr)}</span>` : ""}
-        ${timeStr ? `<span class="trial-card__time">⏱ ${escapeHtml(timeStr)}</span>` : ""}
-      </div>
     </div>
     ${statsHtml}
+    ${metaItems.length ? `<div class="trial-card__meta">${metaItems.join('<span class="trial-card__meta-sep">·</span>')}</div>` : ""}
   </button>`;
 }
 
@@ -770,9 +768,15 @@ function openTrialModal(trialId, catalogSlug) {
   const converted = score ? convertScore(score, catalogSlug) : null;
   const gradeLabel = catalogSlug?.startsWith("oge") ? "Оценка" : "Тест. балл";
   const dateStr = trial.date ? formatTrialDate(trial.date) : null;
-  const variantUrl = trial.variant_url ? String(trial.variant_url).trim() : null;
-  const solutionUrl = trial.solution_url ? String(trial.solution_url).trim() : null;
   const timeStr = trial.time ? String(trial.time).trim() : null;
+  const attachments = Array.isArray(trial.attachments)
+    ? trial.attachments.map((a) => {
+        if (a && typeof a === "object") return { label: String(a.label || ""), url: String(a.url || "") };
+        const s = String(a || "").trim();
+        if (s.includes("|")) { const i = s.indexOf("|"); return { label: s.slice(0, i).trim(), url: s.slice(i + 1).trim() }; }
+        return { label: "", url: s };
+      }).filter((a) => a.url)
+    : [];
 
   els.modalTitle.textContent = trial.title || "Пробный вариант";
   els.modalSubtitle.textContent = dateStr || "";
@@ -781,53 +785,38 @@ function openTrialModal(trialId, catalogSlug) {
   els.modalBadge.className = "modal__badge";
   els.modalBadge.hidden = true;
 
-  let html = "";
-
-  if (score || timeStr) {
-    html += `<div class="section">
-      <div class="section__title">Результат</div>
-      <div class="trial-card__stats" style="max-width:340px;margin-top:14px">
-        ${score ? `<div class="trial-card__stat trial-card__stat--score">
-          <div class="trial-card__stat-value">${escapeHtml(score)}</div>
-          <div class="trial-card__stat-label">Первичные баллы</div>
-        </div>` : ""}
-        ${converted
-          ? `<div class="trial-card__stat trial-card__stat--${converted.level}">
-              <div class="trial-card__stat-value">${escapeHtml(converted.display)}</div>
-              <div class="trial-card__stat-label">${escapeHtml(gradeLabel)}</div>
-            </div>`
-          : ""}
-        ${timeStr
-          ? `<div class="trial-card__stat trial-card__stat--time">
-              <div class="trial-card__stat-value">⏱ ${escapeHtml(timeStr)}</div>
-              <div class="trial-card__stat-label">Время</div>
-            </div>`
-          : ""}
-      </div>
-    </div>`;
-  }
-
-  if (variantUrl || solutionUrl) {
-    html += `<div class="section">
-      <div class="section__title">Файлы</div>
-      <div class="attachments-list">
-        ${variantUrl
-          ? `<a class="attachment-link" href="${escapeAttr(variantUrl)}" target="_blank" rel="noreferrer">
+  const filesHtml = `<div class="section">
+    <div class="section__title">Файлы</div>
+    <div class="attachments-list">
+      ${attachments.length
+        ? attachments.map((a) => `
+            <a class="attachment-link" href="${escapeAttr(a.url)}" target="_blank" rel="noreferrer">
               <span class="attachment-link__icon" aria-hidden="true"><img src="./icons/variant.png" width="16" height="16" alt="" /></span>
-              <span>Вариант</span>
-            </a>`
-          : ""}
-        ${solutionUrl
-          ? `<a class="attachment-link" href="${escapeAttr(solutionUrl)}" target="_blank" rel="noreferrer">
-              <span class="attachment-link__icon" aria-hidden="true"><img src="./icons/solution.png" width="16" height="16" alt="" /></span>
-              <span>Решение</span>
-            </a>`
-          : ""}
-      </div>
-    </div>`;
-  }
+              <span>${escapeHtml(a.label || a.url)}</span>
+            </a>`).join("")
+        : `<span class="muted" style="font-size:13px">Файлы не прикреплены</span>`}
+    </div>
+  </div>`;
 
-  if (!html) html = `<div class="section"><div class="section__body">Нет дополнительной информации.</div></div>`;
+  const resultHtml = `<div class="section">
+    <div class="section__title">Результат</div>
+    <div class="trial-card__stats trial-card__stats--modal" style="margin-top:12px">
+      <div class="trial-card__stat trial-card__stat--score ${score ? "" : "trial-card__stat--empty"}">
+        <div class="trial-card__stat-value">${score ? escapeHtml(score) : "—"}</div>
+        <div class="trial-card__stat-label">Первичные баллы</div>
+      </div>
+      <div class="trial-card__stat ${converted ? `trial-card__stat--${converted.level}` : "trial-card__stat--empty"}">
+        <div class="trial-card__stat-value">${converted ? escapeHtml(converted.display) : "—"}</div>
+        <div class="trial-card__stat-label">${escapeHtml(gradeLabel)}</div>
+      </div>
+      <div class="trial-card__stat trial-card__stat--time ${timeStr ? "" : "trial-card__stat--empty"}">
+        <div class="trial-card__stat-value trial-card__stat-value--time">${timeStr ? escapeHtml(timeStr) : "—"}</div>
+        <div class="trial-card__stat-label">Время выполнения</div>
+      </div>
+    </div>
+  </div>`;
+
+  const html = `<div class="trial-modal__grid">${filesHtml}${resultHtml}</div>`;
 
   els.modalContent.innerHTML = html;
   els.modal.classList.add("is-open");
