@@ -211,6 +211,26 @@ function bindEvents() {
     }
   });
 
+  // Делегирование для вложений в пробниках — browse + remove
+  els.trialsEditor.addEventListener("click", (e) => {
+    const browseBtn = e.target.closest(".att-browse-btn");
+    if (browseBtn) {
+      const row = browseBtn.closest(".attachment-row");
+      if (row) openFileBrowser(row);
+      return;
+    }
+    const removeBtn = e.target.closest("[data-remove-attachment]");
+    if (removeBtn) {
+      const row = removeBtn.closest(".attachment-row");
+      if (row) {
+        const url = row.querySelector(".att-url")?.value?.trim() || "";
+        row.remove();
+        if (url.startsWith("https://storage.yandexcloud.net/"))
+          void deleteFromStorage(url);
+      }
+    }
+  });
+
   // Применяем события загрузки и drag-drop ко всем редакторам
   const tmplEditorEl = document.getElementById("templatesEditor");
   [els.tasksEditor, tmplEditorEl, els.trialsEditor].forEach((container) => {
