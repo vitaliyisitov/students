@@ -10,7 +10,6 @@
     />
     <link rel="stylesheet" href="./styles.css" />
     <link rel="stylesheet" href="./admin.css" />
-    <link rel="icon" href="faviconadmin.png" type="image/png" />
   </head>
   <body>
     <div id="adminLoginOverlay" class="admin-login-overlay" hidden>
@@ -111,6 +110,9 @@
           </button>
           <button class="admin-page-tab" type="button" data-page-tab="database">
             База данных
+          </button>
+          <button class="admin-page-tab" type="button" data-page-tab="tickers">
+            Объявления
           </button>
         </nav>
 
@@ -407,6 +409,21 @@ service cloud.firestore {
           </section>
         </div>
         <!-- /panel database -->
+
+        <!-- ─── Панель: Объявления ─── -->
+        <div class="admin-tab-panel" data-page-panel="tickers" hidden>
+          <section class="card admin__card">
+            <div class="card__header">
+              <div>
+                <div class="eyebrow">Бегущая строка</div>
+                <h2 class="h2">Объявления</h2>
+              </div>
+              <button class="icon-btn" type="button" id="addTickerBtn">+ Добавить</button>
+            </div>
+            <div id="tickersList" class="admin-form" style="gap:16px;display:flex;flex-direction:column;"></div>
+          </section>
+        </div>
+        <!-- /panel tickers -->
       </main>
     </div>
 
