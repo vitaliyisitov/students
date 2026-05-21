@@ -55,6 +55,9 @@ const els = {
   trialsPanel: document.getElementById("trialsPanel"),
   cardTasks: document.getElementById("cardTasks"),
 
+  tickerBar: document.getElementById("tickerBar"),
+  tickerTrack: document.getElementById("tickerTrack"),
+
   modal: document.getElementById("modal"),
   modalClose: document.getElementById("modalClose"),
   modalBadge: document.getElementById("modalBadge"),
@@ -209,6 +212,7 @@ async function loadDataFromFirebase() {
     data = buildDataFromPayload(userRow, subjectRows, taskRows);
     data.trialsBySubjectId = trialsBySubjectId;
     setDashboardGate(null);
+    void loadAndRenderTicker(userId);
   } catch (err) {
     console.error("Firebase load error:", err);
     if (requirePersonalLink && token) setDashboardGate("invalid_token");
@@ -1344,5 +1348,43 @@ function loadState() {
     return parsed && typeof parsed === "object" ? parsed : null;
   } catch {
     return null;
+  }
+}
+
+async function loadAndRenderTicker(userId) {
+  try {
+    const snap = await window.db.collection("tickers")
+      .where("enabled", "==", true)
+      .where("userIds", "array-contains", userId)
+      .limit(1)
+      .get();
+    if (snap.empty) { els.tickerBar.hidden = true; return; }
+    const ticker = snap.docs[0].data();
+    const text = ticker.text || "";
+    if (!text.trim()) { els.tickerBar.hidden = true; return; }
+
+    // Apply background and text color
+    els.tickerBar.style.background = ticker.bg || "linear-gradient(90deg, #667eea, #764ba2)";
+    els.tickerBar.style.color = ticker.textColor || "#ffffff";
+
+    // Build items — split by "|" separator if present, else show as one item
+    const items = text.split("|").map(s => s.trim()).filter(Boolean);
+    const itemsHtml = items.map(item =>
+      `<span class="ticker__item">${escapeHtml(item)}<span class="ticker__sep">✦</span></span>`
+    ).join("");
+
+    // Two copies for seamless loop
+    const contentHtml = `<span class="ticker__content">${itemsHtml}</span><span class="ticker__content" aria-hidden="true">${itemsHtml}</span>`;
+    els.tickerTrack.innerHTML = contentHtml;
+
+    // Adjust animation speed based on text length (longer = slower)
+    const totalChars = items.join("").length;
+    const speed = Math.max(15, Math.min(60, totalChars * 0.4));
+    els.tickerTrack.style.animationDuration = speed + "s";
+
+    els.tickerBar.hidden = false;
+  } catch (err) {
+    console.warn("Ticker load error:", err);
+    els.tickerBar.hidden = true;
   }
 }
