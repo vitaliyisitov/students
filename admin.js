@@ -24,7 +24,10 @@ const els = {
   editName: document.getElementById("editName"),
   editActive: document.getElementById("editActive"),
   editToken: document.getElementById("editToken"),
-  editMiroUrl: document.getElementById("editMiroUrl"),
+  editBoardService: document.getElementById("editBoardService"),
+  editBoardUrl: document.getElementById("editBoardUrl"),
+  editCallService: document.getElementById("editCallService"),
+  editCallUrl: document.getElementById("editCallUrl"),
   editSubjects: document.getElementById("editSubjects"),
   subjectSettings: document.getElementById("subjectSettings"),
   emptyEditHint: document.getElementById("emptyEditHint"),
@@ -575,7 +578,10 @@ function renderEditPanel() {
   els.editName.value = user.name || "";
   els.editActive.value = String(user.is_active !== false);
   els.editToken.textContent = user.access_token || "—";
-  if (els.editMiroUrl) els.editMiroUrl.value = user.miro_url || "";
+  if (els.editBoardService) els.editBoardService.value = user.board_service || (user.miro_url ? "miro" : "");
+  if (els.editBoardUrl) els.editBoardUrl.value = user.board_url || user.miro_url || "";
+  if (els.editCallService) els.editCallService.value = user.call_service || "";
+  if (els.editCallUrl) els.editCallUrl.value = user.call_url || "";
 
   renderCatalogChecks(
     els.editSubjects,
@@ -780,7 +786,10 @@ async function handleSaveStudent(e) {
       .update({
         name: name || user.name,
         is_active: isActive,
-        miro_url: els.editMiroUrl?.value.trim() || "",
+        board_service: els.editBoardService?.value || "",
+        board_url: els.editBoardUrl?.value.trim() || "",
+        call_service: els.editCallService?.value || "",
+        call_url: els.editCallUrl?.value.trim() || "",
       });
 
     for (const s of toRemove) {
@@ -967,7 +976,7 @@ async function renderTasksEditor() {
       const rows = tasks.length
         ? tasks.map(renderTaskRow).join("")
         : `<p class="muted">Заданий нет. <button class="icon-btn" type="button" data-add-task="${escapeAttr(s.id)}">Добавить первое задание</button></p>`;
-      return `<div class="task-subject-block" data-task-block="${escapeAttr(s.id)}" style="display:${s.id === firstId ? "grid" : "none"};gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));">${rows}</div>`;
+      return `<div class="task-subject-block" data-task-block="${escapeAttr(s.id)}" style="display:${s.id === firstId ? "flex" : "none"};flex-direction:column;gap:6px;">${rows}</div>`;
     })
     .join("");
 
@@ -981,9 +990,7 @@ async function renderTasksEditor() {
         .forEach((x) => x.classList.toggle("is-active", x === btn));
       els.tasksEditor.querySelectorAll("[data-task-block]").forEach((block) => {
         const isActive = block.getAttribute("data-task-block") === sid;
-        block.style.display = isActive ? "grid" : "none";
-        if (isActive)
-          block.style.gridTemplateColumns = "repeat(2,minmax(0,1fr))";
+        block.style.display = isActive ? "flex" : "none";
       });
       // обновляем subject у кнопки «+ Задание» в табах
       const addBtn = els.tasksEditor.querySelector(".tasks-add-btn");
@@ -1078,7 +1085,7 @@ function renderTaskRow(task) {
     .join("");
 
   return `
-     <details class="task-row" open data-task-id="${escapeAttr(task.id)}" data-subject-id-tr="${escapeAttr(task.subject_id || "")}" data-order-index="${escapeAttr(orderVal)}">
+     <details class="task-row" data-task-id="${escapeAttr(task.id)}" data-subject-id-tr="${escapeAttr(task.subject_id || "")}" data-order-index="${escapeAttr(orderVal)}">
       <summary class="task-row__summary">
         <div class="task-row__summary-main">
           ${userName ? `<span class="task-row__student">${escapeHtml(userName)}</span>` : ""}
