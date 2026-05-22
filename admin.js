@@ -425,6 +425,7 @@ async function selectUser(userId) {
     await loadUserTrials(userId, state.selectedTrialSubjectId);
   }
   renderEditPanel();
+  updateStatusSaveAll();
 }
 
 async function loadUserTrials(userId, subjectId) {
@@ -966,7 +967,7 @@ async function renderTasksEditor() {
       const rows = tasks.length
         ? tasks.map(renderTaskRow).join("")
         : `<p class="muted">Заданий нет. <button class="icon-btn" type="button" data-add-task="${escapeAttr(s.id)}">Добавить первое задание</button></p>`;
-      return `<div class="task-subject-block" data-task-block="${escapeAttr(s.id)}" style="display:${s.id === firstId ? "grid" : "none"};gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));"><div class="task-block-actions" style="grid-column:1/-1;"><button class="icon-btn" type="button" data-save-all-block="${escapeAttr(s.id)}">💾 Сохранить все</button><button class="icon-btn" type="button" data-add-task="${escapeAttr(s.id)}">+ Добавить задание</button></div>${rows}</div>`;
+      return `<div class="task-subject-block" data-task-block="${escapeAttr(s.id)}" style="display:${s.id === firstId ? "grid" : "none"};gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));"><div class="task-block-actions" style="grid-column:1/-1;"><button class="icon-btn" type="button" data-add-task="${escapeAttr(s.id)}">+ Добавить задание</button></div>${rows}</div>`;
     })
     .join("");
 
@@ -1004,12 +1005,6 @@ async function renderTasksEditor() {
     btn.addEventListener(
       "click",
       () => void saveTaskFromRow(btn.closest("[data-task-id]")),
-    );
-  });
-  els.tasksEditor.querySelectorAll("[data-save-all-block]").forEach((btn) => {
-    btn.addEventListener(
-      "click",
-      () => void saveAllTasksInBlock(btn.getAttribute("data-save-all-block")),
     );
   });
   els.tasksEditor.querySelectorAll("[data-delete-task]").forEach((btn) => {
@@ -2137,6 +2132,15 @@ function readAttachmentsFromRow(container) {
 
 // ─── Вкладки страницы ─────────────────────────────────────────────────────────
 
+function updateStatusSaveAll() {
+  const btn = document.getElementById("statusSaveAll");
+  if (!btn) return;
+  const studentsPanel = document.querySelector("[data-page-panel='students']");
+  const isStudentsVisible = studentsPanel && !studentsPanel.hidden;
+  const hasUser = !!state.selectedUserId;
+  btn.classList.toggle("is-visible", isStudentsVisible && hasUser);
+}
+
 function initPageTabs() {
   const tabs = document.querySelectorAll("[data-page-tab]");
   const panels = document.querySelectorAll("[data-page-panel]");
@@ -2149,7 +2153,15 @@ function initPageTabs() {
         p.hidden = p.getAttribute("data-page-panel") !== target;
       });
       if (target === "tickers") renderTickersList();
+      updateStatusSaveAll();
     });
+  });
+
+  // Кнопка «Сохранить все» в статус-баре — сохраняет текущий блок заданий
+  document.getElementById("statusSaveAll")?.addEventListener("click", () => {
+    const activeBlock = els.tasksEditor?.querySelector(".task-subject-block[style*='grid']");
+    const subjectId = activeBlock?.getAttribute("data-task-block");
+    if (subjectId) void saveAllTasksInBlock(subjectId);
   });
 
   document.getElementById("addTickerBtn")?.addEventListener("click", addTicker);
