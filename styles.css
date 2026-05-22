@@ -247,8 +247,18 @@ a {
 /* ─── Баннер ────────────────────────────────────────────────────────── */
 
 .ticker-bar--banner {
-  overflow: hidden;
   line-height: 0;
+  padding: 12px 0;
+}
+
+.ticker__track--banner {
+  display: block;
+  width: 100%;
+  max-width: 1160px;
+  margin: 0 auto;
+  animation: none;
+  padding: 0 18px;
+  box-sizing: border-box;
 }
 
 .ticker-banner__img {
@@ -256,6 +266,7 @@ a {
   max-height: 120px;
   object-fit: cover;
   display: block;
+  border-radius: 12px;
 }
 
 .clock {
