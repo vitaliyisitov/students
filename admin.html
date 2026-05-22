@@ -140,107 +140,121 @@
             </form>
           </section>
 
-          <section class="card admin__card">
-            <div class="card__header">
-              <div>
-                <div class="eyebrow">Текущие ученики</div>
-                <h2 class="h2">Список</h2>
-              </div>
-            </div>
-            <div id="studentsList" class="students-list"></div>
-          </section>
+          <!-- ─── Сплит: список слева, детали справа ─── -->
+          <div class="students-split">
 
-          <section class="card admin__card">
-            <div class="card__header">
-              <div>
-                <div class="eyebrow">Редактирование</div>
-                <h2 class="h2">Данные ученика</h2>
-              </div>
-            </div>
-            <form id="editStudentForm" class="admin-form" hidden>
-              <label class="admin-field">
-                <span>Имя</span>
-                <input id="editName" type="text" required />
-              </label>
-              <label class="admin-field">
-                <span>Статус доступа</span>
-                <select id="editActive">
-                  <option value="true">Активен</option>
-                  <option value="false">Архив (доступ закрыт)</option>
-                </select>
-              </label>
-              <div class="admin-field">
-                <span>Токен ссылки</span>
-                <div class="token-row">
-                  <code id="editToken">—</code>
-                  <button class="icon-btn" id="copyLinkBtn" type="button">
-                    Копировать ссылку
-                  </button>
+            <!-- Левая колонка: список учеников -->
+            <aside class="students-split__sidebar">
+              <section class="card admin__card students-split__list-card">
+                <div class="card__header">
+                  <div>
+                    <div class="eyebrow">Текущие ученики</div>
+                    <h2 class="h2">Список</h2>
+                  </div>
                 </div>
-              </div>
-              <label class="admin-field">
-                <span>Ссылка на доску Miro</span>
-                <input
-                  id="editMiroUrl"
-                  type="url"
-                  placeholder="https://miro.com/app/board/..."
-                />
-              </label>
-              <div class="admin-field">
-                <span>Предметы ученика</span>
-                <div id="editSubjects" class="subject-checks"></div>
-              </div>
-              <div class="admin-field">
-                <span>Параметры экзамена по предметам</span>
-                <div id="subjectSettings" class="subject-settings"></div>
-              </div>
-              <button class="icon-btn" type="submit">
-                Сохранить изменения
-              </button>
-              <div class="danger-zone">
-                <button class="icon-btn danger" id="archiveBtn" type="button">
-                  Переключить архив/активен
-                </button>
-                <button
-                  class="icon-btn danger"
-                  id="deleteStudentBtn"
-                  type="button"
-                >
-                  Удалить ученика
-                </button>
-              </div>
-            </form>
-            <p id="emptyEditHint" class="muted admin-empty">
-              Выбери ученика из списка, чтобы редактировать данные.
-            </p>
-          </section>
+                <div id="studentsList" class="students-list"></div>
+              </section>
+            </aside>
 
-          <section class="card admin__card">
-            <div class="card__header">
-              <div>
-                <div class="eyebrow">Задания</div>
-                <h2 class="h2">Редактирование по предметам</h2>
-              </div>
-            </div>
-            <div id="tasksEditor" class="tasks-editor">
-              <p class="muted admin-empty">
-                Выбери ученика, затем предмет — здесь появятся все задания для
-                редактирования.
-              </p>
-            </div>
-          </section>
+            <!-- Правая колонка: данные + задания + пробники -->
+            <div class="students-split__main">
 
-          <section class="card admin__card">
-            <div class="card__header">
-              <div>
-                <div class="eyebrow">Пробники</div>
-                <h2 class="h2">Пробные варианты</h2>
-              </div>
+              <section class="card admin__card">
+                <div class="card__header">
+                  <div>
+                    <div class="eyebrow">Редактирование</div>
+                    <h2 class="h2">Данные ученика</h2>
+                  </div>
+                </div>
+                <form id="editStudentForm" class="admin-form" hidden>
+                  <label class="admin-field">
+                    <span>Имя</span>
+                    <input id="editName" type="text" required />
+                  </label>
+                  <label class="admin-field">
+                    <span>Статус доступа</span>
+                    <select id="editActive">
+                      <option value="true">Активен</option>
+                      <option value="false">Архив (доступ закрыт)</option>
+                    </select>
+                  </label>
+                  <div class="admin-field">
+                    <span>Токен ссылки</span>
+                    <div class="token-row">
+                      <code id="editToken">—</code>
+                      <button class="icon-btn" id="copyLinkBtn" type="button">
+                        Копировать ссылку
+                      </button>
+                    </div>
+                  </div>
+                  <label class="admin-field">
+                    <span>Ссылка на доску Miro</span>
+                    <input
+                      id="editMiroUrl"
+                      type="url"
+                      placeholder="https://miro.com/app/board/..."
+                    />
+                  </label>
+                  <div class="admin-field">
+                    <span>Предметы ученика</span>
+                    <div id="editSubjects" class="subject-checks"></div>
+                  </div>
+                  <div class="admin-field">
+                    <span>Параметры экзамена по предметам</span>
+                    <div id="subjectSettings" class="subject-settings"></div>
+                  </div>
+                  <button class="icon-btn" type="submit">
+                    Сохранить изменения
+                  </button>
+                  <div class="danger-zone">
+                    <button class="icon-btn danger" id="archiveBtn" type="button">
+                      Переключить архив/активен
+                    </button>
+                    <button
+                      class="icon-btn danger"
+                      id="deleteStudentBtn"
+                      type="button"
+                    >
+                      Удалить ученика
+                    </button>
+                  </div>
+                </form>
+                <p id="emptyEditHint" class="muted admin-empty">
+                  Выбери ученика из списка, чтобы редактировать данные.
+                </p>
+              </section>
+
+              <section class="card admin__card">
+                <div class="card__header">
+                  <div>
+                    <div class="eyebrow">Задания</div>
+                    <h2 class="h2">Редактирование по предметам</h2>
+                  </div>
+                </div>
+                <div id="tasksEditor" class="tasks-editor">
+                  <p class="muted admin-empty">
+                    Выбери ученика, затем предмет — здесь появятся все задания для
+                    редактирования.
+                  </p>
+                </div>
+              </section>
+
+              <section class="card admin__card">
+                <div class="card__header">
+                  <div>
+                    <div class="eyebrow">Пробники</div>
+                    <h2 class="h2">Пробные варианты</h2>
+                  </div>
+                </div>
+                <div id="trialsEditor" class="tasks-editor">
+                  <p class="muted admin-empty">Выбери ученика из списка.</p>
+                </div>
+              </section>
+
             </div>
-            <div id="trialsEditor" class="tasks-editor">
-              <p class="muted admin-empty">Выбери ученика из списка.</p>
-            </div>
-          </section>
+            <!-- /students-split__main -->
+          </div>
+          <!-- /students-split -->
         </div>
         <!-- /panel students -->
 
