@@ -1369,17 +1369,22 @@ async function loadAndRenderTicker(userId) {
 
     // Build items — split by "|" separator if present, else show as one item
     const items = text.split("|").map(s => s.trim()).filter(Boolean);
-    const itemsHtml = items.map(item =>
+    const oneItem = items.map(item =>
       `<span class="ticker__item">${escapeHtml(item)}<span class="ticker__sep">✦</span></span>`
     ).join("");
 
-    // Two copies for seamless loop
+    // Повторяем блоки достаточно раз чтобы контент был шире экрана
+    const REPEAT = 12;
+    const itemsHtml = Array(REPEAT).fill(oneItem).join("");
+
+    // Два экземпляра для бесшовного зацикливания (translateX -50%)
     const contentHtml = `<span class="ticker__content">${itemsHtml}</span><span class="ticker__content" aria-hidden="true">${itemsHtml}</span>`;
     els.tickerTrack.innerHTML = contentHtml;
 
-    // Adjust animation speed based on text length (longer = slower)
+    // Скорость: ~80px в секунду
     const totalChars = items.join("").length;
-    const speed = Math.max(15, Math.min(60, totalChars * 0.4));
+    const approxWidth = totalChars * 9 * REPEAT;
+    const speed = Math.round(approxWidth / 80);
     els.tickerTrack.style.animationDuration = speed + "s";
 
     els.tickerBar.hidden = false;
