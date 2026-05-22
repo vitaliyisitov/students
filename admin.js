@@ -3237,7 +3237,10 @@ function renderTickersList() {
   el.querySelectorAll(".ticker-row").forEach(row => {
     const preview = row.querySelector(".ticker-preview");
     const updatePreview = () => {
-      const bg = row.querySelector("[data-tk='bg']")?.value || "linear-gradient(90deg, #667eea, #764ba2)";
+      const rawBg = row.querySelector("[data-tk='bg']")?.value || "linear-gradient(90deg, #667eea, #764ba2)";
+      const bg = /^https?:\/\//i.test(rawBg.trim())
+        ? `url(${rawBg.trim()}) center/cover no-repeat`
+        : rawBg;
       const color = row.querySelector("[data-tk='textColor']")?.value || "#ffffff";
       if (preview) { preview.style.background = bg; preview.style.color = color; }
     };
@@ -3253,12 +3256,16 @@ function renderTickersList() {
 }
 
 function tickerRowHtml(t) {
-  const usersCheckboxes = state.users.map(u =>
-    `<label style="display:flex;align-items:center;gap:6px;font-size:13px;">
+  const usersCheckboxes = state.users.map(u => {
+    const examTypes = getExamTypesForUser(u.id);
+    const badgesHtml = examTypes.map(type =>
+      `<span class="student-exam-badge student-exam-badge--${type === "ОГЭ" ? "oge" : "ege"}">${type}</span>`
+    ).join("");
+    return `<label style="display:flex;align-items:center;gap:6px;font-size:13px;">
       <input type="checkbox" data-tk-user="${escapeAttr(u.id)}" ${(t.userIds||[]).includes(u.id) ? "checked" : ""} />
-      ${escapeHtml(u.name || u.id)}
-    </label>`
-  ).join("");
+      ${escapeHtml(u.name || u.id)}${badgesHtml}
+    </label>`;
+  }).join("");
   const bg = t.bg || "linear-gradient(90deg, #667eea, #764ba2)";
   const textColor = t.textColor || "#ffffff";
   const enabled = t.enabled !== false;
