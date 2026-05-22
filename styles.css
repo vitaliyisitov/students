@@ -174,7 +174,9 @@ a {
   font-weight: 600;
   color: var(--text);
   text-decoration: none;
-  transition: background 0.15s, box-shadow 0.15s;
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
   white-space: nowrap;
 }
 
@@ -199,8 +201,12 @@ a {
 /* ─── Бегущая строка ─────────────────────────────────────────────────── */
 
 @keyframes ticker-scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 .ticker-bar {
@@ -521,10 +527,22 @@ body.is-app-loading #appShell {
   font-size: 12px;
 }
 
-.score-lookup__item--fail  { background: rgba(185, 28,  28, 0.08); color: #b91c1c; }
-.score-lookup__item--low   { background: rgba(180, 83,   9, 0.08); color: #b45309; }
-.score-lookup__item--mid   { background: rgba( 29, 78, 216, 0.08); color: #1d4ed8; }
-.score-lookup__item--high  { background: rgba( 21, 128,  61, 0.08); color: #15803d; }
+.score-lookup__item--fail {
+  background: rgba(185, 28, 28, 0.08);
+  color: #b91c1c;
+}
+.score-lookup__item--low {
+  background: rgba(180, 83, 9, 0.08);
+  color: #b45309;
+}
+.score-lookup__item--mid {
+  background: rgba(29, 78, 216, 0.08);
+  color: #1d4ed8;
+}
+.score-lookup__item--high {
+  background: rgba(21, 128, 61, 0.08);
+  color: #15803d;
+}
 
 .trials-empty {
   display: flex;
@@ -539,8 +557,8 @@ body.is-app-loading #appShell {
 }
 
 .trials-empty__icon {
-  width: 64px;
-  height: 64px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
 }
 .trials-empty__title {
@@ -602,10 +620,26 @@ body.is-app-loading #appShell {
   line-height: 1;
 }
 
-.score-bar__zone--grade-2, .score-bar__zone--fail  { background: rgba(185, 28, 28, 0.10); color: #b91c1c; }
-.score-bar__zone--grade-3, .score-bar__zone--low   { background: rgba(180, 83,  9, 0.10); color: #b45309; }
-.score-bar__zone--grade-4, .score-bar__zone--mid   { background: rgba(29,  78, 216, 0.10); color: #1d4ed8; }
-.score-bar__zone--grade-5, .score-bar__zone--high  { background: rgba(21, 128,  61, 0.10); color: #15803d; }
+.score-bar__zone--grade-2,
+.score-bar__zone--fail {
+  background: rgba(185, 28, 28, 0.1);
+  color: #b91c1c;
+}
+.score-bar__zone--grade-3,
+.score-bar__zone--low {
+  background: rgba(180, 83, 9, 0.1);
+  color: #b45309;
+}
+.score-bar__zone--grade-4,
+.score-bar__zone--mid {
+  background: rgba(29, 78, 216, 0.1);
+  color: #1d4ed8;
+}
+.score-bar__zone--grade-5,
+.score-bar__zone--high {
+  background: rgba(21, 128, 61, 0.1);
+  color: #15803d;
+}
 
 /* ─── Бенто-сетка пробников ──────────────────────────────────────────────── */
 
@@ -774,7 +808,6 @@ body.is-app-loading #appShell {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
-
 
 .trial-card__stat {
   background: rgba(15, 23, 42, 0.04);
@@ -1400,9 +1433,15 @@ body.is-app-loading #appShell {
   animation: flagPillIn 280ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-.flag-legend.is-visible .flag-legend__item:nth-child(1) { animation-delay: 0ms; }
-.flag-legend.is-visible .flag-legend__item:nth-child(2) { animation-delay: 70ms; }
-.flag-legend.is-visible .flag-legend__item:nth-child(3) { animation-delay: 140ms; }
+.flag-legend.is-visible .flag-legend__item:nth-child(1) {
+  animation-delay: 0ms;
+}
+.flag-legend.is-visible .flag-legend__item:nth-child(2) {
+  animation-delay: 70ms;
+}
+.flag-legend.is-visible .flag-legend__item:nth-child(3) {
+  animation-delay: 140ms;
+}
 
 .flag-legend__item img {
   opacity: 0.8;
@@ -1759,7 +1798,6 @@ body.is-app-loading #appShell {
 #appGateMessage {
   padding: 0px 18px;
 }
-
 
 /* ─── История задания (модалка ученика) ────────────────────────────────────── */
 
