@@ -941,24 +941,10 @@ details.task-row:not([open]) .task-row__summary {
   flex-wrap: wrap;
 }
 
-.task-block-actions {
-  position: sticky;
-  top: 0; /* перезаписывается JS-ом после замера высоты хедера */
-  z-index: 10;
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  padding: 8px 2px;
-  background: var(--bg);
-  border-bottom: 1px solid transparent;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-/* тень появляется когда панель прилипла к верху */
-.task-block-actions.is-stuck {
-  border-color: rgba(15, 23, 42, 0.1);
-  box-shadow: 0 4px 16px rgba(2, 6, 23, 0.08);
-  border-radius: 0 0 12px 12px;
+/* кнопка «+ Задание» прижата к правому краю внутри строки табов */
+.tasks-add-btn {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 @media (max-width: 980px) {
@@ -1006,7 +992,15 @@ details.task-row:not([open]) .task-row__summary {
 #statusSaveAll.is-visible {
   display: inline-flex;
 }
+#statusText {
+  flex-shrink: 0;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .loader {
+  flex-shrink: 0;
   width: 14px;
   height: 14px;
   border: 2px solid rgba(0, 0, 0, 0.2);
