@@ -210,9 +210,11 @@ a {
 }
 
 .ticker__track {
-  display: inline-flex;
+  display: flex;
+  width: max-content;
   align-items: center;
   animation: ticker-scroll 30s linear infinite;
+  will-change: transform;
 }
 
 .ticker__track:hover {
@@ -220,9 +222,9 @@ a {
 }
 
 .ticker__content {
-  display: inline-flex;
+  display: flex;
+  flex-shrink: 0;
   align-items: center;
-  gap: 0;
   padding: 10px 0;
   font-size: 13px;
   font-weight: 600;
