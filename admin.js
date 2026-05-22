@@ -3252,6 +3252,36 @@ function renderTickersList() {
       if (bgInput) bgInput.value = e.target.value;
       updatePreview();
     });
+
+    // Переключение тип: бегущая строка ↔ баннер
+    row.querySelectorAll("[data-tk='type']").forEach(radio => {
+      radio.addEventListener("change", () => {
+        const isBanner = row.querySelector("[data-tk='type']:checked")?.value === "banner";
+        row.querySelector("[data-tk-section='ticker']").hidden = isBanner;
+        row.querySelector("[data-tk-section='banner']").hidden = !isBanner;
+        // Обновить превью
+        const preview = row.querySelector(".ticker-preview");
+        if (isBanner) {
+          const url = row.querySelector("[data-tk='imageUrl']")?.value || "";
+          preview.style.background = "";
+          preview.style.color = "";
+          preview.innerHTML = url
+            ? `<img src="${escapeAttr(url)}" style="width:100%;max-height:80px;object-fit:cover;display:block;" />`
+            : `<div style="background:#eee;height:60px;display:flex;align-items:center;justify-content:center;color:#999;font-size:13px;">Вставь ссылку на картинку</div>`;
+        } else {
+          updatePreview();
+        }
+      });
+    });
+
+    // Превью баннера при вводе URL
+    row.querySelector("[data-tk='imageUrl']")?.addEventListener("input", (e) => {
+      const preview = row.querySelector(".ticker-preview");
+      const url = e.target.value.trim();
+      preview.innerHTML = url
+        ? `<img src="${escapeAttr(url)}" style="width:100%;max-height:80px;object-fit:cover;display:block;" />`
+        : `<div style="background:#eee;height:60px;display:flex;align-items:center;justify-content:center;color:#999;font-size:13px;">Вставь ссылку на картинку</div>`;
+    });
   });
 }
 
@@ -3269,29 +3299,61 @@ function tickerRowHtml(t) {
   const bg = t.bg || "linear-gradient(90deg, #667eea, #764ba2)";
   const textColor = t.textColor || "#ffffff";
   const enabled = t.enabled !== false;
+  const type = t.type || "ticker";
+  const isBanner = type === "banner";
+
+  const previewHtml = isBanner
+    ? `<div class="ticker-preview" style="border-radius:8px;overflow:hidden;max-height:80px;">
+        ${t.imageUrl
+          ? `<img src="${escapeAttrAdmin(t.imageUrl)}" style="width:100%;max-height:80px;object-fit:cover;display:block;" />`
+          : `<div style="background:#eee;height:60px;display:flex;align-items:center;justify-content:center;color:#999;font-size:13px;">Вставь ссылку на картинку</div>`}
+       </div>`
+    : `<div class="ticker-preview" style="background:${escapeAttrAdmin(bg)};color:${escapeAttrAdmin(textColor)};padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">
+        ${escapeHtml(t.text || "Превью бегущей строки")}
+       </div>`;
+
   return `<div class="ticker-row card" data-ticker-id="${escapeAttr(t.id)}" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
-    <div class="ticker-preview" style="background:${escapeAttrAdmin(bg)};color:${escapeAttrAdmin(textColor)};padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">
-      ${escapeHtml(t.text || "Превью бегущей строки")}
-    </div>
+    ${previewHtml}
     <div style="display:grid;grid-template-columns:1fr;gap:8px;">
-      <label class="admin-label">
-        <span>Текст (разделяй | для нескольких блоков)</span>
-        <input type="text" data-tk="text" value="${escapeAttrAdmin(t.text || "")}" placeholder="Привет! | Новое задание | Удачи на экзамене" style="width:100%;" />
-      </label>
-      <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:end;">
-        <label class="admin-label">
-          <span>Фон (градиент, URL картинки или выбери цвет →)</span>
-          <input type="text" data-tk="bg" value="${escapeAttrAdmin(bg)}" placeholder="linear-gradient(90deg, #667eea, #764ba2)" style="width:100%;" />
+      <div style="display:flex;gap:6px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+          <input type="radio" name="tk-type-${escapeAttr(t.id)}" data-tk="type" value="ticker" ${!isBanner ? "checked" : ""} />
+          Бегущая строка
         </label>
-        <label class="admin-label" style="width:60px;">
-          <span>Цвет фона</span>
-          <input type="color" data-tk="bgPicker" value="${escapeAttrAdmin(/^#[0-9a-fA-F]{3,6}$/.test(bg) ? bg : "#667eea")}" style="width:100%;height:38px;padding:2px;border-radius:6px;border:1px solid var(--border);cursor:pointer;" />
-        </label>
-        <label class="admin-label" style="width:60px;">
-          <span>Цвет текста</span>
-          <input type="color" data-tk="textColor" value="${escapeAttrAdmin(textColor)}" style="width:100%;height:38px;padding:2px;border-radius:6px;border:1px solid var(--border);cursor:pointer;" />
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+          <input type="radio" name="tk-type-${escapeAttr(t.id)}" data-tk="type" value="banner" ${isBanner ? "checked" : ""} />
+          Баннер (картинка)
         </label>
       </div>
+
+      <div data-tk-section="ticker" ${isBanner ? 'hidden' : ''} style="display:grid;grid-template-columns:1fr;gap:8px;">
+        <label class="admin-label">
+          <span>Текст (разделяй | для нескольких блоков)</span>
+          <input type="text" data-tk="text" value="${escapeAttrAdmin(t.text || "")}" placeholder="Привет! | Новое задание | Удачи на экзамене" style="width:100%;" />
+        </label>
+        <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:end;">
+          <label class="admin-label">
+            <span>Фон (градиент, URL или выбери цвет →)</span>
+            <input type="text" data-tk="bg" value="${escapeAttrAdmin(bg)}" placeholder="linear-gradient(90deg, #667eea, #764ba2)" style="width:100%;" />
+          </label>
+          <label class="admin-label" style="width:60px;">
+            <span>Цвет фона</span>
+            <input type="color" data-tk="bgPicker" value="${escapeAttrAdmin(/^#[0-9a-fA-F]{3,6}$/.test(bg) ? bg : "#667eea")}" style="width:100%;height:38px;padding:2px;border-radius:6px;border:1px solid var(--border);cursor:pointer;" />
+          </label>
+          <label class="admin-label" style="width:60px;">
+            <span>Цвет текста</span>
+            <input type="color" data-tk="textColor" value="${escapeAttrAdmin(textColor)}" style="width:100%;height:38px;padding:2px;border-radius:6px;border:1px solid var(--border);cursor:pointer;" />
+          </label>
+        </div>
+      </div>
+
+      <div data-tk-section="banner" ${!isBanner ? 'hidden' : ''}>
+        <label class="admin-label">
+          <span>Ссылка на картинку (рекомендуемый размер 1440 × 120px)</span>
+          <input type="url" data-tk="imageUrl" value="${escapeAttrAdmin(t.imageUrl || "")}" placeholder="https://storage.yandexcloud.net/..." style="width:100%;" />
+        </label>
+      </div>
+
       <label class="admin-label" style="flex-direction:row;align-items:center;gap:8px;">
         <input type="checkbox" data-tk="enabled" ${enabled ? "checked" : ""} />
         <span>Включена</span>
@@ -3328,10 +3390,13 @@ async function saveTicker(tickerId) {
   if (!row) return;
   const userIds = Array.from(row.querySelectorAll("[data-tk-user]"))
     .filter(cb => cb.checked).map(cb => cb.dataset.tkUser);
+  const type = row.querySelector("[data-tk='type']:checked")?.value || "ticker";
   const payload = {
+    type,
     text:      row.querySelector("[data-tk='text']")?.value.trim() || "",
     bg:        row.querySelector("[data-tk='bg']")?.value.trim() || "linear-gradient(90deg, #667eea, #764ba2)",
     textColor: row.querySelector("[data-tk='textColor']")?.value || "#ffffff",
+    imageUrl:  row.querySelector("[data-tk='imageUrl']")?.value.trim() || "",
     enabled:   row.querySelector("[data-tk='enabled']")?.checked ?? true,
     userIds,
   };
