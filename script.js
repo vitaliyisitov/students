@@ -1368,7 +1368,7 @@ async function loadAndRenderTicker(userId) {
       els.tickerBar.style.background = "";
       els.tickerBar.style.color = "";
       els.tickerBar.className = "ticker-bar ticker-bar--banner";
-      els.tickerTrack.style.animationDuration = "0s";
+      els.tickerTrack.className = "ticker__track ticker__track--banner";
       els.tickerTrack.innerHTML = `<img src="${escapeAttr(imageUrl)}" alt="" class="ticker-banner__img" />`;
       els.tickerBar.hidden = false;
       return;
@@ -1376,6 +1376,7 @@ async function loadAndRenderTicker(userId) {
 
     // ── Бегущая строка ──
     els.tickerBar.className = "ticker-bar";
+    els.tickerTrack.className = "ticker__track";
     const text = ticker.text || "";
     if (!text.trim()) { els.tickerBar.hidden = true; return; }
 
