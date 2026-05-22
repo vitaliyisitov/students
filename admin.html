@@ -87,7 +87,8 @@
         </div>
         <div class="topbar__status-bar">
           <div id="statusBox" class="admin-status muted">
-            Ожидание данных <span class="loader"></span>
+            <span id="statusText">Ожидание данных <span class="loader"></span></span>
+            <button class="icon-btn" type="button" id="statusSaveAll">💾 Сохранить все</button>
           </div>
         </div>
       </header>
@@ -179,7 +180,11 @@
               </div>
               <label class="admin-field">
                 <span>Ссылка на доску Miro</span>
-                <input id="editMiroUrl" type="url" placeholder="https://miro.com/app/board/..." />
+                <input
+                  id="editMiroUrl"
+                  type="url"
+                  placeholder="https://miro.com/app/board/..."
+                />
               </label>
               <div class="admin-field">
                 <span>Предметы ученика</span>
@@ -236,13 +241,11 @@
               <p class="muted admin-empty">Выбери ученика из списка.</p>
             </div>
           </section>
-
         </div>
         <!-- /panel students -->
 
         <!-- ─── Панель: Шаблоны ─── -->
         <div class="admin-tab-panel" data-page-panel="templates" hidden>
-
           <section class="card admin__card">
             <div class="card__header">
               <div>
@@ -251,32 +254,67 @@
               </div>
             </div>
             <div class="admin-form" id="subjectFileUploadForm">
-              <p class="muted" style="margin:0;font-size:13px">
-                Файл ляжет в общую папку предмета и станет доступен через браузер файлов для всех учеников.
+              <p class="muted" style="margin: 0; font-size: 13px">
+                Файл ляжет в общую папку предмета и станет доступен через
+                браузер файлов для всех учеников.
               </p>
-              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-                <label class="admin-field" style="flex:1;min-width:160px">
+              <div
+                style="
+                  display: flex;
+                  gap: 10px;
+                  flex-wrap: wrap;
+                  align-items: flex-end;
+                "
+              >
+                <label class="admin-field" style="flex: 1; min-width: 160px">
                   <span>Предмет</span>
                   <select id="subjectFileSubject"></select>
                 </label>
-                <label class="admin-field" style="flex:2;min-width:200px">
+                <label class="admin-field" style="flex: 2; min-width: 200px">
                   <span>Папка / название задания</span>
-                  <input id="subjectFileFolder" type="text" placeholder="Задание 1-5 Шины"
-                    list="subjectFolderList" autocomplete="off" />
+                  <input
+                    id="subjectFileFolder"
+                    type="text"
+                    placeholder="Задание 1-5 Шины"
+                    list="subjectFolderList"
+                    autocomplete="off"
+                  />
                   <datalist id="subjectFolderList"></datalist>
                 </label>
               </div>
-              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-                <label class="icon-btn" style="cursor:pointer">
+              <div
+                style="
+                  display: flex;
+                  gap: 10px;
+                  align-items: center;
+                  flex-wrap: wrap;
+                "
+              >
+                <label class="icon-btn" style="cursor: pointer">
                   📎 Выбрать файл
-                  <input id="subjectFileInput" type="file" style="display:none" />
+                  <input
+                    id="subjectFileInput"
+                    type="file"
+                    style="display: none"
+                  />
                 </label>
-                <span id="subjectFileName" class="muted" style="font-size:13px">Файл не выбран</span>
+                <span id="subjectFileName" class="muted" style="font-size: 13px"
+                  >Файл не выбран</span
+                >
               </div>
-              <button class="icon-btn" type="button" id="subjectFileUploadBtn" disabled>
+              <button
+                class="icon-btn"
+                type="button"
+                id="subjectFileUploadBtn"
+                disabled
+              >
                 Загрузить файл
               </button>
-              <div id="subjectFileLog" class="setup-log" style="display:none"></div>
+              <div
+                id="subjectFileLog"
+                class="setup-log"
+                style="display: none"
+              ></div>
             </div>
           </section>
 
@@ -419,9 +457,15 @@ service cloud.firestore {
                 <div class="eyebrow">Бегущая строка</div>
                 <h2 class="h2">Объявления</h2>
               </div>
-              <button class="icon-btn" type="button" id="addTickerBtn">+ Добавить</button>
+              <button class="icon-btn" type="button" id="addTickerBtn">
+                + Добавить
+              </button>
             </div>
-            <div id="tickersList" class="admin-form" style="gap:16px;display:flex;flex-direction:column;"></div>
+            <div
+              id="tickersList"
+              class="admin-form"
+              style="gap: 16px; display: flex; flex-direction: column"
+            ></div>
           </section>
         </div>
         <!-- /panel tickers -->
