@@ -1353,8 +1353,7 @@ function loadState() {
 
 async function loadAndRenderTicker(userId) {
   try {
-    const snap = await window.db.collection("settings")
-      .where("_type", "==", "ticker")
+    const snap = await window.db.collection("tickers")
       .where("enabled", "==", true)
       .where("userIds", "array-contains", userId)
       .limit(1)
