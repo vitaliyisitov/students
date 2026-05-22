@@ -3243,6 +3243,12 @@ function renderTickersList() {
     };
     row.querySelector("[data-tk='bg']")?.addEventListener("input", updatePreview);
     row.querySelector("[data-tk='textColor']")?.addEventListener("input", updatePreview);
+    // Цветопикер фона → обновляет текстовое поле и превью
+    row.querySelector("[data-tk='bgPicker']")?.addEventListener("input", (e) => {
+      const bgInput = row.querySelector("[data-tk='bg']");
+      if (bgInput) bgInput.value = e.target.value;
+      updatePreview();
+    });
   });
 }
 
@@ -3265,10 +3271,14 @@ function tickerRowHtml(t) {
         <span>Текст (разделяй | для нескольких блоков)</span>
         <input type="text" data-tk="text" value="${escapeAttrAdmin(t.text || "")}" placeholder="Привет! | Новое задание | Удачи на экзамене" style="width:100%;" />
       </label>
-      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;">
+      <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:end;">
         <label class="admin-label">
-          <span>Фон (CSS градиент или URL картинки)</span>
+          <span>Фон (градиент, URL картинки или выбери цвет →)</span>
           <input type="text" data-tk="bg" value="${escapeAttrAdmin(bg)}" placeholder="linear-gradient(90deg, #667eea, #764ba2)" style="width:100%;" />
+        </label>
+        <label class="admin-label" style="width:60px;">
+          <span>Цвет фона</span>
+          <input type="color" data-tk="bgPicker" value="${escapeAttrAdmin(/^#[0-9a-fA-F]{3,6}$/.test(bg) ? bg : "#667eea")}" style="width:100%;height:38px;padding:2px;border-radius:6px;border:1px solid var(--border);cursor:pointer;" />
         </label>
         <label class="admin-label" style="width:60px;">
           <span>Цвет текста</span>
