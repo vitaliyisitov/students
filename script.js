@@ -1363,14 +1363,18 @@ async function loadAndRenderTicker(userId) {
     const text = ticker.text || "";
     if (!text.trim()) { els.tickerBar.hidden = true; return; }
 
-    // Apply background and text color
-    els.tickerBar.style.background = ticker.bg || "linear-gradient(90deg, #667eea, #764ba2)";
+    // Apply background and text color (если URL картинки — оборачиваем в url(...))
+    const rawBg = ticker.bg || "linear-gradient(90deg, #667eea, #764ba2)";
+    const bg = /^https?:\/\//i.test(rawBg.trim())
+      ? `url(${rawBg.trim()}) center/cover no-repeat`
+      : rawBg;
+    els.tickerBar.style.background = bg;
     els.tickerBar.style.color = ticker.textColor || "#ffffff";
 
     // Build items — split by "|" separator if present, else show as one item
     const items = text.split("|").map(s => s.trim()).filter(Boolean);
     const oneItem = items.map(item =>
-      `<span class="ticker__item">${escapeHtml(item)}<span class="ticker__sep">✦</span></span>`
+      `<span class="ticker__item"><span class="ticker__sep">✦</span> ${escapeHtml(item)} <span class="ticker__sep">✦</span></span>`
     ).join("");
 
     // Повторяем блоки достаточно раз чтобы контент был шире экрана
