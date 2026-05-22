@@ -1360,10 +1360,25 @@ async function loadAndRenderTicker(userId) {
       .get();
     if (snap.empty) { els.tickerBar.hidden = true; return; }
     const ticker = snap.docs[0].data();
+    const type = ticker.type || "ticker";
+
+    if (type === "banner") {
+      const imageUrl = ticker.imageUrl?.trim();
+      if (!imageUrl) { els.tickerBar.hidden = true; return; }
+      els.tickerBar.style.background = "";
+      els.tickerBar.style.color = "";
+      els.tickerBar.className = "ticker-bar ticker-bar--banner";
+      els.tickerTrack.style.animationDuration = "0s";
+      els.tickerTrack.innerHTML = `<img src="${escapeAttr(imageUrl)}" alt="" class="ticker-banner__img" />`;
+      els.tickerBar.hidden = false;
+      return;
+    }
+
+    // ── Бегущая строка ──
+    els.tickerBar.className = "ticker-bar";
     const text = ticker.text || "";
     if (!text.trim()) { els.tickerBar.hidden = true; return; }
 
-    // Apply background and text color (если URL картинки — оборачиваем в url(...))
     const rawBg = ticker.bg || "linear-gradient(90deg, #667eea, #764ba2)";
     const bg = /^https?:\/\//i.test(rawBg.trim())
       ? `url(${rawBg.trim()}) center/cover no-repeat`
@@ -1371,21 +1386,16 @@ async function loadAndRenderTicker(userId) {
     els.tickerBar.style.background = bg;
     els.tickerBar.style.color = ticker.textColor || "#ffffff";
 
-    // Build items — split by "|" separator if present, else show as one item
     const items = text.split("|").map(s => s.trim()).filter(Boolean);
     const oneItem = items.map(item =>
       `<span class="ticker__item"><span class="ticker__sep">✦</span> ${escapeHtml(item)} <span class="ticker__sep">✦</span></span>`
     ).join("");
 
-    // Повторяем блоки достаточно раз чтобы контент был шире экрана
     const REPEAT = 12;
     const itemsHtml = Array(REPEAT).fill(oneItem).join("");
-
-    // Два экземпляра для бесшовного зацикливания (translateX -50%)
     const contentHtml = `<span class="ticker__content">${itemsHtml}</span><span class="ticker__content" aria-hidden="true">${itemsHtml}</span>`;
     els.tickerTrack.innerHTML = contentHtml;
 
-    // Скорость: ~80px в секунду
     const totalChars = items.join("").length;
     const approxWidth = totalChars * 9 * REPEAT;
     const speed = Math.round(approxWidth / 80);
