@@ -967,11 +967,11 @@ async function renderTasksEditor() {
       const rows = tasks.length
         ? tasks.map(renderTaskRow).join("")
         : `<p class="muted">Заданий нет. <button class="icon-btn" type="button" data-add-task="${escapeAttr(s.id)}">Добавить первое задание</button></p>`;
-      return `<div class="task-subject-block" data-task-block="${escapeAttr(s.id)}" style="display:${s.id === firstId ? "grid" : "none"};gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));"><div class="task-block-actions" style="grid-column:1/-1;"><button class="icon-btn" type="button" data-add-task="${escapeAttr(s.id)}">+ Добавить задание</button></div>${rows}</div>`;
+      return `<div class="task-subject-block" data-task-block="${escapeAttr(s.id)}" style="display:${s.id === firstId ? "grid" : "none"};gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));">${rows}</div>`;
     })
     .join("");
 
-  els.tasksEditor.innerHTML = `<div class="tasks-subject-tabs">${tabs}</div>${blocks}`;
+  els.tasksEditor.innerHTML = `<div class="tasks-subject-tabs">${tabs}<button class="icon-btn tasks-add-btn" type="button" data-add-task="${escapeAttr(firstId || "")}">+ Задание</button></div>${blocks}`;
 
   els.tasksEditor.querySelectorAll("[data-task-subject]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -985,20 +985,10 @@ async function renderTasksEditor() {
         if (isActive)
           block.style.gridTemplateColumns = "repeat(2,minmax(0,1fr))";
       });
+      // обновляем subject у кнопки «+ Задание» в табах
+      const addBtn = els.tasksEditor.querySelector(".tasks-add-btn");
+      if (addBtn) addBtn.setAttribute("data-add-task", sid);
     });
-  });
-
-  // Sticky-панель: top = высота прилипшего хедера
-  const topbarH = document.querySelector(".topbar")?.offsetHeight ?? 0;
-  els.tasksEditor.querySelectorAll(".task-block-actions").forEach((bar) => {
-    bar.style.top = `${topbarH}px`;
-    const sentinel = document.createElement("div");
-    sentinel.style.cssText = "position:absolute;top:0;height:1px;pointer-events:none";
-    bar.parentElement?.insertBefore(sentinel, bar);
-    new IntersectionObserver(
-      ([entry]) => bar.classList.toggle("is-stuck", !entry.isIntersecting),
-      { threshold: 0 },
-    ).observe(sentinel);
   });
 
   els.tasksEditor.querySelectorAll("[data-save-task]").forEach((btn) => {
@@ -2135,10 +2125,7 @@ function readAttachmentsFromRow(container) {
 function updateStatusSaveAll() {
   const btn = document.getElementById("statusSaveAll");
   if (!btn) return;
-  const studentsPanel = document.querySelector("[data-page-panel='students']");
-  const isStudentsVisible = studentsPanel && !studentsPanel.hidden;
-  const hasUser = !!state.selectedUserId;
-  btn.classList.toggle("is-visible", isStudentsVisible && hasUser);
+  btn.classList.toggle("is-visible", !!state.selectedUserId);
 }
 
 function initPageTabs() {
