@@ -3305,7 +3305,7 @@ async function addTicker() {
     });
     state.tickers.unshift({ id: ref.id, _type: "ticker", text: "", bg: "linear-gradient(90deg, #667eea 0%, #764ba2 100%)", textColor: "#ffffff", enabled: true, userIds: [] });
     renderTickersList();
-  } catch(e) { setStatus("Ошибка при создании объявления", "error"); console.error(e); }
+ } catch(e) { setStatus("Ошибка: " + (e?.message || e), "error"); console.error(e); }
 }
 
 async function saveTicker(tickerId) {
