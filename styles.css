@@ -244,6 +244,20 @@ a {
   font-size: 10px;
 }
 
+/* ─── Баннер ────────────────────────────────────────────────────────── */
+
+.ticker-bar--banner {
+  overflow: hidden;
+  line-height: 0;
+}
+
+.ticker-banner__img {
+  width: 100%;
+  max-height: 120px;
+  object-fit: cover;
+  display: block;
+}
+
 .clock {
   text-align: right;
   display: grid;
