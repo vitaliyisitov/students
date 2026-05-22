@@ -976,19 +976,35 @@ details.task-row:not([open]) .task-row__summary {
   }
 }
 
+/* Возвращаем sticky для админки (styles.css сделал relative для студенческого сайта) */
+.topbar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 20;
+}
+
 .topbar__status-bar {
   border-top: 1px solid rgba(15, 23, 42, 0.07);
-  padding: 4px 18px 6px;
+  padding: 0 18px;
 }
 
 .topbar__status-bar .admin-status {
   max-width: 1160px;
   margin: 0 auto;
-  padding: 14px 18px;
+  padding: 6px 0;
   font-size: 13px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
+}
+
+/* Кнопка «Сохранить всё» в статус-баре (показывается через JS) */
+#statusSaveAll {
+  display: none;
+}
+#statusSaveAll.is-visible {
+  display: inline-flex;
 }
 .loader {
   width: 14px;
