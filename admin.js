@@ -1720,7 +1720,12 @@ function formatStatus(status) {
 }
 
 function setStatus(message, kind = "muted") {
-  els.statusBox.textContent = message;
+  const textEl = document.getElementById("statusText");
+  if (textEl) {
+    textEl.innerHTML = kind === "muted"
+      ? `${escapeHtml(message)} <span class="loader"></span>`
+      : escapeHtml(message);
+  }
   els.statusBox.classList.remove("is-error", "is-success");
   if (kind === "error") els.statusBox.classList.add("is-error");
   if (kind === "success") els.statusBox.classList.add("is-success");
