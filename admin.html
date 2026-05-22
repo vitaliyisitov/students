@@ -167,17 +167,19 @@
                   </div>
                 </div>
                 <form id="editStudentForm" class="admin-form" hidden>
-                  <label class="admin-field">
-                    <span>Имя</span>
-                    <input id="editName" type="text" required />
-                  </label>
-                  <label class="admin-field">
-                    <span>Статус доступа</span>
-                    <select id="editActive">
-                      <option value="true">Активен</option>
-                      <option value="false">Архив (доступ закрыт)</option>
-                    </select>
-                  </label>
+                  <div class="admin-form-row">
+                    <label class="admin-field">
+                      <span>Имя</span>
+                      <input id="editName" type="text" required />
+                    </label>
+                    <label class="admin-field">
+                      <span>Статус доступа</span>
+                      <select id="editActive">
+                        <option value="true">Активен</option>
+                        <option value="false">Архив (доступ закрыт)</option>
+                      </select>
+                    </label>
+                  </div>
                   <div class="admin-field">
                     <span>Токен ссылки</span>
                     <div class="token-row">
@@ -187,14 +189,39 @@
                       </button>
                     </div>
                   </div>
-                  <label class="admin-field">
-                    <span>Ссылка на доску Miro</span>
-                    <input
-                      id="editMiroUrl"
-                      type="url"
-                      placeholder="https://miro.com/app/board/..."
-                    />
-                  </label>
+                  <div class="admin-form-row">
+                    <div class="admin-field">
+                      <span>Доска</span>
+                      <div class="admin-service-row">
+                        <select id="editBoardService">
+                          <option value="">— нет —</option>
+                          <option value="miro">Miro</option>
+                          <option value="idroo">Idroo</option>
+                          <option value="jamboard">Jamboard</option>
+                          <option value="figjam">FigJam</option>
+                          <option value="excalidraw">Excalidraw</option>
+                          <option value="other">Другой сервис</option>
+                        </select>
+                        <input id="editBoardUrl" type="url" placeholder="https://..." />
+                      </div>
+                    </div>
+                    <div class="admin-field">
+                      <span>Звонок</span>
+                      <div class="admin-service-row">
+                        <select id="editCallService">
+                          <option value="">— нет —</option>
+                          <option value="ktalk">KTalk</option>
+                          <option value="meet">Google Meet</option>
+                          <option value="zoom">Zoom</option>
+                          <option value="skype">Skype</option>
+                          <option value="discord">Discord</option>
+                          <option value="telegram">Telegram</option>
+                          <option value="other">Другой сервис</option>
+                        </select>
+                        <input id="editCallUrl" type="url" placeholder="https://..." />
+                      </div>
+                    </div>
+                  </div>
                   <div class="admin-field">
                     <span>Предметы ученика</span>
                     <div id="editSubjects" class="subject-checks"></div>
