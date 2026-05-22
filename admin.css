@@ -941,6 +941,48 @@ details.task-row:not([open]) .task-row__summary {
   flex-wrap: wrap;
 }
 
+/* ─── Сплит-макет: список учеников слева, данные справа ─── */
+
+.students-split {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.students-split__sidebar {
+  position: sticky;
+  top: 76px; /* высота прилипшего topbar */
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* скролл без видимой полосы */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15,23,42,.15) transparent;
+}
+
+.students-split__list-card {
+  /* убираем внешний отступ снизу — сайдбар и без того ограничен max-height */
+  margin-bottom: 0 !important;
+}
+
+.students-split__main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .students-split {
+    grid-template-columns: 1fr;
+  }
+  .students-split__sidebar {
+    position: static;
+    max-height: none;
+  }
+}
+
 /* кнопка «+ Задание» прижата к правому краю внутри строки табов */
 .tasks-add-btn {
   margin-left: auto;
@@ -981,8 +1023,8 @@ details.task-row:not([open]) .task-row__summary {
   font-size: 13px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 /* Кнопка «Сохранить всё» в статус-баре (показывается через JS) */
