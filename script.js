@@ -287,6 +287,10 @@ function mapUser(row) {
       Intl.DateTimeFormat().resolvedOptions().timeZone ||
       "local",
     miroUrl: row.miro_url || "",
+    boardService: row.board_service || (row.miro_url ? "miro" : ""),
+    boardUrl: row.board_url || row.miro_url || "",
+    callService: row.call_service || "",
+    callUrl: row.call_url || "",
   };
 }
 
@@ -394,7 +398,29 @@ function renderAll() {
   renderGreeting();
   renderExam();
   renderTasks();
-  renderMiroBtn();
+  renderServiceBtns();
+}
+
+// Иконки сервисов: домен для Google Favicon API
+const SERVICE_META = {
+  miro:       { label: "Доска",       favicon: "miro.com" },
+  idroo:      { label: "Доска",       favicon: "idroo.com" },
+  jamboard:   { label: "Доска",       favicon: "jamboard.google.com" },
+  figjam:     { label: "Доска",       favicon: "figma.com" },
+  excalidraw: { label: "Доска",       favicon: "excalidraw.com" },
+  meet:       { label: "Звонок",      favicon: "meet.google.com" },
+  zoom:       { label: "Звонок",      favicon: "zoom.us" },
+  ktalk:      { label: "Звонок",      favicon: "ktalk.ru" },
+  skype:      { label: "Звонок",      favicon: "skype.com" },
+  discord:    { label: "Звонок",      favicon: "discord.com" },
+  telegram:   { label: "Звонок",      favicon: "telegram.org" },
+  other:      { label: "Сервис",      favicon: null },
+};
+
+function getServiceFaviconUrl(service) {
+  const meta = SERVICE_META[service];
+  if (meta?.favicon) return `https://www.google.com/s2/favicons?domain=${meta.favicon}&sz=32`;
+  return null;
 }
 
 function renderMiroBtn() {
@@ -406,6 +432,47 @@ function renderMiroBtn() {
     btn.hidden = false;
   } else {
     btn.hidden = true;
+  }
+}
+
+function renderServiceBtns() {
+  const user = data.user;
+  if (!user) return;
+
+  // ── Доска ──
+  const boardBtn = document.getElementById("boardBtn");
+  if (boardBtn) {
+    const service = user.boardService;
+    const url = user.boardUrl;
+    if (service && url) {
+      boardBtn.href = url;
+      boardBtn.hidden = false;
+      const iconUrl = getServiceFaviconUrl(service);
+      const label = SERVICE_META[service]?.label || "Доска";
+      boardBtn.innerHTML = iconUrl
+        ? `<img src="${escapeAttr(iconUrl)}" width="18" height="18" style="border-radius:5px" alt="${escapeHtml(label)}" /><span>${escapeHtml(label)}</span>`
+        : `<span>${escapeHtml(label)}</span>`;
+    } else {
+      boardBtn.hidden = true;
+    }
+  }
+
+  // ── Звонок ──
+  const callBtn = document.getElementById("callBtn");
+  if (callBtn) {
+    const service = user.callService;
+    const url = user.callUrl;
+    if (service && url) {
+      callBtn.href = url;
+      callBtn.hidden = false;
+      const iconUrl = getServiceFaviconUrl(service);
+      const label = SERVICE_META[service]?.label || "Звонок";
+      callBtn.innerHTML = iconUrl
+        ? `<img src="${escapeAttr(iconUrl)}" width="18" height="18" style="border-radius:5px" alt="${escapeHtml(label)}" /><span>${escapeHtml(label)}</span>`
+        : `<span>${escapeHtml(label)}</span>`;
+    } else {
+      // нет настроенного сервиса — оставляем текущий href без изменений (обратная совместимость)
+    }
   }
 }
 
