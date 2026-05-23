@@ -412,25 +412,27 @@ function renderAll() {
   renderServiceBtns();
 }
 
-// Иконки сервисов: домен для Google Favicon API
+// Иконки сервисов.
+// icon  — своя иконка из папки icons/ (приоритет)
+// favicon — фолбэк через Google Favicon API
 const SERVICE_META = {
   // Доски
-  miro: { label: "Доска", favicon: "miro.com" },
-  unidraw: { label: "Доска", favicon: "unidraw.com" },
-  yadisk: { label: "Яндекс Доска", favicon: "yandex.ru" },
+  miro:     { label: "Miro",          icon: "./icons/miro.webp" },
+  unidraw:  { label: "Unidraw",       icon: "./icons/unidraw.webp" },
   // Звонки
-  meet: { label: "Google Meet", favicon: "meet.google.com" },
-  teams: { label: "Teams", favicon: "teams.microsoft.com" },
-  telemost: { label: "Телемост", favicon: "telemost.yandex.ru" },
-  ktalk: { label: "Контур Толк", favicon: "ktalk.ru" },
+  teams:    { label: "Teams",         icon: "./icons/teams.webp" },
+  telemost: { label: "Телемост",      icon: "./icons/telemost.webp" },
+  ktalk:    { label: "Контур Толк",   icon: "./icons/call.webp",     favicon: "ktalk.ru" },
   // Свой сервис — иконка и название берутся из кастомных полей
-  other: { label: "Сервис", favicon: null },
+  other:    { label: "Сервис" },
 };
 
 function getServiceFaviconUrl(service) {
   const meta = SERVICE_META[service];
-  if (meta?.favicon)
-    return `https://www.google.com/s2/favicons?domain=${meta.favicon}&sz=32`;
+  if (!meta) return null;
+  // Сначала пробуем свою иконку, затем Google Favicon API
+  if (meta.icon) return meta.icon;
+  if (meta.favicon) return `https://www.google.com/s2/favicons?domain=${meta.favicon}&sz=32`;
   return null;
 }
 
