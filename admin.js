@@ -2163,7 +2163,7 @@ function initPageTabs() {
 
   // Кнопка «Сохранить все» в статус-баре — сохраняет текущий блок заданий
   document.getElementById("statusSaveAll")?.addEventListener("click", () => {
-    const activeBlock = els.tasksEditor?.querySelector(".task-subject-block[style*='grid']");
+    const activeBlock = els.tasksEditor?.querySelector(".task-subject-block[style*='flex']");
     const subjectId = activeBlock?.getAttribute("data-task-block");
     if (subjectId) void saveAllTasksInBlock(subjectId);
   });
