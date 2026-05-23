@@ -2054,11 +2054,20 @@ async function uploadAttachmentToRow(file, row) {
       state.catalog.find((c) => c.id === subject?.catalog_id)?.title ||
         subject?.title || subjectId,
     );
-    const taskTitle = yosSlug(
-      taskRow.querySelector('[data-f="title"]')?.value ||
-        taskRow.getAttribute("data-task-id"),
-    );
-    storagePath = `${catalogTitle}/${taskTitle}/${safeFileName}`;
+
+    // Определяем тип файла по редактору
+    const isLesson = !!row.closest('[id^="lesson-files-"]');
+
+    if (isLesson) {
+      // Конспект — в папку ученика: Ученик/Предмет/файл
+      const studentName = yosSlug(
+        state.users.find((u) => u.id === state.selectedUserId)?.name || state.selectedUserId,
+      );
+      storagePath = `${studentName}/${catalogTitle}/${safeFileName}`;
+    } else {
+      // Домашка и подсказки — в общую папку предмета: Предмет/файл
+      storagePath = `${catalogTitle}/${safeFileName}`;
+    }
   } else if (row.closest("[data-trial-id]")) {
     const trialRow = row.closest("[data-trial-id]");
     const subject = state.selectedUserSubjects.find((s) => s.id === state.selectedTrialSubjectId);
