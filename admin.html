@@ -85,13 +85,13 @@
             >
           </div>
         </div>
-        <div class="topbar__status-bar">
-          <div id="statusBox" class="admin-status muted">
-            <span id="statusText">Ожидание данных <span class="loader"></span></span>
-            <button class="icon-btn" type="button" id="statusSaveAll">💾 Сохранить все</button>
-          </div>
-        </div>
       </header>
+
+      <!-- Плавающий статус-бар (фиксированный, только в админке) -->
+      <div id="statusBox" class="admin-status admin-status--float muted">
+        <span id="statusText">Ожидание данных <span class="loader"></span></span>
+        <button class="icon-btn" type="button" id="statusSaveAll">💾 Сохранить все</button>
+      </div>
 
       <main class="container admin" id="main">
         <!-- Вкладки страницы -->

@@ -2057,6 +2057,11 @@ async function uploadAttachmentToRow(file, row) {
 
     // Определяем тип файла по редактору
     const isLesson = !!row.closest('[id^="lesson-files-"]');
+    const isHint   = !!row.closest('[id^="hint-files-"]');
+    const taskTitle = yosSlug(
+      taskRow.querySelector('[data-f="title"]')?.value ||
+        taskRow.getAttribute("data-task-id"),
+    );
 
     if (isLesson) {
       // Конспект — в папку ученика: Ученик/Предмет/файл
@@ -2065,8 +2070,8 @@ async function uploadAttachmentToRow(file, row) {
       );
       storagePath = `${studentName}/${catalogTitle}/${safeFileName}`;
     } else {
-      // Домашка и подсказки — в общую папку предмета: Предмет/файл
-      storagePath = `${catalogTitle}/${safeFileName}`;
+      // Домашка и подсказки — в папку задания: Предмет/Задание/файл
+      storagePath = `${catalogTitle}/${taskTitle}/${safeFileName}`;
     }
   } else if (row.closest("[data-trial-id]")) {
     const trialRow = row.closest("[data-trial-id]");
