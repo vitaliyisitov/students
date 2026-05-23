@@ -27,8 +27,12 @@ const els = {
   editToken: document.getElementById("editToken"),
   editBoardService: document.getElementById("editBoardService"),
   editBoardUrl: document.getElementById("editBoardUrl"),
+  editBoardCustomName: document.getElementById("editBoardCustomName"),
+  editBoardCustomIcon: document.getElementById("editBoardCustomIcon"),
   editCallService: document.getElementById("editCallService"),
   editCallUrl: document.getElementById("editCallUrl"),
+  editCallCustomName: document.getElementById("editCallCustomName"),
+  editCallCustomIcon: document.getElementById("editCallCustomIcon"),
   editSubjects: document.getElementById("editSubjects"),
   subjectSettings: document.getElementById("subjectSettings"),
   emptyEditHint: document.getElementById("emptyEditHint"),
@@ -153,12 +157,22 @@ async function init() {
   }
 }
 
+function toggleServiceCustomFields() {
+  const boardCustom = document.getElementById("boardCustomFields");
+  const callCustom = document.getElementById("callCustomFields");
+  if (boardCustom) boardCustom.hidden = els.editBoardService?.value !== "other";
+  if (callCustom) callCustom.hidden = els.editCallService?.value !== "other";
+}
+
 function bindEvents() {
   els.createStudentForm.addEventListener("submit", handleCreateStudent);
   els.editStudentForm.addEventListener("submit", handleSaveStudent);
   els.copyLinkBtn.addEventListener("click", handleCopyLink);
   els.archiveBtn.addEventListener("click", handleToggleArchive);
   els.deleteStudentBtn.addEventListener("click", handleDeleteStudent);
+
+  els.editBoardService?.addEventListener("change", toggleServiceCustomFields);
+  els.editCallService?.addEventListener("change", toggleServiceCustomFields);
 
   // Делегирование для вложений — работает даже после перерендера tasksEditor
   els.tasksEditor.addEventListener("click", (e) => {
@@ -587,8 +601,13 @@ function renderEditPanel() {
   els.editToken.textContent = user.access_token || "—";
   if (els.editBoardService) els.editBoardService.value = user.board_service || (user.miro_url ? "miro" : "");
   if (els.editBoardUrl) els.editBoardUrl.value = user.board_url || user.miro_url || "";
+  if (els.editBoardCustomName) els.editBoardCustomName.value = user.board_custom_name || "";
+  if (els.editBoardCustomIcon) els.editBoardCustomIcon.value = user.board_custom_icon || "";
   if (els.editCallService) els.editCallService.value = user.call_service || "";
   if (els.editCallUrl) els.editCallUrl.value = user.call_url || "";
+  if (els.editCallCustomName) els.editCallCustomName.value = user.call_custom_name || "";
+  if (els.editCallCustomIcon) els.editCallCustomIcon.value = user.call_custom_icon || "";
+  toggleServiceCustomFields();
 
   renderCatalogChecks(
     els.editSubjects,
@@ -795,8 +814,12 @@ async function handleSaveStudent(e) {
         is_active: isActive,
         board_service: els.editBoardService?.value || "",
         board_url: els.editBoardUrl?.value.trim() || "",
+        board_custom_name: els.editBoardCustomName?.value.trim() || "",
+        board_custom_icon: els.editBoardCustomIcon?.value.trim() || "",
         call_service: els.editCallService?.value || "",
         call_url: els.editCallUrl?.value.trim() || "",
+        call_custom_name: els.editCallCustomName?.value.trim() || "",
+        call_custom_icon: els.editCallCustomIcon?.value.trim() || "",
       });
 
     for (const s of toRemove) {

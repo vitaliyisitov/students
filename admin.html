@@ -196,12 +196,14 @@
                         <select id="editBoardService">
                           <option value="">— нет —</option>
                           <option value="miro">Miro</option>
-                          <option value="idroo">Idroo</option>
-                          <option value="jamboard">Jamboard</option>
-                          <option value="figjam">FigJam</option>
-                          <option value="excalidraw">Excalidraw</option>
-                          <option value="other">Другой сервис</option>
+                          <option value="unidraw">Unidraw</option>
+                          <option value="yadisk">Яндекс Доска</option>
+                          <option value="other">Свой сервис…</option>
                         </select>
+                        <div class="admin-service-custom" id="boardCustomFields" hidden>
+                          <input id="editBoardCustomName" type="text" placeholder="Название сервиса" />
+                          <input id="editBoardCustomIcon" type="url" placeholder="URL иконки (https://...)" />
+                        </div>
                         <input id="editBoardUrl" type="url" placeholder="https://..." />
                       </div>
                     </div>
@@ -210,14 +212,16 @@
                       <div class="admin-service-row">
                         <select id="editCallService">
                           <option value="">— нет —</option>
-                          <option value="ktalk">KTalk</option>
                           <option value="meet">Google Meet</option>
-                          <option value="zoom">Zoom</option>
-                          <option value="skype">Skype</option>
-                          <option value="discord">Discord</option>
-                          <option value="telegram">Telegram</option>
-                          <option value="other">Другой сервис</option>
+                          <option value="teams">Microsoft Teams</option>
+                          <option value="telemost">Яндекс Телемост</option>
+                          <option value="ktalk">Контур Толк</option>
+                          <option value="other">Свой сервис…</option>
                         </select>
+                        <div class="admin-service-custom" id="callCustomFields" hidden>
+                          <input id="editCallCustomName" type="text" placeholder="Название сервиса" />
+                          <input id="editCallCustomIcon" type="url" placeholder="URL иконки (https://...)" />
+                        </div>
                         <input id="editCallUrl" type="url" placeholder="https://..." />
                       </div>
                     </div>
@@ -541,6 +545,6 @@ service cloud.firestore {
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
     <script src="./firebase.config.js?v=2"></script>
-    <script src="./admin.js?v=6" defer></script>
+    <script src="./admin.js?v=7" defer></script>
   </body>
 </html>

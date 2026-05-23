@@ -295,8 +295,12 @@ function mapUser(row) {
     miroUrl: row.miro_url || "",
     boardService: row.board_service || (row.miro_url ? "miro" : ""),
     boardUrl: row.board_url || row.miro_url || "",
+    boardCustomName: row.board_custom_name || "",
+    boardCustomIcon: row.board_custom_icon || "",
     callService: row.call_service || "",
     callUrl: row.call_url || "",
+    callCustomName: row.call_custom_name || "",
+    callCustomIcon: row.call_custom_icon || "",
   };
 }
 
@@ -410,17 +414,16 @@ function renderAll() {
 
 // Иконки сервисов: домен для Google Favicon API
 const SERVICE_META = {
+  // Доски
   miro: { label: "Доска", favicon: "miro.com" },
-  idroo: { label: "Доска", favicon: "idroo.com" },
-  jamboard: { label: "Доска", favicon: "jamboard.google.com" },
-  figjam: { label: "Доска", favicon: "figma.com" },
-  excalidraw: { label: "Доска", favicon: "excalidraw.com" },
-  meet: { label: "Звонок", favicon: "meet.google.com" },
-  zoom: { label: "Звонок", favicon: "zoom.us" },
-  ktalk: { label: "Звонок", favicon: "ktalk.ru" },
-  skype: { label: "Звонок", favicon: "skype.com" },
-  discord: { label: "Звонок", favicon: "discord.com" },
-  telegram: { label: "Звонок", favicon: "telegram.org" },
+  unidraw: { label: "Доска", favicon: "unidraw.com" },
+  yadisk: { label: "Яндекс Доска", favicon: "yandex.ru" },
+  // Звонки
+  meet: { label: "Google Meet", favicon: "meet.google.com" },
+  teams: { label: "Teams", favicon: "teams.microsoft.com" },
+  telemost: { label: "Телемост", favicon: "telemost.yandex.ru" },
+  ktalk: { label: "Контур Толк", favicon: "ktalk.ru" },
+  // Свой сервис — иконка и название берутся из кастомных полей
   other: { label: "Сервис", favicon: null },
 };
 
@@ -446,42 +449,55 @@ function renderMiroBtn() {
 function renderServiceBtns() {
   const user = data.user;
   if (!user) return;
+  renderServiceBtn(
+    "boardBtn",
+    user.boardService,
+    user.boardUrl,
+    user.boardCustomName,
+    user.boardCustomIcon,
+    "Доска",
+  );
+  renderServiceBtn(
+    "callBtn",
+    user.callService,
+    user.callUrl,
+    user.callCustomName,
+    user.callCustomIcon,
+    "Звонок",
+  );
+}
 
-  // ── Доска ──
-  const boardBtn = document.getElementById("boardBtn");
-  if (boardBtn) {
-    const service = user.boardService;
-    const url = user.boardUrl;
-    if (service && url) {
-      boardBtn.href = url;
-      boardBtn.hidden = false;
-      const iconUrl = getServiceFaviconUrl(service);
-      const label = SERVICE_META[service]?.label || "Доска";
-      boardBtn.innerHTML = iconUrl
-        ? `<img src="${escapeAttr(iconUrl)}" width="18" height="18" style="border-radius:5px" alt="${escapeHtml(label)}" /><span>${escapeHtml(label)}</span>`
-        : `<span>${escapeHtml(label)}</span>`;
-    } else {
-      boardBtn.hidden = true;
-    }
+function renderServiceBtn(
+  btnId,
+  service,
+  url,
+  customName,
+  customIcon,
+  defaultLabel,
+) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+
+  if (!service || !url) {
+    btn.hidden = true;
+    return;
   }
 
-  // ── Звонок ──
-  const callBtn = document.getElementById("callBtn");
-  if (callBtn) {
-    const service = user.callService;
-    const url = user.callUrl;
-    if (service && url) {
-      callBtn.href = url;
-      callBtn.hidden = false;
-      const iconUrl = getServiceFaviconUrl(service);
-      const label = SERVICE_META[service]?.label || "Звонок";
-      callBtn.innerHTML = iconUrl
-        ? `<img src="${escapeAttr(iconUrl)}" width="18" height="18" style="border-radius:5px" alt="${escapeHtml(label)}" /><span>${escapeHtml(label)}</span>`
-        : `<span>${escapeHtml(label)}</span>`;
-    } else {
-      // нет настроенного сервиса — оставляем текущий href без изменений (обратная совместимость)
-    }
+  btn.href = url;
+  btn.hidden = false;
+
+  let iconUrl, label;
+  if (service === "other") {
+    label = customName || defaultLabel;
+    iconUrl = customIcon || null;
+  } else {
+    label = SERVICE_META[service]?.label || defaultLabel;
+    iconUrl = getServiceFaviconUrl(service);
   }
+
+  btn.innerHTML = iconUrl
+    ? `<img src="${escapeAttr(iconUrl)}" width="18" height="18" style="border-radius:5px" alt="${escapeHtml(label)}" /><span>${escapeHtml(label)}</span>`
+    : `<span>${escapeHtml(label)}</span>`;
 }
 
 function renderSubjectTabs() {
@@ -572,7 +588,7 @@ const PART_CONFIG = {
       { label: "Практические задания", from: 1, to: 7 },
       { label: "Алгебра", from: 8, to: 16 },
       { label: "Геометрия", from: 17, to: 21 },
-      { label: "Развернутая часть", from: 22, to: Infinity },
+      { label: "Вторая часть", from: 22, to: Infinity },
     ],
   },
   oge_info: {
@@ -1319,7 +1335,7 @@ const SCORE_CONVERSION = {
   },
   ege_math: {
     type: "test",
-    // индекс = первичный балл → тестовый балл (шкала 2025, профиль)
+    // индекс = первичный балл → тестовый балл
     table: [
       0, 6, 11, 17, 22, 27, 34, 40, 46, 52, 58, 64, 70, 72, 74, 76, 78, 80, 82,
       84, 86, 88, 90, 92, 94, 95, 96, 97, 98, 99, 100, 100, 100,
@@ -1333,7 +1349,7 @@ const SCORE_CONVERSION = {
   },
   ege_info: {
     type: "test",
-    // индекс = первичный балл → тестовый балл (шкала 2025)
+    // индекс = первичный балл → тестовый балл
     table: [
       0, 7, 14, 20, 27, 34, 40, 43, 46, 48, 51, 54, 56, 59, 62, 64, 67, 70, 72,
       75, 78, 80, 83, 85, 88, 90, 93, 95, 98, 100,
