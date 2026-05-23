@@ -558,14 +558,20 @@ function renderStudentsList() {
         const badgesHtml = examTypes
           .map((t) => `<span class="student-exam-badge student-exam-badge--${t === "ОГЭ" ? "oge" : "ege"}">${t}</span>`)
           .join("");
+        const studentUrl = u.access_token
+          ? `${location.origin}${location.pathname.replace(/admin\.html$/, "index.html")}?k=${encodeURIComponent(u.access_token)}`
+          : "";
         return `
-          <button class="student-row ${active}" type="button" data-user-id="${escapeAttr(u.id)}">
-            <div class="student-row__top">
-              <div class="student-name">${escapeHtml(u.name || "Без имени")}</div>
-              <div class="student-badges">${badgesHtml}</div>
-            </div>
-            <div class="student-meta">${archived ? "📦 архив" : "активен"} • …${escapeHtml(tokenSuffix || "—")}</div>
-          </button>`;
+          <div class="student-row-wrap ${active}">
+            <button class="student-row" type="button" data-user-id="${escapeAttr(u.id)}">
+              <div class="student-row__top">
+                <div class="student-name">${escapeHtml(u.name || "Без имени")}</div>
+                <div class="student-badges">${badgesHtml}</div>
+              </div>
+              <div class="student-meta">${archived ? "📦 архив" : "активен"} • …${escapeHtml(tokenSuffix || "—")}</div>
+            </button>
+            ${studentUrl ? `<button class="student-row__copy-btn" type="button" data-copy-url="${escapeAttr(studentUrl)}" title="Скопировать ссылку ученика">🔗</button>` : ""}
+          </div>`;
       }).join("")
     : `<p class="muted" style="padding:10px 14px;font-size:13px">Нет учеников.</p>`;
 
@@ -583,6 +589,20 @@ function renderStudentsList() {
       "click",
       () => void selectUser(btn.getAttribute("data-user-id")),
     );
+  });
+
+  els.studentsList.querySelectorAll("[data-copy-url]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const url = btn.getAttribute("data-copy-url");
+      navigator.clipboard.writeText(url).then(() => {
+        const prev = btn.textContent;
+        btn.textContent = "✅";
+        setTimeout(() => { btn.textContent = prev; }, 1500);
+      }).catch(() => {
+        prompt("Скопируйте ссылку:", url);
+      });
+    });
   });
 }
 

@@ -668,22 +668,62 @@
   margin-bottom: 8px;
 }
 
+.student-row-wrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.student-row-wrap.is-active .student-row {
+  border-color: rgba(0, 122, 255, 0.4);
+  background: rgba(0, 122, 255, 0.08);
+}
+
 .student-row {
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
   text-align: left;
   border: 1px solid rgba(15, 23, 42, 0.14);
-  border-radius: 14px;
+  border-right: none;
+  border-radius: 14px 0 0 14px;
   background: rgba(255, 255, 255, 0.76);
   padding: 10px 12px;
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s;
 }
 
+.student-row-wrap:has(.student-row:only-of-type) .student-row {
+  border-right: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 14px;
+}
+
 .student-row:hover {
   background: rgba(255, 255, 255, 0.95);
 }
 
-.student-row.is-active {
+.student-row__copy-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-left: none;
+  border-radius: 0 14px 14px 0;
+  background: rgba(255, 255, 255, 0.76);
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--muted);
+  transition: background 0.12s, color 0.12s;
+}
+
+.student-row__copy-btn:hover {
+  background: rgba(0, 122, 255, 0.08);
+  color: var(--accent, #007aff);
+}
+
+.student-row-wrap.is-active .student-row__copy-btn {
   border-color: rgba(0, 122, 255, 0.4);
   background: rgba(0, 122, 255, 0.08);
 }
@@ -1000,8 +1040,8 @@ details.task-row[open] .task-row__summary::after {
 
 .students-split__sidebar {
   position: sticky;
-  top: 76px; /* высота прилипшего topbar */
-  max-height: calc(100vh - 96px);
+  top: 20px;
+  max-height: calc(100vh - 40px);
   overflow-y: auto;
   overflow-x: hidden;
   /* скролл без видимой полосы */
