@@ -488,12 +488,11 @@ function renderServiceBtn(
   btn.href = url;
   btn.hidden = false;
 
-  let iconUrl, label;
+  const label = defaultLabel; // всегда "Доска" или "Звонок"
+  let iconUrl;
   if (service === "other") {
-    label = customName || defaultLabel;
     iconUrl = customIcon || null;
   } else {
-    label = SERVICE_META[service]?.label || defaultLabel;
     iconUrl = getServiceFaviconUrl(service);
   }
 

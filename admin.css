@@ -874,7 +874,6 @@
 
 .task-row__summary {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: 10px;
   cursor: pointer;
@@ -939,6 +938,7 @@ details.task-row[open] .task-row__summary::after {
   color: var(--muted);
   white-space: nowrap;
   flex-shrink: 0;
+  margin-left: auto; /* прижимает статус вправо, стрелка остаётся крайней */
 }
 
 .task-order-bar {
