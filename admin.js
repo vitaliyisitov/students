@@ -8,6 +8,7 @@ const state = {
   tasksBySubjectId: {},
   trials: [],                   // пробники выбранного предмета
   selectedTrialSubjectId: null, // предмет в редакторе пробников
+  activeTaskSubjectId: null,    // активная вкладка в редакторе заданий
   subjectsByUserId: {},         // кэш предметов всех учеников
   studentFilter: "all",         // "all" | "oge" | "ege" | "archive"
   tickers: [],                  // объявления (бегущая строка)
@@ -425,6 +426,7 @@ async function selectUser(userId) {
   state.selectedUserId = userId;
   renderStudentsList();
   state.selectedTrialSubjectId = null;
+  state.activeTaskSubjectId = null; // сбрасываем при смене ученика
   state.trials = [];
   await loadUserSubjects(userId);
   // Загружаем пробники первого предмета
@@ -968,10 +970,16 @@ async function renderTasksEditor() {
   }
 
   const firstId = subjects[0]?.id;
+  // Восстанавливаем активный предмет (или первый по умолчанию)
+  const activeId = (state.activeTaskSubjectId && subjects.some(s => s.id === state.activeTaskSubjectId))
+    ? state.activeTaskSubjectId
+    : firstId;
+  if (!state.activeTaskSubjectId) state.activeTaskSubjectId = firstId;
+
   const tabs = subjects
     .map(
-      (s, i) =>
-        `<button class="chip ${i === 0 ? "is-active" : ""}" type="button" data-task-subject="${escapeAttr(s.id)}">${escapeHtml(s.emoji || "📘")} ${escapeHtml(s.title || "Предмет")}</button>`,
+      (s) =>
+        `<button class="chip ${s.id === activeId ? "is-active" : ""}" type="button" data-task-subject="${escapeAttr(s.id)}">${escapeHtml(s.emoji || "📘")} ${escapeHtml(s.title || "Предмет")}</button>`,
     )
     .join("");
 
@@ -981,7 +989,7 @@ async function renderTasksEditor() {
       const rows = tasks.length
         ? tasks.map(renderTaskRow).join("")
         : `<p class="muted">Заданий нет. <button class="icon-btn" type="button" data-add-task="${escapeAttr(s.id)}">Добавить первое задание</button></p>`;
-      return `<div class="task-subject-block" data-task-block="${escapeAttr(s.id)}" style="display:${s.id === firstId ? "flex" : "none"};flex-direction:column;gap:6px;">${rows}</div>`;
+      return `<div class="task-subject-block" data-task-block="${escapeAttr(s.id)}" style="display:${s.id === activeId ? "flex" : "none"};flex-direction:column;gap:6px;">${rows}</div>`;
     })
     .join("");
 
@@ -990,6 +998,7 @@ async function renderTasksEditor() {
   els.tasksEditor.querySelectorAll("[data-task-subject]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const sid = btn.getAttribute("data-task-subject");
+      state.activeTaskSubjectId = sid; // запоминаем активный предмет
       els.tasksEditor
         .querySelectorAll("[data-task-subject]")
         .forEach((x) => x.classList.toggle("is-active", x === btn));
@@ -2163,8 +2172,7 @@ function initPageTabs() {
 
   // Кнопка «Сохранить все» в статус-баре — сохраняет текущий блок заданий
   document.getElementById("statusSaveAll")?.addEventListener("click", () => {
-    const activeBlock = els.tasksEditor?.querySelector(".task-subject-block[style*='flex']");
-    const subjectId = activeBlock?.getAttribute("data-task-block");
+    const subjectId = state.activeTaskSubjectId;
     if (subjectId) void saveAllTasksInBlock(subjectId);
   });
 
