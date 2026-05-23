@@ -197,16 +197,22 @@ async function loadDataFromFirebase() {
     const trialsSnaps = await Promise.all(
       subjectRows.map((s) =>
         window.db
-          .collection("users").doc(userId)
-          .collection("subjects").doc(s.id)
+          .collection("users")
+          .doc(userId)
+          .collection("subjects")
+          .doc(s.id)
           .collection("trials")
-          .orderBy("order_index").get()
+          .orderBy("order_index")
+          .get()
           .catch(() => ({ docs: [] })),
       ),
     );
     const trialsBySubjectId = {};
     subjectRows.forEach((s, i) => {
-      trialsBySubjectId[s.id] = trialsSnaps[i].docs.map((d) => ({ id: d.id, ...d.data() }));
+      trialsBySubjectId[s.id] = trialsSnaps[i].docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      }));
     });
 
     data = buildDataFromPayload(userRow, subjectRows, taskRows);
@@ -372,7 +378,8 @@ function bindEvents() {
       saveState(state);
       renderTasks();
       // Если пользователь проскролил ниже верха карточки — возвращаем к её началу
-      const cardTop = els.cardTasks.getBoundingClientRect().top + window.scrollY - 72;
+      const cardTop =
+        els.cardTasks.getBoundingClientRect().top + window.scrollY - 72;
       if (window.scrollY > cardTop) {
         window.scrollTo({ top: Math.max(0, cardTop), behavior: "instant" });
       }
@@ -403,23 +410,24 @@ function renderAll() {
 
 // Иконки сервисов: домен для Google Favicon API
 const SERVICE_META = {
-  miro:       { label: "Доска",       favicon: "miro.com" },
-  idroo:      { label: "Доска",       favicon: "idroo.com" },
-  jamboard:   { label: "Доска",       favicon: "jamboard.google.com" },
-  figjam:     { label: "Доска",       favicon: "figma.com" },
-  excalidraw: { label: "Доска",       favicon: "excalidraw.com" },
-  meet:       { label: "Звонок",      favicon: "meet.google.com" },
-  zoom:       { label: "Звонок",      favicon: "zoom.us" },
-  ktalk:      { label: "Звонок",      favicon: "ktalk.ru" },
-  skype:      { label: "Звонок",      favicon: "skype.com" },
-  discord:    { label: "Звонок",      favicon: "discord.com" },
-  telegram:   { label: "Звонок",      favicon: "telegram.org" },
-  other:      { label: "Сервис",      favicon: null },
+  miro: { label: "Доска", favicon: "miro.com" },
+  idroo: { label: "Доска", favicon: "idroo.com" },
+  jamboard: { label: "Доска", favicon: "jamboard.google.com" },
+  figjam: { label: "Доска", favicon: "figma.com" },
+  excalidraw: { label: "Доска", favicon: "excalidraw.com" },
+  meet: { label: "Звонок", favicon: "meet.google.com" },
+  zoom: { label: "Звонок", favicon: "zoom.us" },
+  ktalk: { label: "Звонок", favicon: "ktalk.ru" },
+  skype: { label: "Звонок", favicon: "skype.com" },
+  discord: { label: "Звонок", favicon: "discord.com" },
+  telegram: { label: "Звонок", favicon: "telegram.org" },
+  other: { label: "Сервис", favicon: null },
 };
 
 function getServiceFaviconUrl(service) {
   const meta = SERVICE_META[service];
-  if (meta?.favicon) return `https://www.google.com/s2/favicons?domain=${meta.favicon}&sz=32`;
+  if (meta?.favicon)
+    return `https://www.google.com/s2/favicons?domain=${meta.favicon}&sz=32`;
   return null;
 }
 
@@ -564,7 +572,7 @@ const PART_CONFIG = {
       { label: "Практические задания", from: 1, to: 7 },
       { label: "Алгебра", from: 8, to: 16 },
       { label: "Геометрия", from: 17, to: 21 },
-      { label: "Вторая часть", from: 22, to: Infinity },
+      { label: "Развернутая часть", from: 22, to: Infinity },
     ],
   },
   oge_info: {
@@ -581,8 +589,8 @@ const PART_CONFIG = {
   },
   ege_info: {
     parts: [
-      { label: "Тестовая часть", from: 1, to: 17 },
-      { label: "Развернутая часть", from: 18, to: Infinity },
+      { label: "Тестовая часть", from: 1, to: 25 },
+      { label: "Развернутая часть", from: 26, to: Infinity },
     ],
   },
 };
@@ -622,8 +630,10 @@ function renderTasks() {
   {
     const _subj = getSelectedSubject();
     const _trials = (data.trialsBySubjectId || {})[_subj?.id] || [];
-    els.cardTasks.querySelector("[data-section='trials']")
-      ?.classList.toggle("has-homework", _trials.some((t) => t.is_homework));
+    els.cardTasks.querySelector("[data-section='trials']")?.classList.toggle(
+      "has-homework",
+      _trials.some((t) => t.is_homework),
+    );
   }
 
   if (isTrials) {
@@ -649,7 +659,10 @@ function renderTasks() {
       const labelOrder = [];
       for (const t of trials) {
         const lbl = t.section_label?.trim() || "";
-        if (!seenLabels.has(lbl)) { seenLabels.add(lbl); labelOrder.push(lbl); }
+        if (!seenLabels.has(lbl)) {
+          seenLabels.add(lbl);
+          labelOrder.push(lbl);
+        }
       }
 
       let gridHtml = "";
@@ -664,12 +677,10 @@ function renderTasks() {
         }
       }
       els.trialsPanel.innerHTML =
-        scaleSection +
-        `<div class="trials-grid">${gridHtml}</div>`;
+        scaleSection + `<div class="trials-grid">${gridHtml}</div>`;
     }
     return;
   }
-
 
   const subject = getSelectedSubject();
   const tasks = getTasksForSelectedSubject()
@@ -733,9 +744,24 @@ function openModal(task) {
     ? details.attachments
     : [];
   els.modalContent.innerHTML = [
-    renderSectionWithFiles("Конспект", details.lessonNotes || "", lessonFiles, "./icons/notes.png"),
-    renderSectionWithFiles("Домашнее задание", details.homework || [], homeworkFiles, "./icons/homework.png"),
-    renderSectionWithFiles("Подсказки", details.hints || [], hintFiles, "./icons/hints.png"),
+    renderSectionWithFiles(
+      "Конспект",
+      details.lessonNotes || "",
+      lessonFiles,
+      "./icons/notes.png",
+    ),
+    renderSectionWithFiles(
+      "Домашнее задание",
+      details.homework || [],
+      homeworkFiles,
+      "./icons/homework.png",
+    ),
+    renderSectionWithFiles(
+      "Подсказки",
+      details.hints || [],
+      hintFiles,
+      "./icons/hints.png",
+    ),
     attachments.length ? renderAttachmentsSection(attachments) : "",
   ].join("");
 
@@ -811,7 +837,9 @@ function renderTrialCard(trial, catalogSlug) {
     : "";
 
   const metaItems = [
-    dateStr ? `<span class="trial-card__date"><img src="./icons/calendar.png" width="12" height="12" alt="" aria-hidden="true" class="trial-card__meta-icon"> ${escapeHtml(dateStr)}</span>` : "",
+    dateStr
+      ? `<span class="trial-card__date"><img src="./icons/calendar.png" width="12" height="12" alt="" aria-hidden="true" class="trial-card__meta-icon"> ${escapeHtml(dateStr)}</span>`
+      : "",
     `<span class="trial-card__time ${timeStr ? "" : "trial-card__time--empty"}"><img src="./icons/clock.png" width="12" height="12" alt="" aria-hidden="true" class="trial-card__meta-icon"> ${timeStr ? escapeHtml(timeStr) : "—"}</span>`,
   ].filter(Boolean);
 
@@ -841,12 +869,18 @@ function openTrialModal(trialId, catalogSlug) {
   const dateStr = trial.date ? formatTrialDate(trial.date) : null;
   const timeStr = trial.time ? String(trial.time).trim() : null;
   const attachments = Array.isArray(trial.attachments)
-    ? trial.attachments.map((a) => {
-        if (a && typeof a === "object") return { label: String(a.label || ""), url: String(a.url || "") };
-        const s = String(a || "").trim();
-        if (s.includes("|")) { const i = s.indexOf("|"); return { label: s.slice(0, i).trim(), url: s.slice(i + 1).trim() }; }
-        return { label: "", url: s };
-      }).filter((a) => a.url)
+    ? trial.attachments
+        .map((a) => {
+          if (a && typeof a === "object")
+            return { label: String(a.label || ""), url: String(a.url || "") };
+          const s = String(a || "").trim();
+          if (s.includes("|")) {
+            const i = s.indexOf("|");
+            return { label: s.slice(0, i).trim(), url: s.slice(i + 1).trim() };
+          }
+          return { label: "", url: s };
+        })
+        .filter((a) => a.url)
     : [];
 
   els.modalTitle.textContent = trial.title || "Пробный вариант";
@@ -859,13 +893,19 @@ function openTrialModal(trialId, catalogSlug) {
   const filesHtml = `<div class="section">
     <div class="section__title">Файлы</div>
     <div class="attachments-list">
-      ${attachments.length
-        ? attachments.map((a) => `
+      ${
+        attachments.length
+          ? attachments
+              .map(
+                (a) => `
             <a class="attachment-link" href="${escapeAttr(a.url)}" target="_blank" rel="noreferrer">
               <span class="attachment-link__icon" aria-hidden="true"><img src="./icons/variant.png" width="16" height="16" alt="" /></span>
               <span>${escapeHtml(a.label || a.url)}</span>
-            </a>`).join("")
-        : `<span class="muted" style="font-size:13px">Файлы не прикреплены</span>`}
+            </a>`,
+              )
+              .join("")
+          : `<span class="muted" style="font-size:13px">Файлы не прикреплены</span>`
+      }
     </div>
   </div>`;
 
@@ -1028,19 +1068,25 @@ function parseRichLink(line) {
   return null;
 }
 
-
 function renderHistorySection(history) {
   if (!Array.isArray(history) || !history.length) return "";
-  const itemsHtml = history.map((entry) => {
-    const date = entry.date ? new Date(entry.date) : null;
-    const dateStr = date && !isNaN(date.getTime())
-      ? date.toLocaleDateString("ru-RU", { year: "numeric", month: "short", day: "numeric" })
-      : "";
-    return `<div class="history-entry">
+  const itemsHtml = history
+    .map((entry) => {
+      const date = entry.date ? new Date(entry.date) : null;
+      const dateStr =
+        date && !isNaN(date.getTime())
+          ? date.toLocaleDateString("ru-RU", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })
+          : "";
+      return `<div class="history-entry">
       ${dateStr ? `<span class="history-entry__date">${escapeHtml(dateStr)}</span>` : ""}
       <span class="history-entry__text">${escapeHtml(entry.text || "")}</span>
     </div>`;
-  }).join("");
+    })
+    .join("");
   return `<div class="section section--history">
     <div class="section__title">История</div>
     <div class="history-list">${itemsHtml}</div>
@@ -1106,9 +1152,9 @@ function isValidHttpUrl(value) {
 }
 
 const TASK_FLAGS = {
-  pinned:    { src: "./icons/flag_pinned.png",    alt: "Закреплено" },
-  redo:      { src: "./icons/flag_redo.png",      alt: "Перерешать" },
-  new_topic: { src: "./icons/flag_new.png",       alt: "Новая тема" },
+  pinned: { src: "./icons/flag_pinned.png", alt: "Закреплено" },
+  redo: { src: "./icons/flag_redo.png", alt: "Перерешать" },
+  new_topic: { src: "./icons/flag_new.png", alt: "Новая тема" },
 };
 
 function getTaskFlag(task) {
@@ -1256,8 +1302,8 @@ const SCORE_CONVERSION = {
   oge_math: {
     type: "grade",
     thresholds: [
-      { min: 0,  max: 7,  grade: 2 },
-      { min: 8,  max: 14, grade: 3 },
+      { min: 0, max: 7, grade: 2 },
+      { min: 8, max: 14, grade: 3 },
       { min: 15, max: 21, grade: 4 },
       { min: 22, max: 31, grade: 5 },
     ],
@@ -1265,8 +1311,8 @@ const SCORE_CONVERSION = {
   oge_info: {
     type: "grade",
     thresholds: [
-      { min: 0,  max: 4,  grade: 2 },
-      { min: 5,  max: 10, grade: 3 },
+      { min: 0, max: 4, grade: 2 },
+      { min: 5, max: 10, grade: 3 },
       { min: 11, max: 16, grade: 4 },
       { min: 17, max: 21, grade: 5 },
     ],
@@ -1275,15 +1321,13 @@ const SCORE_CONVERSION = {
     type: "test",
     // индекс = первичный балл → тестовый балл (шкала 2025, профиль)
     table: [
-       0,  6, 11, 17, 22, 27, 34, 40, 46,
-      52, 58, 64, 70, 72, 74, 76, 78, 80,
-      82, 84, 86, 88, 90, 92, 94, 95, 96,
-      97, 98, 99, 100, 100, 100,
+      0, 6, 11, 17, 22, 27, 34, 40, 46, 52, 58, 64, 70, 72, 74, 76, 78, 80, 82,
+      84, 86, 88, 90, 92, 94, 95, 96, 97, 98, 99, 100, 100, 100,
     ],
     thresholds: [
-      { min: 0,  max: 22,  level: "fail" },
-      { min: 27, max: 34,  level: "low"  },
-      { min: 40, max: 92,  level: "mid"  },
+      { min: 0, max: 22, level: "fail" },
+      { min: 27, max: 34, level: "low" },
+      { min: 40, max: 92, level: "mid" },
       { min: 94, max: 100, level: "high" },
     ],
   },
@@ -1291,14 +1335,13 @@ const SCORE_CONVERSION = {
     type: "test",
     // индекс = первичный балл → тестовый балл (шкала 2025)
     table: [
-       0,  7, 14, 20, 27, 34, 40, 43, 46, 48,
-      51, 54, 56, 59, 62, 64, 67, 70, 72, 75,
-      78, 80, 83, 85, 88, 90, 93, 95, 98, 100,
+      0, 7, 14, 20, 27, 34, 40, 43, 46, 48, 51, 54, 56, 59, 62, 64, 67, 70, 72,
+      75, 78, 80, 83, 85, 88, 90, 93, 95, 98, 100,
     ],
     thresholds: [
-      { min: 0,  max: 34,  level: "fail" },
-      { min: 40, max: 43,  level: "low"  },
-      { min: 46, max: 78,  level: "mid"  },
+      { min: 0, max: 34, level: "fail" },
+      { min: 40, max: 43, level: "low" },
+      { min: 46, max: 78, level: "mid" },
       { min: 80, max: 100, level: "high" },
     ],
   },
@@ -1315,7 +1358,9 @@ function convertScore(rawScoreStr, catalogSlug) {
   const primary = parseInt(match[0], 10);
 
   if (cfg.type === "grade") {
-    const found = cfg.thresholds.find((t) => primary >= t.min && primary <= t.max);
+    const found = cfg.thresholds.find(
+      (t) => primary >= t.min && primary <= t.max,
+    );
     if (!found) return null;
     return { display: String(found.grade), level: `grade-${found.grade}` };
   }
@@ -1323,7 +1368,9 @@ function convertScore(rawScoreStr, catalogSlug) {
   if (cfg.type === "test") {
     const testScore = cfg.table[primary] ?? null;
     if (testScore === null) return null;
-    const found = cfg.thresholds.find((t) => testScore >= t.min && testScore <= t.max);
+    const found = cfg.thresholds.find(
+      (t) => testScore >= t.min && testScore <= t.max,
+    );
     return { display: String(testScore), level: found?.level || "mid" };
   }
 
@@ -1340,8 +1387,10 @@ function renderScoreBar(catalogSlug) {
     const segsHtml = cfg.thresholds
       .map((t, i) => {
         const prevSpan =
-          i > 0 ? cfg.thresholds[i - 1].max - cfg.thresholds[i - 1].min + 1 : null;
-        const span = t.max === Infinity ? (prevSpan || 8) : t.max - t.min + 1;
+          i > 0
+            ? cfg.thresholds[i - 1].max - cfg.thresholds[i - 1].min + 1
+            : null;
+        const span = t.max === Infinity ? prevSpan || 8 : t.max - t.min + 1;
         const range = t.max === Infinity ? `${t.min}+` : `${t.min}–${t.max}`;
         return (
           `<div class="score-bar__zone score-bar__zone--grade-${t.grade}" style="flex:${span}">` +
@@ -1357,7 +1406,9 @@ function renderScoreBar(catalogSlug) {
   if (cfg.type === "test") {
     const itemsHtml = cfg.table
       .map((testScore, primary) => {
-        const zone = cfg.thresholds.find((t) => testScore >= t.min && testScore <= t.max);
+        const zone = cfg.thresholds.find(
+          (t) => testScore >= t.min && testScore <= t.max,
+        );
         const level = zone?.level || "mid";
         return (
           `<div class="score-lookup__item score-lookup__item--${level}">` +
@@ -1420,18 +1471,25 @@ function loadState() {
 
 async function loadAndRenderTicker(userId) {
   try {
-    const snap = await window.db.collection("tickers")
+    const snap = await window.db
+      .collection("tickers")
       .where("enabled", "==", true)
       .where("userIds", "array-contains", userId)
       .limit(1)
       .get();
-    if (snap.empty) { els.tickerBar.hidden = true; return; }
+    if (snap.empty) {
+      els.tickerBar.hidden = true;
+      return;
+    }
     const ticker = snap.docs[0].data();
     const type = ticker.type || "ticker";
 
     if (type === "banner") {
       const imageUrl = ticker.imageUrl?.trim();
-      if (!imageUrl) { els.tickerBar.hidden = true; return; }
+      if (!imageUrl) {
+        els.tickerBar.hidden = true;
+        return;
+      }
       els.tickerBar.style.background = "";
       els.tickerBar.style.color = "";
       els.tickerBar.className = "ticker-bar ticker-bar--banner";
@@ -1445,7 +1503,10 @@ async function loadAndRenderTicker(userId) {
     els.tickerBar.className = "ticker-bar";
     els.tickerTrack.className = "ticker__track";
     const text = ticker.text || "";
-    if (!text.trim()) { els.tickerBar.hidden = true; return; }
+    if (!text.trim()) {
+      els.tickerBar.hidden = true;
+      return;
+    }
 
     const rawBg = ticker.bg || "linear-gradient(90deg, #667eea, #764ba2)";
     const bg = /^https?:\/\//i.test(rawBg.trim())
@@ -1454,10 +1515,16 @@ async function loadAndRenderTicker(userId) {
     els.tickerBar.style.background = bg;
     els.tickerBar.style.color = ticker.textColor || "#ffffff";
 
-    const items = text.split("|").map(s => s.trim()).filter(Boolean);
-    const oneItem = items.map(item =>
-      `<span class="ticker__item"><span class="ticker__sep">✦</span> ${escapeHtml(item)} <span class="ticker__sep">✦</span></span>`
-    ).join("");
+    const items = text
+      .split("|")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const oneItem = items
+      .map(
+        (item) =>
+          `<span class="ticker__item"><span class="ticker__sep">✦</span> ${escapeHtml(item)} <span class="ticker__sep">✦</span></span>`,
+      )
+      .join("");
 
     const REPEAT = 12;
     const itemsHtml = Array(REPEAT).fill(oneItem).join("");
