@@ -1382,12 +1382,17 @@ function buildTaskPayload(row, oldTask = null) {
   const flag = row.querySelector('[data-f="flag"]')?.value || "";
   const statusVal =
     row.querySelector('[data-f="status"]')?.value || "not_started";
-  const updatedFromForm = fromDateTimeLocalValue(
-    row.querySelector('[data-f="updated_at"]')?.value,
-  );
+
+  // Если статус изменился — всегда ставим текущее время, иначе берём из формы
+  const oldStatus = oldTask?.status || "not_started";
+  const statusChanged = statusVal !== oldStatus;
+  const updatedFromForm = statusChanged
+    ? null
+    : fromDateTimeLocalValue(row.querySelector('[data-f="updated_at"]')?.value);
   const updatedAtIso =
-    updatedFromForm ||
-    (statusVal === "not_started" ? null : new Date().toISOString());
+    statusChanged
+      ? (statusVal === "not_started" ? null : new Date().toISOString())
+      : (updatedFromForm || (statusVal === "not_started" ? null : new Date().toISOString()));
 
   const homework = splitLines(row.querySelector('[data-f="homework"]')?.value);
 
