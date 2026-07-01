@@ -1440,7 +1440,7 @@ body.is-app-loading #appState {
 .tasks-grid {
   padding: 0 18px 18px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   align-items: stretch;
 }
@@ -1450,10 +1450,10 @@ body.is-app-loading #appState {
   width: 100%;
   color: var(--text);
   border: 1px solid rgba(15, 23, 42, 0.1);
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.82);
   border-radius: 18px;
-  padding: 14px 14px;
-  min-height: 150px;
+  padding: 16px 16px 14px;
+  min-height: 168px;
   cursor: pointer;
   transition:
     transform 140ms ease,
@@ -1462,6 +1462,7 @@ body.is-app-loading #appState {
     border 140ms ease;
   display: flex;
   flex-direction: column;
+  gap: 0;
 }
 
 .task:hover {
@@ -1474,26 +1475,117 @@ body.is-app-loading #appState {
   box-shadow: var(--shadow-soft), var(--ring);
 }
 
-.task__top {
+.task__head {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .task__title {
   font-weight: 750;
   font-size: 17px;
   letter-spacing: -0.02em;
-  line-height: 1.2;
+  line-height: 1.25;
   display: flex;
   align-items: center;
   gap: 6px;
+  color: rgba(30, 27, 75, 0.96);
 }
 
 .task__flag-icon {
   flex-shrink: 0;
   display: block;
+}
+
+.task__desc {
+  color: rgba(18, 20, 23, 0.58);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.task__status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.task__status {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.task__status--not_started {
+  background: rgba(100, 116, 139, 0.12);
+  color: rgba(51, 65, 85, 0.95);
+}
+
+.task__status--in_progress {
+  background: rgba(0, 122, 255, 0.12);
+  color: rgba(0, 64, 140, 0.95);
+}
+
+.task__status--homework {
+  background: rgba(255, 159, 10, 0.14);
+  color: rgba(142, 83, 0, 0.95);
+}
+
+.task__status--completed {
+  background: rgba(52, 199, 89, 0.14);
+  color: rgba(18, 100, 42, 0.95);
+}
+
+.task__tool {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.task__tool img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.task__divider {
+  height: 1px;
+  background: rgba(15, 23, 42, 0.08);
+  margin: 14px 0 10px;
+  margin-top: auto;
+}
+
+.task__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.task__date {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.task__date-icon {
+  display: block;
+  opacity: 0.55;
+  flex-shrink: 0;
 }
 
 /* ─── Легенда флагов ──────────────────────────────────────────────────── */
@@ -1554,13 +1646,6 @@ body.is-app-loading #appState {
   display: none;
 }
 
-.task__desc {
-  margin-top: 8px;
-  color: rgba(18, 20, 23, 0.7);
-  font-size: 13px;
-  line-height: 1.35;
-}
-
 .badge {
   padding: 7px 9px;
   font-size: 12px;
@@ -1588,16 +1673,6 @@ body.is-app-loading #appState {
 .badge--completed {
   background: rgba(52, 199, 89, 0.14);
   color: rgba(18, 100, 42, 0.95);
-}
-
-.task__meta {
-  margin-top: 12px;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: auto;
 }
 
 .meta {

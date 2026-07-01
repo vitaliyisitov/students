@@ -382,6 +382,10 @@ function mapSubject(row) {
 
 function mapTask(row) {
   const orderIndex = Number(row.order_index ?? row.orderIndex);
+  const details =
+    row.details && typeof row.details === "object"
+      ? row.details
+      : { lessonNotes: "", homework: [], hints: [], attachments: [] };
   return {
     id: row.id,
     subjectId: row.subject_id || row.subjectId,
@@ -389,12 +393,9 @@ function mapTask(row) {
     description: row.description || "",
     status: row.status || "not_started",
     orderIndex: Number.isFinite(orderIndex) ? orderIndex : 0,
-    updatedAtISO:
-      row.updated_at || row.updatedAtISO || new Date().toISOString(),
-    details:
-      row.details && typeof row.details === "object"
-        ? row.details
-        : { lessonNotes: "", homework: [], hints: [], attachments: [] },
+    updatedAtISO: row.updated_at || row.updatedAtISO || null,
+    createdAtISO: row.created_at || row.createdAtISO || null,
+    details,
   };
 }
 
@@ -882,32 +883,85 @@ function isModalOpen() {
 }
 
 function renderTaskCard(task) {
-  const badgeClass = `badge badge--${task.status}`;
   const flagKey = getTaskFlag(task);
   const flagImg = flagKey
     ? `<img src="${escapeAttr(TASK_FLAGS[flagKey].src)}" width="15" height="15" alt="${escapeAttr(TASK_FLAGS[flagKey].alt)}" class="task__flag-icon" />`
     : "";
-  const hideUpdated = task.status === "not_started";
-  const updated = task.updatedAtISO ? new Date(task.updatedAtISO) : null;
-  const updatedText = updated
-    ? `Обновлено ${updated.toLocaleDateString("ru-RU", { year: "numeric", month: "short", day: "2-digit" })}`
-    : "Обновлено —";
-  const metaLeft = hideUpdated
-    ? ""
-    : `<span class="meta">${escapeHtml(updatedText)}</span>`;
+  const statusClass = `task__status task__status--${task.status}`;
+  const toolHtml = renderTaskToolHtml(getTaskTool(task));
+  const assignedText = formatAssignedDate(getTaskAssignedDateISO(task));
+  const footerHtml = assignedText
+    ? `<div class="task__divider" aria-hidden="true"></div>
+       <div class="task__footer">
+         <span class="task__date">
+           <img src="./icons/calendar.png" width="12" height="12" alt="" aria-hidden="true" class="task__date-icon" />
+           ${escapeHtml(assignedText)}
+         </span>
+       </div>`
+    : "";
 
   return `
     <button class="task" type="button" data-task="${escapeAttr(task.id)}">
-      <div class="task__top">
-        <div><div class="task__title">${flagImg}${escapeHtml(task.title)}</div></div>
-        <span class="${badgeClass}">${escapeHtml(formatStatus(task.status))}</span>
+      <div class="task__head">
+        <div class="task__title">${flagImg}${escapeHtml(task.title)}</div>
+        <div class="task__desc">${escapeHtml(task.description || "")}</div>
       </div>
-      <div class="task__desc">${escapeHtml(task.description || "")}</div>
-      <div class="task__meta">
-        ${metaLeft}
-        <span class="meta">Открыть детали →</span>
+      <div class="task__status-row">
+        <span class="${statusClass}">${escapeHtml(formatStatus(task.status))}</span>
+        ${toolHtml}
       </div>
+      ${footerHtml}
     </button>`;
+}
+
+const TASK_TOOL_PRESETS = {
+  python: { label: "Python", icon: "./icons/python.png" },
+  excel: { label: "Excel", icon: "./icons/excel.png" },
+  word: { label: "Word", icon: "./icons/word.png" },
+  geogebra: { label: "GeoGebra", icon: "./icons/geogebra.png" },
+};
+
+function getTaskTool(task) {
+  const details =
+    task?.details && typeof task.details === "object" ? task.details : {};
+  const iconUrl = String(details.toolIconUrl || details.tool_icon_url || "").trim();
+  const toolKey = String(details.tool || "").trim();
+
+  if (iconUrl) {
+    return {
+      label: TASK_TOOL_PRESETS[toolKey]?.label || "Программа",
+      icon: iconUrl,
+    };
+  }
+
+  if (toolKey && TASK_TOOL_PRESETS[toolKey]) {
+    return { ...TASK_TOOL_PRESETS[toolKey], key: toolKey };
+  }
+
+  return null;
+}
+
+function renderTaskToolHtml(tool) {
+  if (!tool?.icon) return "";
+  return `<span class="task__tool" title="${escapeAttr(tool.label || "Программа")}">
+    <img src="${escapeAttr(tool.icon)}" width="28" height="28" alt="${escapeAttr(tool.label || "")}" />
+  </span>`;
+}
+
+function getTaskAssignedDateISO(task) {
+  return task?.createdAtISO || task?.updatedAtISO || null;
+}
+
+function formatAssignedDate(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const datePart = d.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  return `Задано ${datePart}`;
 }
 
 function renderTrialCard(trial, catalogSlug) {

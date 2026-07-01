@@ -6,12 +6,12 @@ const state = {
   selectedUserId: null,
   selectedUserSubjects: [],
   tasksBySubjectId: {},
-  trials: [],                   // пробники выбранного предмета
+  trials: [], // пробники выбранного предмета
   selectedTrialSubjectId: null, // предмет в редакторе пробников
-  activeTaskSubjectId: null,    // активная вкладка в редакторе заданий
-  subjectsByUserId: {},         // кэш предметов всех учеников
-  studentFilter: "all",         // "all" | "oge" | "ege" | "archive"
-  tickers: [],                  // объявления (бегущая строка)
+  activeTaskSubjectId: null, // активная вкладка в редакторе заданий
+  subjectsByUserId: {}, // кэш предметов всех учеников
+  studentFilter: "all", // "all" | "oge" | "ege" | "archive"
+  tickers: [], // объявления (бегущая строка)
 };
 
 const els = {
@@ -453,13 +453,19 @@ async function selectUser(userId) {
 }
 
 async function loadUserTrials(userId, subjectId) {
-  if (!userId || !subjectId) { state.trials = []; return; }
+  if (!userId || !subjectId) {
+    state.trials = [];
+    return;
+  }
   try {
     const snap = await window.db
-      .collection("users").doc(userId)
-      .collection("subjects").doc(subjectId)
+      .collection("users")
+      .doc(userId)
+      .collection("subjects")
+      .doc(subjectId)
       .collection("trials")
-      .orderBy("order_index").get();
+      .orderBy("order_index")
+      .get();
     state.trials = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   } catch {
     state.trials = [];
@@ -492,9 +498,14 @@ async function preloadAllUserSubjects() {
     uncached.map(async (u) => {
       try {
         const snap = await window.db
-          .collection("users").doc(u.id)
-          .collection("subjects").get();
-        state.subjectsByUserId[u.id] = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          .collection("users")
+          .doc(u.id)
+          .collection("subjects")
+          .get();
+        state.subjectsByUserId[u.id] = snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        }));
       } catch {
         state.subjectsByUserId[u.id] = [];
       }
@@ -534,34 +545,41 @@ function renderStudentsList() {
   }
 
   const filters = [
-    { key: "all",     label: "Активные" },
-    { key: "oge",     label: "ОГЭ" },
-    { key: "ege",     label: "ЕГЭ" },
+    { key: "all", label: "Активные" },
+    { key: "oge", label: "ОГЭ" },
+    { key: "ege", label: "ЕГЭ" },
     { key: "archive", label: "Архив" },
   ];
 
   const filtersHtml = `<div class="students-filter">
-    ${filters.map((f) => `
+    ${filters
+      .map(
+        (f) => `
       <button class="chip ${state.studentFilter === f.key ? "is-active" : ""}"
-        type="button" data-student-filter="${escapeAttr(f.key)}">${escapeHtml(f.label)}</button>`
-    ).join("")}
+        type="button" data-student-filter="${escapeAttr(f.key)}">${escapeHtml(f.label)}</button>`,
+      )
+      .join("")}
   </div>`;
 
   const filtered = state.users.filter(userMatchesFilter);
 
   const listHtml = filtered.length
-    ? filtered.map((u) => {
-        const active = u.id === state.selectedUserId ? "is-active" : "";
-        const tokenSuffix = String(u.access_token || "").slice(-8);
-        const archived = u.is_active === false;
-        const examTypes = getExamTypesForUser(u.id);
-        const badgesHtml = examTypes
-          .map((t) => `<span class="student-exam-badge student-exam-badge--${t === "ОГЭ" ? "oge" : "ege"}">${t}</span>`)
-          .join("");
-        const studentUrl = u.access_token
-          ? `${location.origin}${location.pathname.replace(/admin\.html$/, "index.html")}?k=${encodeURIComponent(u.access_token)}`
-          : "";
-        return `
+    ? filtered
+        .map((u) => {
+          const active = u.id === state.selectedUserId ? "is-active" : "";
+          const tokenSuffix = String(u.access_token || "").slice(-8);
+          const archived = u.is_active === false;
+          const examTypes = getExamTypesForUser(u.id);
+          const badgesHtml = examTypes
+            .map(
+              (t) =>
+                `<span class="student-exam-badge student-exam-badge--${t === "ОГЭ" ? "oge" : "ege"}">${t}</span>`,
+            )
+            .join("");
+          const studentUrl = u.access_token
+            ? `${location.origin}${location.pathname.replace(/admin\.html$/, "index.html")}?k=${encodeURIComponent(u.access_token)}`
+            : "";
+          return `
           <div class="student-row-wrap ${active}">
             <button class="student-row" type="button" data-user-id="${escapeAttr(u.id)}">
               <div class="student-row__top">
@@ -572,7 +590,8 @@ function renderStudentsList() {
             </button>
             ${studentUrl ? `<button class="student-row__copy-btn" type="button" data-copy-url="${escapeAttr(studentUrl)}" title="Скопировать ссылку ученика">🔗</button>` : ""}
           </div>`;
-      }).join("")
+        })
+        .join("")
     : `<p class="muted" style="padding:10px 14px;font-size:13px">Нет учеников.</p>`;
 
   els.studentsList.innerHTML = filtersHtml + listHtml;
@@ -595,13 +614,18 @@ function renderStudentsList() {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       const url = btn.getAttribute("data-copy-url");
-      navigator.clipboard.writeText(url).then(() => {
-        const prev = btn.textContent;
-        btn.textContent = "✅";
-        setTimeout(() => { btn.textContent = prev; }, 1500);
-      }).catch(() => {
-        prompt("Скопируйте ссылку:", url);
-      });
+      navigator.clipboard
+        .writeText(url)
+        .then(() => {
+          const prev = btn.textContent;
+          btn.textContent = "✅";
+          setTimeout(() => {
+            btn.textContent = prev;
+          }, 1500);
+        })
+        .catch(() => {
+          prompt("Скопируйте ссылку:", url);
+        });
     });
   });
 }
@@ -619,14 +643,21 @@ function renderEditPanel() {
   els.editName.value = user.name || "";
   els.editActive.value = String(user.is_active !== false);
   els.editToken.textContent = user.access_token || "—";
-  if (els.editBoardService) els.editBoardService.value = user.board_service || (user.miro_url ? "miro" : "");
-  if (els.editBoardUrl) els.editBoardUrl.value = user.board_url || user.miro_url || "";
-  if (els.editBoardCustomName) els.editBoardCustomName.value = user.board_custom_name || "";
-  if (els.editBoardCustomIcon) els.editBoardCustomIcon.value = user.board_custom_icon || "";
+  if (els.editBoardService)
+    els.editBoardService.value =
+      user.board_service || (user.miro_url ? "miro" : "");
+  if (els.editBoardUrl)
+    els.editBoardUrl.value = user.board_url || user.miro_url || "";
+  if (els.editBoardCustomName)
+    els.editBoardCustomName.value = user.board_custom_name || "";
+  if (els.editBoardCustomIcon)
+    els.editBoardCustomIcon.value = user.board_custom_icon || "";
   if (els.editCallService) els.editCallService.value = user.call_service || "";
   if (els.editCallUrl) els.editCallUrl.value = user.call_url || "";
-  if (els.editCallCustomName) els.editCallCustomName.value = user.call_custom_name || "";
-  if (els.editCallCustomIcon) els.editCallCustomIcon.value = user.call_custom_icon || "";
+  if (els.editCallCustomName)
+    els.editCallCustomName.value = user.call_custom_name || "";
+  if (els.editCallCustomIcon)
+    els.editCallCustomIcon.value = user.call_custom_icon || "";
   toggleServiceCustomFields();
 
   renderCatalogChecks(
@@ -1014,9 +1045,11 @@ async function renderTasksEditor() {
 
   const firstId = subjects[0]?.id;
   // Восстанавливаем активный предмет (или первый по умолчанию)
-  const activeId = (state.activeTaskSubjectId && subjects.some(s => s.id === state.activeTaskSubjectId))
-    ? state.activeTaskSubjectId
-    : firstId;
+  const activeId =
+    state.activeTaskSubjectId &&
+    subjects.some((s) => s.id === state.activeTaskSubjectId)
+      ? state.activeTaskSubjectId
+      : firstId;
   if (!state.activeTaskSubjectId) state.activeTaskSubjectId = firstId;
 
   const tabs = subjects
@@ -1093,8 +1126,8 @@ async function renderTasksEditor() {
 
   // История заданий
   els.tasksEditor.querySelectorAll("[data-history-for]").forEach((wrap) => {
-    const taskId    = wrap.getAttribute("data-history-for");
-    const row       = wrap.closest("[data-task-id]");
+    const taskId = wrap.getAttribute("data-history-for");
+    const row = wrap.closest("[data-task-id]");
     const subjectId = row?.getAttribute("data-subject-id-tr");
     if (!taskId || !subjectId) return;
     bindHistoryHandlers(wrap, taskId, subjectId);
@@ -1104,8 +1137,11 @@ async function renderTasksEditor() {
 function renderTaskRow(task) {
   const details =
     task.details && typeof task.details === "object" ? task.details : {};
-  const userName = state.users.find((u) => u.id === state.selectedUserId)?.name || "";
+  const userName =
+    state.users.find((u) => u.id === state.selectedUserId)?.name || "";
   const flag = details.flag || (details.isPinned === true ? "pinned" : "");
+  const tool = details.tool || "";
+  const toolIconUrl = details.toolIconUrl || details.tool_icon_url || "";
   const homework = Array.isArray(details.homework)
     ? details.homework.join("\n")
     : "";
@@ -1160,9 +1196,9 @@ function renderTaskRow(task) {
             <input data-f="order_index" type="number" min="1" step="1" value="${escapeAttr(orderVal)}" /></label>
           <label><span>Метка</span>
             <select data-f="flag">
-              <option value=""       ${flag === ""          ? "selected" : ""}>Без метки</option>
-              <option value="pinned" ${flag === "pinned"    ? "selected" : ""}>Закреплено</option>
-              <option value="redo"   ${flag === "redo"      ? "selected" : ""}>Перерешать</option>
+              <option value=""       ${flag === "" ? "selected" : ""}>Без метки</option>
+              <option value="pinned" ${flag === "pinned" ? "selected" : ""}>Закреплено</option>
+              <option value="redo"   ${flag === "redo" ? "selected" : ""}>Перерешать</option>
               <option value="new_topic" ${flag === "new_topic" ? "selected" : ""}>Новая тема</option>
             </select></label>
           <label><span>Статус</span>
@@ -1172,8 +1208,18 @@ function renderTaskRow(task) {
               <option value="homework" ${task.status === "homework" ? "selected" : ""}>Сделать ДЗ</option>
               <option value="completed" ${task.status === "completed" ? "selected" : ""}>Пройдено</option>
             </select></label>
-          <label><span>Дата «Обновлено»</span>
+          <label><span>Дата «Задано»</span>
             <input data-f="updated_at" type="datetime-local" value="${task.status === "not_started" ? "" : escapeAttr(updatedLocal)}" /></label>
+          <label><span>Программа</span>
+            <select data-f="tool">
+              <option value="" ${tool === "" ? "selected" : ""}>Без иконки</option>
+              <option value="python" ${tool === "python" ? "selected" : ""}>Python</option>
+              <option value="excel" ${tool === "excel" ? "selected" : ""}>Excel</option>
+              <option value="word" ${tool === "word" ? "selected" : ""}>Word</option>
+              <option value="geogebra" ${tool === "geogebra" ? "selected" : ""}>GeoGebra</option>
+            </select></label>
+          <label><span>URL иконки программы</span>
+            <input data-f="toolIconUrl" value="${escapeAttr(toolIconUrl)}" placeholder="./icons/python.png" /></label>
         </div>
         <label><span>Название</span>
           <input data-f="title" value="${escapeAttr(task.title || "")}" /></label>
@@ -1234,28 +1280,40 @@ function generateHistoryEntries(oldTask, newPayload) {
   const newStatus = newPayload.status;
   if (oldStatus !== newStatus) {
     const from = HISTORY_STATUS_LABELS[oldStatus] || oldStatus;
-    const to   = HISTORY_STATUS_LABELS[newStatus] || newStatus;
+    const to = HISTORY_STATUS_LABELS[newStatus] || newStatus;
     entries.push({ date: now, text: `Статус: «${from}» → «${to}»` });
   }
 
   // Изменение метки
-  const oldFlag = oldDetails.flag || (oldDetails.isPinned === true ? "pinned" : "");
+  const oldFlag =
+    oldDetails.flag || (oldDetails.isPinned === true ? "pinned" : "");
   const newFlag = newDetails.flag || "";
   if (oldFlag !== newFlag) {
     if (newFlag) {
-      entries.push({ date: now, text: `Метка: «${HISTORY_FLAG_LABELS[newFlag] || newFlag}»` });
+      entries.push({
+        date: now,
+        text: `Метка: «${HISTORY_FLAG_LABELS[newFlag] || newFlag}»`,
+      });
     } else {
       entries.push({ date: now, text: "Метка убрана" });
     }
   }
 
   // Изменение домашнего задания
-  const oldHw = (Array.isArray(oldDetails.homework) ? oldDetails.homework : []).filter(Boolean).join("\n").trim();
-  const newHw = (Array.isArray(newDetails.homework) ? newDetails.homework : []).filter(Boolean).join("\n").trim();
+  const oldHw = (Array.isArray(oldDetails.homework) ? oldDetails.homework : [])
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+  const newHw = (Array.isArray(newDetails.homework) ? newDetails.homework : [])
+    .filter(Boolean)
+    .join("\n")
+    .trim();
   if (oldHw !== newHw) {
-    if (!oldHw && newHw)       entries.push({ date: now, text: "Домашнее задание добавлено" });
-    else if (oldHw && !newHw) entries.push({ date: now, text: "Домашнее задание убрано" });
-    else                       entries.push({ date: now, text: "Домашнее задание обновлено" });
+    if (!oldHw && newHw)
+      entries.push({ date: now, text: "Домашнее задание добавлено" });
+    else if (oldHw && !newHw)
+      entries.push({ date: now, text: "Домашнее задание убрано" });
+    else entries.push({ date: now, text: "Домашнее задание обновлено" });
   }
 
   return entries;
@@ -1265,13 +1323,19 @@ function formatHistoryDate(isoStr) {
   if (!isoStr) return "—";
   const d = new Date(isoStr);
   if (isNaN(d.getTime())) return isoStr;
-  return d.toLocaleDateString("ru-RU", { year: "numeric", month: "short", day: "numeric" });
+  return d.toLocaleDateString("ru-RU", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function renderTaskHistoryHtml(taskId, history) {
   const rows = Array.isArray(history) ? history : [];
   const entriesHtml = rows.length
-    ? rows.map((entry, i) => `
+    ? rows
+        .map(
+          (entry, i) => `
         <div class="task-history__entry" data-history-idx="${i}">
           <span class="task-history__date">${escapeHtml(formatHistoryDate(entry.date))}</span>
           <span class="task-history__text">${escapeHtml(entry.text || "")}</span>
@@ -1279,7 +1343,9 @@ function renderTaskHistoryHtml(taskId, history) {
             data-del-history="${escapeAttr(taskId)}"
             data-del-idx="${i}"
             title="Удалить запись">×</button>
-        </div>`).join("")
+        </div>`,
+        )
+        .join("")
     : `<div class="task-history__empty muted">История пуста</div>`;
 
   return `
@@ -1300,16 +1366,21 @@ function renderTaskHistoryHtml(taskId, history) {
 
 async function deleteHistoryEntry(taskId, subjectId, idx) {
   const tasks = state.tasksBySubjectId[subjectId] || [];
-  const task  = tasks.find((t) => t.id === taskId);
+  const task = tasks.find((t) => t.id === taskId);
   if (!task) return;
-  const history = Array.isArray(task.details?.history) ? [...task.details.history] : [];
+  const history = Array.isArray(task.details?.history)
+    ? [...task.details.history]
+    : [];
   history.splice(idx, 1);
   task.details = { ...(task.details || {}), history };
   try {
     await window.db
-      .collection("users").doc(state.selectedUserId)
-      .collection("subjects").doc(subjectId)
-      .collection("tasks").doc(taskId)
+      .collection("users")
+      .doc(state.selectedUserId)
+      .collection("subjects")
+      .doc(subjectId)
+      .collection("tasks")
+      .doc(taskId)
       .update({ "details.history": history });
     await refreshHistoryBlock(taskId, subjectId, history);
     setStatus("Запись удалена", "success");
@@ -1323,16 +1394,22 @@ async function addHistoryNote(taskId, subjectId, text) {
   const trimmed = text.trim();
   if (!trimmed) return;
   const tasks = state.tasksBySubjectId[subjectId] || [];
-  const task  = tasks.find((t) => t.id === taskId);
+  const task = tasks.find((t) => t.id === taskId);
   if (!task) return;
   const newEntry = { date: new Date().toISOString(), text: trimmed };
-  const history  = [newEntry, ...(Array.isArray(task.details?.history) ? task.details.history : [])];
+  const history = [
+    newEntry,
+    ...(Array.isArray(task.details?.history) ? task.details.history : []),
+  ];
   task.details = { ...(task.details || {}), history };
   try {
     await window.db
-      .collection("users").doc(state.selectedUserId)
-      .collection("subjects").doc(subjectId)
-      .collection("tasks").doc(taskId)
+      .collection("users")
+      .doc(state.selectedUserId)
+      .collection("subjects")
+      .doc(subjectId)
+      .collection("tasks")
+      .doc(taskId)
       .update({ "details.history": history });
     await refreshHistoryBlock(taskId, subjectId, history);
     setStatus("Запись добавлена", "success");
@@ -1359,8 +1436,10 @@ function bindHistoryHandlers(container, taskId, subjectId) {
       void deleteHistoryEntry(taskId, subjectId, idx);
     });
   });
-  const noteInput = container.querySelector(`[data-history-note-for="${taskId}"]`);
-  const addBtn    = container.querySelector(`[data-add-history-note="${taskId}"]`);
+  const noteInput = container.querySelector(
+    `[data-history-note-for="${taskId}"]`,
+  );
+  const addBtn = container.querySelector(`[data-add-history-note="${taskId}"]`);
   if (addBtn && noteInput) {
     const doAdd = () => {
       void addHistoryNote(taskId, subjectId, noteInput.value);
@@ -1368,7 +1447,10 @@ function bindHistoryHandlers(container, taskId, subjectId) {
     };
     addBtn.addEventListener("click", doAdd);
     noteInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") { e.preventDefault(); doAdd(); }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        doAdd();
+      }
     });
   }
 }
@@ -1380,6 +1462,9 @@ function buildTaskPayload(row, oldTask = null) {
       ? orderInput
       : Number(row.getAttribute("data-order-index")) || 1;
   const flag = row.querySelector('[data-f="flag"]')?.value || "";
+  const tool = row.querySelector('[data-f="tool"]')?.value || "";
+  const toolIconUrl =
+    row.querySelector('[data-f="toolIconUrl"]')?.value?.trim() || "";
   const statusVal =
     row.querySelector('[data-f="status"]')?.value || "not_started";
 
@@ -1389,17 +1474,24 @@ function buildTaskPayload(row, oldTask = null) {
   const updatedFromForm = statusChanged
     ? null
     : fromDateTimeLocalValue(row.querySelector('[data-f="updated_at"]')?.value);
-  const updatedAtIso =
-    statusChanged
-      ? (statusVal === "not_started" ? null : new Date().toISOString())
-      : (updatedFromForm || (statusVal === "not_started" ? null : new Date().toISOString()));
+  const updatedAtIso = statusChanged
+    ? statusVal === "not_started"
+      ? null
+      : new Date().toISOString()
+    : updatedFromForm ||
+      (statusVal === "not_started" ? null : new Date().toISOString());
 
   const homework = splitLines(row.querySelector('[data-f="homework"]')?.value);
 
   // Автоматически генерируем записи истории если есть старая версия задания
-  const oldHistory = Array.isArray(oldTask?.details?.history) ? oldTask.details.history : [];
+  const oldHistory = Array.isArray(oldTask?.details?.history)
+    ? oldTask.details.history
+    : [];
   const newEntries = oldTask
-    ? generateHistoryEntries(oldTask, { status: statusVal, details: { flag, homework, isPinned: oldTask?.details?.isPinned } })
+    ? generateHistoryEntries(oldTask, {
+        status: statusVal,
+        details: { flag, homework, isPinned: oldTask?.details?.isPinned },
+      })
     : [];
   const history = [...newEntries, ...oldHistory];
 
@@ -1425,6 +1517,8 @@ function buildTaskPayload(row, oldTask = null) {
       ),
       attachments: [],
       flag,
+      ...(tool ? { tool } : {}),
+      ...(toolIconUrl ? { toolIconUrl } : {}),
       history,
     },
   };
@@ -1438,7 +1532,9 @@ async function saveTaskFromRow(row) {
   const subjectId = row.getAttribute("data-subject-id-tr");
   if (!taskId || !subjectId) return;
   // Находим старую версию задания для генерации истории
-  const oldTask = (state.tasksBySubjectId[subjectId] || []).find((t) => t.id === taskId) || null;
+  const oldTask =
+    (state.tasksBySubjectId[subjectId] || []).find((t) => t.id === taskId) ||
+    null;
   try {
     await window.db
       .collection("users")
@@ -1579,7 +1675,10 @@ async function saveAllTasksInBlock(subjectId) {
         .doc(subjectId)
         .collection("tasks")
         .doc(taskId);
-      const oldTask = (state.tasksBySubjectId[subjectId] || []).find((t) => t.id === taskId) || null;
+      const oldTask =
+        (state.tasksBySubjectId[subjectId] || []).find(
+          (t) => t.id === taskId,
+        ) || null;
       batch.update(ref, buildTaskPayload(row, oldTask));
     });
     await batch.commit();
@@ -1791,9 +1890,10 @@ function formatStatus(status) {
 function setStatus(message, kind = "muted") {
   const textEl = document.getElementById("statusText");
   if (textEl) {
-    textEl.innerHTML = kind === "muted"
-      ? `${escapeHtml(message)} <span class="loader"></span>`
-      : escapeHtml(message);
+    textEl.innerHTML =
+      kind === "muted"
+        ? `${escapeHtml(message)} <span class="loader"></span>`
+        : escapeHtml(message);
   }
   els.statusBox.classList.remove("is-error", "is-success");
   if (kind === "error") els.statusBox.classList.add("is-error");
@@ -2068,7 +2168,9 @@ async function uploadAttachmentToRow(file, row) {
   const uploadBtn = row.querySelector(".att-upload-btn");
   const uploadIcon = uploadBtn?.querySelector(".att-upload-icon");
   // Безопасное имя: пробелы → _, убираем символы опасные для URL
-  const safeFileName = file.name.replace(/\s+/g, "_").replace(/[<>:"/\\|?*]+/g, "");
+  const safeFileName = file.name
+    .replace(/\s+/g, "_")
+    .replace(/[<>:"/\\|?*]+/g, "");
   const taskRow = row.closest("[data-task-id]");
   const tmplRow = row.closest("[data-tmpl-id]");
   let storagePath;
@@ -2077,12 +2179,13 @@ async function uploadAttachmentToRow(file, row) {
     const subject = state.selectedUserSubjects.find((s) => s.id === subjectId);
     const catalogTitle = yosSlug(
       state.catalog.find((c) => c.id === subject?.catalog_id)?.title ||
-        subject?.title || subjectId,
+        subject?.title ||
+        subjectId,
     );
 
     // Определяем тип файла по редактору
     const isLesson = !!row.closest('[id^="lesson-files-"]');
-    const isHint   = !!row.closest('[id^="hint-files-"]');
+    const isHint = !!row.closest('[id^="hint-files-"]');
     const taskTitle = yosSlug(
       taskRow.querySelector('[data-f="title"]')?.value ||
         taskRow.getAttribute("data-task-id"),
@@ -2091,7 +2194,8 @@ async function uploadAttachmentToRow(file, row) {
     if (isLesson) {
       // Конспект — в папку ученика: Ученик/Предмет/файл
       const studentName = yosSlug(
-        state.users.find((u) => u.id === state.selectedUserId)?.name || state.selectedUserId,
+        state.users.find((u) => u.id === state.selectedUserId)?.name ||
+          state.selectedUserId,
       );
       storagePath = `${studentName}/${catalogTitle}/${safeFileName}`;
     } else {
@@ -2100,10 +2204,13 @@ async function uploadAttachmentToRow(file, row) {
     }
   } else if (row.closest("[data-trial-id]")) {
     const trialRow = row.closest("[data-trial-id]");
-    const subject = state.selectedUserSubjects.find((s) => s.id === state.selectedTrialSubjectId);
+    const subject = state.selectedUserSubjects.find(
+      (s) => s.id === state.selectedTrialSubjectId,
+    );
     const catalogTitle = yosSlug(
       state.catalog.find((c) => c.id === subject?.catalog_id)?.title ||
-        subject?.title || "пробники",
+        subject?.title ||
+        "пробники",
     );
     const trialTitle = yosSlug(
       trialRow.querySelector('[data-tf="title"]')?.value ||
@@ -2278,12 +2385,12 @@ function initPageTabs() {
 
 function initSubjectFileUpload() {
   const subjectSelect = document.getElementById("subjectFileSubject");
-  const folderInput   = document.getElementById("subjectFileFolder");
-  const folderList    = document.getElementById("subjectFolderList");
-  const fileInput     = document.getElementById("subjectFileInput");
-  const fileNameEl    = document.getElementById("subjectFileName");
-  const uploadBtn     = document.getElementById("subjectFileUploadBtn");
-  const logEl         = document.getElementById("subjectFileLog");
+  const folderInput = document.getElementById("subjectFileFolder");
+  const folderList = document.getElementById("subjectFolderList");
+  const fileInput = document.getElementById("subjectFileInput");
+  const fileNameEl = document.getElementById("subjectFileName");
+  const uploadBtn = document.getElementById("subjectFileUploadBtn");
+  const logEl = document.getElementById("subjectFileLog");
   if (!subjectSelect || !uploadBtn) return;
 
   // Заполняем список предметов из каталога
@@ -2291,7 +2398,10 @@ function initSubjectFileUpload() {
     subjectSelect.innerHTML = state.catalog.length
       ? state.catalog
           .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-          .map((c) => `<option value="${escapeAttr(c.id)}">${escapeHtml(c.title || c.id)}</option>`)
+          .map(
+            (c) =>
+              `<option value="${escapeAttr(c.id)}">${escapeHtml(c.title || c.id)}</option>`,
+          )
           .join("")
       : `<option value="">— каталог не загружен —</option>`;
     loadSubjectFolders(); // загружаем папки для первого предмета
@@ -2315,7 +2425,7 @@ function initSubjectFileUpload() {
       const url = await yosPresignList(prefix);
       const res = await fetch(url);
       if (!res.ok) return;
-      const xml  = await res.text();
+      const xml = await res.text();
       // Вытаскиваем уникальные имена папок (второй сегмент пути)
       const folders = new Set();
       const re = /<Key>([^<]+)<\/Key>/g;
@@ -2341,20 +2451,30 @@ function initSubjectFileUpload() {
   });
 
   uploadBtn.addEventListener("click", async () => {
-    const file    = fileInput?.files?.[0];
-    const folder  = folderInput?.value?.trim();
-    const catId   = subjectSelect?.value;
-    if (!file) { logEl.textContent = "Выбери файл."; logEl.style.display = "block"; return; }
-    if (!folder) { logEl.textContent = "Укажи название папки/задания."; logEl.style.display = "block"; return; }
+    const file = fileInput?.files?.[0];
+    const folder = folderInput?.value?.trim();
+    const catId = subjectSelect?.value;
+    if (!file) {
+      logEl.textContent = "Выбери файл.";
+      logEl.style.display = "block";
+      return;
+    }
+    if (!folder) {
+      logEl.textContent = "Укажи название папки/задания.";
+      logEl.style.display = "block";
+      return;
+    }
 
     const catalogTitle = yosSlug(
       state.catalog.find((c) => c.id === catId)?.title || catId,
     );
-    const safeFolder   = yosSlug(folder);
-    const safeFile     = file.name.replace(/\s+/g, "_").replace(/[<>:"/\\|?*]+/g, "");
-    const storagePath  = `${catalogTitle}/${safeFolder}/${safeFile}`;
+    const safeFolder = yosSlug(folder);
+    const safeFile = file.name
+      .replace(/\s+/g, "_")
+      .replace(/[<>:"/\\|?*]+/g, "");
+    const storagePath = `${catalogTitle}/${safeFolder}/${safeFile}`;
 
-    logEl.textContent  = `Загружаю → ${storagePath}…`;
+    logEl.textContent = `Загружаю → ${storagePath}…`;
     logEl.style.display = "block";
     uploadBtn.disabled = true;
 
@@ -2368,7 +2488,7 @@ function initSubjectFileUpload() {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       logEl.innerHTML = `✅ Загружено: <a href="${escapeAttr(publicUrl)}" target="_blank" rel="noreferrer" style="word-break:break-all">${escapeHtml(publicUrl)}</a>`;
-      fileInput.value   = "";
+      fileInput.value = "";
       fileNameEl.textContent = "Файл не выбран";
       uploadBtn.disabled = true;
     } catch (err) {
@@ -2398,19 +2518,26 @@ function renderTrialsEditor() {
   }
 
   // Инициализируем выбранный предмет
-  if (!state.selectedTrialSubjectId || !subjects.find(s => s.id === state.selectedTrialSubjectId)) {
+  if (
+    !state.selectedTrialSubjectId ||
+    !subjects.find((s) => s.id === state.selectedTrialSubjectId)
+  ) {
     state.selectedTrialSubjectId = subjects[0].id;
   }
 
-  const tabsHtml = subjects.map((s) => {
-    const active = s.id === state.selectedTrialSubjectId ? "is-active" : "";
-    return `<button class="admin-page-tab ${active}" type="button" data-trial-subject="${escapeAttr(s.id)}">${escapeHtml(s.title || s.id)}</button>`;
-  }).join("");
+  const tabsHtml = subjects
+    .map((s) => {
+      const active = s.id === state.selectedTrialSubjectId ? "is-active" : "";
+      return `<button class="admin-page-tab ${active}" type="button" data-trial-subject="${escapeAttr(s.id)}">${escapeHtml(s.title || s.id)}</button>`;
+    })
+    .join("");
 
   // Нормализуем order_index перед рендером — гарантирует последовательность 1,2,3…
   state.trials
     .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
-    .forEach((t, i) => { t.order_index = i + 1; });
+    .forEach((t, i) => {
+      t.order_index = i + 1;
+    });
 
   const rows = state.trials.map((t, i) => trialRowHtml(t, i + 1)).join("");
 
@@ -2444,10 +2571,14 @@ function renderTrialsEditor() {
     btn.addEventListener("click", () => deleteTrial(btn.dataset.deleteTrial));
   });
   root.querySelectorAll("[data-trial-up]").forEach((btn) => {
-    btn.addEventListener("click", () => moveTrialUpOrDown(btn.dataset.trialUp, "up"));
+    btn.addEventListener("click", () =>
+      moveTrialUpOrDown(btn.dataset.trialUp, "up"),
+    );
   });
   root.querySelectorAll("[data-trial-down]").forEach((btn) => {
-    btn.addEventListener("click", () => moveTrialUpOrDown(btn.dataset.trialDown, "down"));
+    btn.addEventListener("click", () =>
+      moveTrialUpOrDown(btn.dataset.trialDown, "down"),
+    );
   });
   root.querySelectorAll("[data-pos-trial]").forEach((inp) => {
     inp.addEventListener("change", () => {
@@ -2457,7 +2588,9 @@ function renderTrialsEditor() {
   });
   root.querySelectorAll("[data-add-trial-file]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const editor = document.getElementById(`trial-files-${btn.dataset.addTrialFile}`);
+      const editor = document.getElementById(
+        `trial-files-${btn.dataset.addTrialFile}`,
+      );
       if (editor) {
         const tmp = document.createElement("div");
         tmp.innerHTML = attachmentRowHtml("", "");
@@ -2471,7 +2604,8 @@ function renderTrialsEditor() {
 async function initTrialsEditorSubject() {
   const subjects = state.selectedUserSubjects || [];
   if (!subjects.length) return;
-  if (!state.selectedTrialSubjectId) state.selectedTrialSubjectId = subjects[0].id;
+  if (!state.selectedTrialSubjectId)
+    state.selectedTrialSubjectId = subjects[0].id;
   await loadUserTrials(state.selectedUserId, state.selectedTrialSubjectId);
   renderTrialsEditor();
 }
@@ -2480,7 +2614,12 @@ function trialRowHtml(t, pos = t.order_index ?? 1) {
   const hwChecked = t.is_homework ? "checked" : "";
   const existingAtts = Array.isArray(t.attachments) ? t.attachments : [];
   const attRowsHtml = existingAtts.length
-    ? existingAtts.map((a) => { const p = parseStoredAttachment(a); return attachmentRowHtml(p.label, p.url); }).join("")
+    ? existingAtts
+        .map((a) => {
+          const p = parseStoredAttachment(a);
+          return attachmentRowHtml(p.label, p.url);
+        })
+        .join("")
     : "";
   return `
     <div class="trial-row" data-trial-id="${t.id}">
@@ -2542,10 +2681,15 @@ async function addTrial() {
   if (!state.selectedUserId) return;
   try {
     const subjectId = state.selectedTrialSubjectId;
-    if (!subjectId) { setStatus("Сначала выбери предмет в редакторе пробников", "error"); return; }
+    if (!subjectId) {
+      setStatus("Сначала выбери предмет в редакторе пробников", "error");
+      return;
+    }
     const ref = await window.db
-      .collection("users").doc(state.selectedUserId)
-      .collection("subjects").doc(subjectId)
+      .collection("users")
+      .doc(state.selectedUserId)
+      .collection("subjects")
+      .doc(subjectId)
       .collection("trials")
       .add({
         title: "",
@@ -2554,10 +2698,19 @@ async function addTrial() {
         attachments: [],
         section_label: "",
         is_homework: false,
-        order_index: (state.trials.length + 1),
+        order_index: state.trials.length + 1,
         created_at: new Date().toISOString(),
       });
-    state.trials.push({ id: ref.id, title: "", date: new Date().toISOString().slice(0, 10), score: "", attachments: [], section_label: "", is_homework: false, order_index: state.trials.length });
+    state.trials.push({
+      id: ref.id,
+      title: "",
+      date: new Date().toISOString().slice(0, 10),
+      score: "",
+      attachments: [],
+      section_label: "",
+      is_homework: false,
+      order_index: state.trials.length,
+    });
     renderTrialsEditor();
   } catch (err) {
     setStatus("Ошибка при создании пробника", "error");
@@ -2571,21 +2724,25 @@ async function saveTrial(trialId) {
   if (!row) return;
   const attEditor = document.getElementById(`trial-files-${trialId}`);
   const payload = {
-    title:         row.querySelector('[data-tf="title"]')?.value.trim() || "",
-    date:          row.querySelector('[data-tf="date"]')?.value || "",
-    score:         row.querySelector('[data-tf="score"]')?.value.trim() || "",
-    time:          row.querySelector('[data-tf="time"]')?.value.trim() || "",
-    attachments:   readAttachmentsFromRow(attEditor),
-    section_label: row.querySelector('[data-tf="section_label"]')?.value.trim() || "",
-    is_homework:   row.querySelector('[data-tf="is_homework"]')?.checked ?? false,
+    title: row.querySelector('[data-tf="title"]')?.value.trim() || "",
+    date: row.querySelector('[data-tf="date"]')?.value || "",
+    score: row.querySelector('[data-tf="score"]')?.value.trim() || "",
+    time: row.querySelector('[data-tf="time"]')?.value.trim() || "",
+    attachments: readAttachmentsFromRow(attEditor),
+    section_label:
+      row.querySelector('[data-tf="section_label"]')?.value.trim() || "",
+    is_homework: row.querySelector('[data-tf="is_homework"]')?.checked ?? false,
   };
   const subjectId = state.selectedTrialSubjectId;
   try {
     await window.db
-      .collection("users").doc(state.selectedUserId)
-      .collection("subjects").doc(subjectId)
+      .collection("users")
+      .doc(state.selectedUserId)
+      .collection("subjects")
+      .doc(subjectId)
       .collection("trials")
-      .doc(trialId).update(payload);
+      .doc(trialId)
+      .update(payload);
     const local = state.trials.find((t) => t.id === trialId);
     if (local) Object.assign(local, payload);
     setStatus("Пробник сохранён ✅", "success");
@@ -2602,15 +2759,27 @@ function moveTrialUpOrDown(trialId, dir) {
   if (idx === -1 || swapIdx < 0 || swapIdx >= state.trials.length) return;
 
   // Меняем местами в массиве и нормализуем
-  [state.trials[idx], state.trials[swapIdx]] = [state.trials[swapIdx], state.trials[idx]];
-  state.trials.forEach((t, i) => { t.order_index = i + 1; });
+  [state.trials[idx], state.trials[swapIdx]] = [
+    state.trials[swapIdx],
+    state.trials[idx],
+  ];
+  state.trials.forEach((t, i) => {
+    t.order_index = i + 1;
+  });
 
   // DOM-swap без перестроения
   const wrap = els.trialsEditor.querySelector(".trial-rows-wrap");
-  const nodeA = wrap?.querySelector(`[data-trial-id="${state.trials[idx].id}"]`);
-  const nodeB = wrap?.querySelector(`[data-trial-id="${state.trials[swapIdx].id}"]`);
+  const nodeA = wrap?.querySelector(
+    `[data-trial-id="${state.trials[idx].id}"]`,
+  );
+  const nodeB = wrap?.querySelector(
+    `[data-trial-id="${state.trials[swapIdx].id}"]`,
+  );
   if (nodeA && nodeB) {
-    wrap.insertBefore(dir === "up" ? nodeB : nodeA, dir === "up" ? nodeA : nodeB);
+    wrap.insertBefore(
+      dir === "up" ? nodeB : nodeA,
+      dir === "up" ? nodeA : nodeB,
+    );
   }
   // Обновляем номера в инпутах без перерисовки
   updateTrialPositionInputs();
@@ -2624,7 +2793,9 @@ function setTrialPosition(trialId, newPos) {
   const clamped = Math.max(1, Math.min(newPos, state.trials.length)) - 1;
   const [item] = state.trials.splice(idx, 1);
   state.trials.splice(clamped, 0, item);
-  state.trials.forEach((t, i) => { t.order_index = i + 1; });
+  state.trials.forEach((t, i) => {
+    t.order_index = i + 1;
+  });
   renderTrialsEditor(); // Полный рендер т.к. порядок мог измениться сильно
   saveTrialOrder();
 }
@@ -2644,9 +2815,12 @@ function saveTrialOrder() {
   const batch = window.db.batch();
   state.trials.forEach((t) => {
     const ref = window.db
-      .collection("users").doc(state.selectedUserId)
-      .collection("subjects").doc(subjectId)
-      .collection("trials").doc(t.id);
+      .collection("users")
+      .doc(state.selectedUserId)
+      .collection("subjects")
+      .doc(subjectId)
+      .collection("trials")
+      .doc(t.id);
     batch.update(ref, { order_index: t.order_index });
   });
   batch.commit().catch((err) => {
@@ -2661,10 +2835,13 @@ async function deleteTrial(trialId) {
   const subjectId = state.selectedTrialSubjectId;
   try {
     await window.db
-      .collection("users").doc(state.selectedUserId)
-      .collection("subjects").doc(subjectId)
+      .collection("users")
+      .doc(state.selectedUserId)
+      .collection("subjects")
+      .doc(subjectId)
       .collection("trials")
-      .doc(trialId).delete();
+      .doc(trialId)
+      .delete();
     state.trials = state.trials.filter((t) => t.id !== trialId);
     renderTrialsEditor();
     setStatus("Пробник удалён", "success");
@@ -3300,9 +3477,14 @@ function fmtBytes(n) {
 
 async function loadTickers() {
   try {
-    const snap = await window.db.collection("tickers").orderBy("created_at", "desc").get();
-    state.tickers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch(e) { console.error("loadTickers:", e); }
+    const snap = await window.db
+      .collection("tickers")
+      .orderBy("created_at", "desc")
+      .get();
+    state.tickers = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.error("loadTickers:", e);
+  }
 }
 
 function renderTickersList() {
@@ -3312,37 +3494,50 @@ function renderTickersList() {
     el.innerHTML = `<p class="muted">Объявлений пока нет.</p>`;
     return;
   }
-  el.innerHTML = state.tickers.map(t => tickerRowHtml(t)).join("");
-  el.querySelectorAll("[data-save-ticker]").forEach(btn =>
-    btn.addEventListener("click", () => saveTicker(btn.dataset.saveTicker))
+  el.innerHTML = state.tickers.map((t) => tickerRowHtml(t)).join("");
+  el.querySelectorAll("[data-save-ticker]").forEach((btn) =>
+    btn.addEventListener("click", () => saveTicker(btn.dataset.saveTicker)),
   );
-  el.querySelectorAll("[data-delete-ticker]").forEach(btn =>
-    btn.addEventListener("click", () => deleteTicker(btn.dataset.deleteTicker))
+  el.querySelectorAll("[data-delete-ticker]").forEach((btn) =>
+    btn.addEventListener("click", () => deleteTicker(btn.dataset.deleteTicker)),
   );
   // Live preview on input change
-  el.querySelectorAll(".ticker-row").forEach(row => {
+  el.querySelectorAll(".ticker-row").forEach((row) => {
     const preview = row.querySelector(".ticker-preview");
     const updatePreview = () => {
-      const rawBg = row.querySelector("[data-tk='bg']")?.value || "linear-gradient(90deg, #667eea, #764ba2)";
+      const rawBg =
+        row.querySelector("[data-tk='bg']")?.value ||
+        "linear-gradient(90deg, #667eea, #764ba2)";
       const bg = /^https?:\/\//i.test(rawBg.trim())
         ? `url(${rawBg.trim()}) center/cover no-repeat`
         : rawBg;
-      const color = row.querySelector("[data-tk='textColor']")?.value || "#ffffff";
-      if (preview) { preview.style.background = bg; preview.style.color = color; }
+      const color =
+        row.querySelector("[data-tk='textColor']")?.value || "#ffffff";
+      if (preview) {
+        preview.style.background = bg;
+        preview.style.color = color;
+      }
     };
-    row.querySelector("[data-tk='bg']")?.addEventListener("input", updatePreview);
-    row.querySelector("[data-tk='textColor']")?.addEventListener("input", updatePreview);
+    row
+      .querySelector("[data-tk='bg']")
+      ?.addEventListener("input", updatePreview);
+    row
+      .querySelector("[data-tk='textColor']")
+      ?.addEventListener("input", updatePreview);
     // Цветопикер фона → обновляет текстовое поле и превью
-    row.querySelector("[data-tk='bgPicker']")?.addEventListener("input", (e) => {
-      const bgInput = row.querySelector("[data-tk='bg']");
-      if (bgInput) bgInput.value = e.target.value;
-      updatePreview();
-    });
+    row
+      .querySelector("[data-tk='bgPicker']")
+      ?.addEventListener("input", (e) => {
+        const bgInput = row.querySelector("[data-tk='bg']");
+        if (bgInput) bgInput.value = e.target.value;
+        updatePreview();
+      });
 
     // Переключение тип: бегущая строка ↔ баннер
-    row.querySelectorAll("[data-tk='type']").forEach(radio => {
+    row.querySelectorAll("[data-tk='type']").forEach((radio) => {
       radio.addEventListener("change", () => {
-        const isBanner = row.querySelector("[data-tk='type']:checked")?.value === "banner";
+        const isBanner =
+          row.querySelector("[data-tk='type']:checked")?.value === "banner";
         row.querySelector("[data-tk-section='ticker']").hidden = isBanner;
         row.querySelector("[data-tk-section='banner']").hidden = !isBanner;
         // Обновить превью
@@ -3361,27 +3556,34 @@ function renderTickersList() {
     });
 
     // Превью баннера при вводе URL
-    row.querySelector("[data-tk='imageUrl']")?.addEventListener("input", (e) => {
-      const preview = row.querySelector(".ticker-preview");
-      const url = e.target.value.trim();
-      preview.innerHTML = url
-        ? `<img src="${escapeAttr(url)}" style="width:100%;max-height:80px;object-fit:cover;display:block;" />`
-        : `<div style="background:#eee;height:60px;display:flex;align-items:center;justify-content:center;color:#999;font-size:13px;">Вставь ссылку на картинку</div>`;
-    });
+    row
+      .querySelector("[data-tk='imageUrl']")
+      ?.addEventListener("input", (e) => {
+        const preview = row.querySelector(".ticker-preview");
+        const url = e.target.value.trim();
+        preview.innerHTML = url
+          ? `<img src="${escapeAttr(url)}" style="width:100%;max-height:80px;object-fit:cover;display:block;" />`
+          : `<div style="background:#eee;height:60px;display:flex;align-items:center;justify-content:center;color:#999;font-size:13px;">Вставь ссылку на картинку</div>`;
+      });
   });
 }
 
 function tickerRowHtml(t) {
-  const usersCheckboxes = state.users.map(u => {
-    const examTypes = getExamTypesForUser(u.id);
-    const badgesHtml = examTypes.map(type =>
-      `<span class="student-exam-badge student-exam-badge--${type === "ОГЭ" ? "oge" : "ege"}">${type}</span>`
-    ).join("");
-    return `<label style="display:flex;align-items:center;gap:6px;font-size:13px;">
-      <input type="checkbox" data-tk-user="${escapeAttr(u.id)}" ${(t.userIds||[]).includes(u.id) ? "checked" : ""} />
+  const usersCheckboxes = state.users
+    .map((u) => {
+      const examTypes = getExamTypesForUser(u.id);
+      const badgesHtml = examTypes
+        .map(
+          (type) =>
+            `<span class="student-exam-badge student-exam-badge--${type === "ОГЭ" ? "oge" : "ege"}">${type}</span>`,
+        )
+        .join("");
+      return `<label style="display:flex;align-items:center;gap:6px;font-size:13px;">
+      <input type="checkbox" data-tk-user="${escapeAttr(u.id)}" ${(t.userIds || []).includes(u.id) ? "checked" : ""} />
       ${escapeHtml(u.name || u.id)}${badgesHtml}
     </label>`;
-  }).join("");
+    })
+    .join("");
   const bg = t.bg || "linear-gradient(90deg, #667eea, #764ba2)";
   const textColor = t.textColor || "#ffffff";
   const enabled = t.enabled !== false;
@@ -3390,9 +3592,11 @@ function tickerRowHtml(t) {
 
   const previewHtml = isBanner
     ? `<div class="ticker-preview" style="border-radius:8px;overflow:hidden;max-height:80px;">
-        ${t.imageUrl
-          ? `<img src="${escapeAttrAdmin(t.imageUrl)}" style="width:100%;max-height:80px;object-fit:cover;display:block;" />`
-          : `<div style="background:#eee;height:60px;display:flex;align-items:center;justify-content:center;color:#999;font-size:13px;">Вставь ссылку на картинку</div>`}
+        ${
+          t.imageUrl
+            ? `<img src="${escapeAttrAdmin(t.imageUrl)}" style="width:100%;max-height:80px;object-fit:cover;display:block;" />`
+            : `<div style="background:#eee;height:60px;display:flex;align-items:center;justify-content:center;color:#999;font-size:13px;">Вставь ссылку на картинку</div>`
+        }
        </div>`
     : `<div class="ticker-preview" style="background:${escapeAttrAdmin(bg)};color:${escapeAttrAdmin(textColor)};padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">
         ${escapeHtml(t.text || "Превью бегущей строки")}
@@ -3412,7 +3616,7 @@ function tickerRowHtml(t) {
         </label>
       </div>
 
-      <div data-tk-section="ticker" ${isBanner ? 'hidden' : ''} style="display:grid;grid-template-columns:1fr;gap:8px;">
+      <div data-tk-section="ticker" ${isBanner ? "hidden" : ""} style="display:grid;grid-template-columns:1fr;gap:8px;">
         <label class="admin-label">
           <span>Текст (разделяй | для нескольких блоков)</span>
           <input type="text" data-tk="text" value="${escapeAttrAdmin(t.text || "")}" placeholder="Привет! | Новое задание | Удачи на экзамене" style="width:100%;" />
@@ -3433,7 +3637,7 @@ function tickerRowHtml(t) {
         </div>
       </div>
 
-      <div data-tk-section="banner" ${!isBanner ? 'hidden' : ''}>
+      <div data-tk-section="banner" ${!isBanner ? "hidden" : ""}>
         <label class="admin-label">
           <span>Ссылка на картинку (рекомендуемый размер 1440 × 120px)</span>
           <input type="url" data-tk="imageUrl" value="${escapeAttrAdmin(t.imageUrl || "")}" placeholder="https://storage.yandexcloud.net/..." style="width:100%;" />
@@ -3466,39 +3670,58 @@ async function addTicker() {
       userIds: [],
       created_at: new Date().toISOString(),
     });
-    state.tickers.unshift({ id: ref.id, text: "", bg: "linear-gradient(90deg, #667eea 0%, #764ba2 100%)", textColor: "#ffffff", enabled: true, userIds: [] });
+    state.tickers.unshift({
+      id: ref.id,
+      text: "",
+      bg: "linear-gradient(90deg, #667eea 0%, #764ba2 100%)",
+      textColor: "#ffffff",
+      enabled: true,
+      userIds: [],
+    });
     renderTickersList();
-  } catch(e) { setStatus("Ошибка при создании объявления", "error"); console.error(e); }
+  } catch (e) {
+    setStatus("Ошибка при создании объявления", "error");
+    console.error(e);
+  }
 }
 
 async function saveTicker(tickerId) {
   const row = document.querySelector(`[data-ticker-id="${tickerId}"]`);
   if (!row) return;
   const userIds = Array.from(row.querySelectorAll("[data-tk-user]"))
-    .filter(cb => cb.checked).map(cb => cb.dataset.tkUser);
+    .filter((cb) => cb.checked)
+    .map((cb) => cb.dataset.tkUser);
   const type = row.querySelector("[data-tk='type']:checked")?.value || "ticker";
   const payload = {
     type,
-    text:      row.querySelector("[data-tk='text']")?.value.trim() || "",
-    bg:        row.querySelector("[data-tk='bg']")?.value.trim() || "linear-gradient(90deg, #667eea, #764ba2)",
+    text: row.querySelector("[data-tk='text']")?.value.trim() || "",
+    bg:
+      row.querySelector("[data-tk='bg']")?.value.trim() ||
+      "linear-gradient(90deg, #667eea, #764ba2)",
     textColor: row.querySelector("[data-tk='textColor']")?.value || "#ffffff",
-    imageUrl:  row.querySelector("[data-tk='imageUrl']")?.value.trim() || "",
-    enabled:   row.querySelector("[data-tk='enabled']")?.checked ?? true,
+    imageUrl: row.querySelector("[data-tk='imageUrl']")?.value.trim() || "",
+    enabled: row.querySelector("[data-tk='enabled']")?.checked ?? true,
     userIds,
   };
   try {
     await window.db.collection("tickers").doc(tickerId).update(payload);
-    const local = state.tickers.find(t => t.id === tickerId);
+    const local = state.tickers.find((t) => t.id === tickerId);
     if (local) Object.assign(local, payload);
     setStatus("Объявление сохранено ✅", "success");
-  } catch(e) { setStatus("Ошибка при сохранении", "error"); console.error(e); }
+  } catch (e) {
+    setStatus("Ошибка при сохранении", "error");
+    console.error(e);
+  }
 }
 
 async function deleteTicker(tickerId) {
   if (!confirm("Удалить объявление?")) return;
   try {
     await window.db.collection("tickers").doc(tickerId).delete();
-    state.tickers = state.tickers.filter(t => t.id !== tickerId);
+    state.tickers = state.tickers.filter((t) => t.id !== tickerId);
     renderTickersList();
-  } catch(e) { setStatus("Ошибка при удалении", "error"); console.error(e); }
+  } catch (e) {
+    setStatus("Ошибка при удалении", "error");
+    console.error(e);
+  }
 }
