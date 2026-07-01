@@ -806,7 +806,6 @@ async function addSubjectWithTasks(userId, catalogId) {
     .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 
   const batch = window.db.batch();
-  const now = new Date().toISOString();
   templates.forEach((t) => {
     const taskRef = window.db
       .collection("users")
@@ -828,8 +827,6 @@ async function addSubjectWithTasks(userId, catalogId) {
         hints: [],
         attachments: [],
       },
-      created_at: now,
-      updated_at: now,
     });
   });
   await batch.commit();
@@ -1124,6 +1121,22 @@ async function renderTasksEditor() {
     });
   });
 
+  els.tasksEditor.querySelectorAll('[data-f="status"]').forEach((select) => {
+    select.addEventListener("change", () => {
+      const row = select.closest("[data-task-id]");
+      if (!row) return;
+      const dateInput = row.querySelector('[data-f="created_at"]');
+      if (!dateInput) return;
+      if (select.value === "not_started") {
+        dateInput.value = "";
+        return;
+      }
+      if (!dateInput.value.trim()) {
+        dateInput.value = toDateTimeLocalValue(new Date().toISOString());
+      }
+    });
+  });
+
   // История заданий
   els.tasksEditor.querySelectorAll("[data-history-for]").forEach((wrap) => {
     const taskId = wrap.getAttribute("data-history-for");
@@ -1140,8 +1153,7 @@ function renderTaskRow(task) {
   const userName =
     state.users.find((u) => u.id === state.selectedUserId)?.name || "";
   const flag = details.flag || (details.isPinned === true ? "pinned" : "");
-  const tool = details.tool || "";
-  const toolIconUrl = details.toolIconUrl || details.tool_icon_url || "";
+  const taskTools = normalizeTaskTools(details);
   const homework = Array.isArray(details.homework)
     ? details.homework.join("\n")
     : "";
@@ -1156,7 +1168,8 @@ function renderTaskRow(task) {
     ? details.hintFiles
     : [];
   const orderVal = getAdminTaskOrderValue(task);
-  const updatedLocal = toDateTimeLocalValue(task.updated_at);
+  const assignedIso = getAdminAssignedIso(task);
+  const createdLocal = toDateTimeLocalValue(assignedIso);
 
   const lessonFilesHtml = lessonFilesRaw
     .map((a) => {
@@ -1209,17 +1222,11 @@ function renderTaskRow(task) {
               <option value="completed" ${task.status === "completed" ? "selected" : ""}>Пройдено</option>
             </select></label>
           <label><span>Дата «Задано»</span>
-            <input data-f="updated_at" type="datetime-local" value="${task.status === "not_started" ? "" : escapeAttr(updatedLocal)}" /></label>
-          <label><span>Программа</span>
-            <select data-f="tool">
-              <option value="" ${tool === "" ? "selected" : ""}>Без иконки</option>
-              <option value="python" ${tool === "python" ? "selected" : ""}>Python</option>
-              <option value="excel" ${tool === "excel" ? "selected" : ""}>Excel</option>
-              <option value="word" ${tool === "word" ? "selected" : ""}>Word</option>
-              <option value="geogebra" ${tool === "geogebra" ? "selected" : ""}>GeoGebra</option>
-            </select></label>
-          <label><span>URL иконки программы</span>
-            <input data-f="toolIconUrl" value="${escapeAttr(toolIconUrl)}" placeholder="./icons/python.png" /></label>
+            <input data-f="created_at" type="datetime-local" value="${escapeAttr(createdLocal)}" /></label>
+        </div>
+        <div class="admin-field">
+          <span>Программы (можно несколько)</span>
+          ${renderTaskToolsFieldHtml(taskTools)}
         </div>
         <label><span>Название</span>
           <input data-f="title" value="${escapeAttr(task.title || "")}" /></label>
@@ -1462,24 +1469,35 @@ function buildTaskPayload(row, oldTask = null) {
       ? orderInput
       : Number(row.getAttribute("data-order-index")) || 1;
   const flag = row.querySelector('[data-f="flag"]')?.value || "";
-  const tool = row.querySelector('[data-f="tool"]')?.value || "";
-  const toolIconUrl =
-    row.querySelector('[data-f="toolIconUrl"]')?.value?.trim() || "";
+  const tools = readTaskToolsFromRow(row);
   const statusVal =
     row.querySelector('[data-f="status"]')?.value || "not_started";
 
-  // Если статус изменился — всегда ставим текущее время, иначе берём из формы
   const oldStatus = oldTask?.status || "not_started";
   const statusChanged = statusVal !== oldStatus;
-  const updatedFromForm = statusChanged
-    ? null
-    : fromDateTimeLocalValue(row.querySelector('[data-f="updated_at"]')?.value);
-  const updatedAtIso = statusChanged
-    ? statusVal === "not_started"
-      ? null
-      : new Date().toISOString()
-    : updatedFromForm ||
-      (statusVal === "not_started" ? null : new Date().toISOString());
+  const isActivation =
+    oldStatus === "not_started" && statusVal !== "not_started";
+  const createdFromForm = fromDateTimeLocalValue(
+    row.querySelector('[data-f="created_at"]')?.value,
+  );
+
+  let createdAtIso =
+    oldStatus === "not_started" ? null : oldTask?.created_at || null;
+  let updatedAtIso = oldTask?.updated_at || null;
+
+  if (statusVal === "not_started") {
+    createdAtIso = null;
+    updatedAtIso = null;
+  } else if (isActivation) {
+    const nowIso = new Date().toISOString();
+    updatedAtIso = nowIso;
+    createdAtIso = createdFromForm || nowIso;
+  } else if (statusChanged) {
+    updatedAtIso = new Date().toISOString();
+    createdAtIso = createdFromForm || createdAtIso;
+  } else if (createdFromForm) {
+    createdAtIso = createdFromForm;
+  }
 
   const homework = splitLines(row.querySelector('[data-f="homework"]')?.value);
 
@@ -1517,12 +1535,14 @@ function buildTaskPayload(row, oldTask = null) {
       ),
       attachments: [],
       flag,
-      ...(tool ? { tool } : {}),
-      ...(toolIconUrl ? { toolIconUrl } : {}),
+      ...(tools.length ? { tools } : {}),
       history,
     },
   };
+  if (createdAtIso) payload.created_at = createdAtIso;
+  else payload.created_at = null;
   if (updatedAtIso) payload.updated_at = updatedAtIso;
+  else payload.updated_at = null;
   return payload;
 }
 
@@ -1595,8 +1615,6 @@ async function addTask(subjectId) {
           attachments: [],
           flag: "",
         },
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       });
     await renderTasksEditor();
     setStatus("Задание добавлено", "success");
@@ -1857,6 +1875,11 @@ function toDateTimeLocalValue(iso) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function getAdminAssignedIso(task) {
+  if (!task || task.status === "not_started") return null;
+  return task.created_at || null;
+}
+
 function fromDateTimeLocalValue(s) {
   if (!s?.trim()) return null;
   const d = new Date(s);
@@ -1885,6 +1908,38 @@ function formatStatus(status) {
   if (status === "homework") return "Сделать ДЗ";
   if (status === "completed") return "Пройдено";
   return "—";
+}
+
+const TASK_TOOL_OPTIONS = [
+  { key: "python", label: "Python" },
+  { key: "excel", label: "Excel" },
+  { key: "word", label: "Word" },
+  { key: "calc", label: "Calc" },
+  { key: "writer", label: "Writer" },
+  { key: "hand", label: "Hand" },
+];
+
+function normalizeTaskTools(details) {
+  if (Array.isArray(details?.tools)) {
+    return details.tools.map((x) => String(x || "").trim()).filter(Boolean);
+  }
+  const legacy = String(details?.tool || "").trim();
+  return legacy ? [legacy] : [];
+}
+
+function renderTaskToolsFieldHtml(selectedTools) {
+  const selected = new Set(selectedTools);
+  const items = TASK_TOOL_OPTIONS.map(
+    (option) =>
+      `<label class="tool-check"><input type="checkbox" data-f="tool" value="${escapeAttr(option.key)}" ${selected.has(option.key) ? "checked" : ""} /><span>${escapeHtml(option.label)}</span></label>`,
+  ).join("");
+  return `<div class="tool-checkboxes" role="group">${items}</div>`;
+}
+
+function readTaskToolsFromRow(row) {
+  return Array.from(row.querySelectorAll('[data-f="tool"]:checked')).map(
+    (input) => input.value,
+  );
 }
 
 function setStatus(message, kind = "muted") {
