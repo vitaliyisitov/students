@@ -1125,25 +1125,8 @@ async function renderTasksEditor() {
     select.addEventListener("change", () => {
       const row = select.closest("[data-task-id]");
       if (!row) return;
-      const dateInput = row.querySelector('[data-f="created_at"]');
-      if (!dateInput) return;
-      if (select.value === "not_started") {
-        dateInput.value = "";
-        return;
-      }
-      if (!dateInput.value.trim()) {
-        dateInput.value = toDateTimeLocalValue(new Date().toISOString());
-      }
+      syncTaskDateFields(row, select.value);
     });
-  });
-
-  // История заданий
-  els.tasksEditor.querySelectorAll("[data-history-for]").forEach((wrap) => {
-    const taskId = wrap.getAttribute("data-history-for");
-    const row = wrap.closest("[data-task-id]");
-    const subjectId = row?.getAttribute("data-subject-id-tr");
-    if (!taskId || !subjectId) return;
-    bindHistoryHandlers(wrap, taskId, subjectId);
   });
 }
 
@@ -1153,7 +1136,6 @@ function renderTaskRow(task) {
   const userName =
     state.users.find((u) => u.id === state.selectedUserId)?.name || "";
   const flag = details.flag || (details.isPinned === true ? "pinned" : "");
-  const taskTools = normalizeTaskTools(details);
   const homework = Array.isArray(details.homework)
     ? details.homework.join("\n")
     : "";
@@ -1168,8 +1150,13 @@ function renderTaskRow(task) {
     ? details.hintFiles
     : [];
   const orderVal = getAdminTaskOrderValue(task);
-  const assignedIso = getAdminAssignedIso(task);
-  const createdLocal = toDateTimeLocalValue(assignedIso);
+  const homeworkDateLocal = toDateTimeLocalValue(getAdminHomeworkDateIso(task));
+  const updatedDateLocal = toDateTimeLocalValue(getAdminUpdatedDateIso(task));
+  const showHomeworkDate = task.status === "homework";
+  const showUpdatedDate =
+    task.status === "in_progress" || task.status === "completed";
+  const updatedDateLabel =
+    task.status === "completed" ? "Дата «Пройдено»" : "В процессе с";
 
   const lessonFilesHtml = lessonFilesRaw
     .map((a) => {
@@ -1221,12 +1208,10 @@ function renderTaskRow(task) {
               <option value="homework" ${task.status === "homework" ? "selected" : ""}>Сделать ДЗ</option>
               <option value="completed" ${task.status === "completed" ? "selected" : ""}>Пройдено</option>
             </select></label>
-          <label><span>Дата «Задано»</span>
-            <input data-f="created_at" type="datetime-local" value="${escapeAttr(createdLocal)}" /></label>
-        </div>
-        <div class="admin-field">
-          <span>Программы (можно несколько)</span>
-          ${renderTaskToolsFieldHtml(taskTools)}
+          <label data-task-date-homework${showHomeworkDate ? "" : ' style="display:none"'}><span>Дата «Задано»</span>
+            <input data-f="created_at" type="datetime-local" value="${escapeAttr(homeworkDateLocal)}" /></label>
+          <label data-task-date-updated${showUpdatedDate ? "" : ' style="display:none"'}><span data-task-date-updated-label>${escapeHtml(updatedDateLabel)}</span>
+            <input data-f="updated_at" type="datetime-local" value="${escapeAttr(updatedDateLocal)}" /></label>
         </div>
         <label><span>Название</span>
           <input data-f="title" value="${escapeAttr(task.title || "")}" /></label>
@@ -1255,210 +1240,38 @@ function renderTaskRow(task) {
           <button class="icon-btn" type="button" data-save-task="${escapeAttr(task.id)}">Сохранить задание</button>
           <button class="icon-btn danger" type="button" data-delete-task="${escapeAttr(task.id)}">Удалить задание</button>
         </div>
-
-        ${renderTaskHistoryHtml(task.id, Array.isArray(details.history) ? details.history : [])}
       </div>
     </details>`;
 }
 
-// ─── История задания ──────────────────────────────────────────────────────────
-
-const HISTORY_STATUS_LABELS = {
-  not_started: "Не начато",
-  in_progress: "В процессе",
-  homework: "Сделать ДЗ",
-  completed: "Пройдено",
-};
-
-const HISTORY_FLAG_LABELS = {
-  pinned: "Закреплено",
-  redo: "Перерешать",
-  new_topic: "Новая тема",
-};
-
-function generateHistoryEntries(oldTask, newPayload) {
-  const entries = [];
-  const now = new Date().toISOString();
-  const oldDetails = oldTask?.details || {};
-  const newDetails = newPayload?.details || {};
-
-  // Изменение статуса
-  const oldStatus = oldTask?.status || "not_started";
-  const newStatus = newPayload.status;
-  if (oldStatus !== newStatus) {
-    const from = HISTORY_STATUS_LABELS[oldStatus] || oldStatus;
-    const to = HISTORY_STATUS_LABELS[newStatus] || newStatus;
-    entries.push({ date: now, text: `Статус: «${from}» → «${to}»` });
+function syncTaskDateFields(row, status) {
+  const hwWrap = row.querySelector("[data-task-date-homework]");
+  const updatedWrap = row.querySelector("[data-task-date-updated]");
+  const updatedLabel = row.querySelector("[data-task-date-updated-label]");
+  const hwInput = row.querySelector('[data-f="created_at"]');
+  const updatedInput = row.querySelector('[data-f="updated_at"]');
+  if (hwWrap) hwWrap.style.display = status === "homework" ? "" : "none";
+  if (updatedWrap) {
+    updatedWrap.style.display =
+      status === "in_progress" || status === "completed" ? "" : "none";
   }
-
-  // Изменение метки
-  const oldFlag =
-    oldDetails.flag || (oldDetails.isPinned === true ? "pinned" : "");
-  const newFlag = newDetails.flag || "";
-  if (oldFlag !== newFlag) {
-    if (newFlag) {
-      entries.push({
-        date: now,
-        text: `Метка: «${HISTORY_FLAG_LABELS[newFlag] || newFlag}»`,
-      });
-    } else {
-      entries.push({ date: now, text: "Метка убрана" });
-    }
+  if (updatedLabel) {
+    updatedLabel.textContent =
+      status === "completed" ? "Дата «Пройдено»" : "В процессе с";
   }
-
-  // Изменение домашнего задания
-  const oldHw = (Array.isArray(oldDetails.homework) ? oldDetails.homework : [])
-    .filter(Boolean)
-    .join("\n")
-    .trim();
-  const newHw = (Array.isArray(newDetails.homework) ? newDetails.homework : [])
-    .filter(Boolean)
-    .join("\n")
-    .trim();
-  if (oldHw !== newHw) {
-    if (!oldHw && newHw)
-      entries.push({ date: now, text: "Домашнее задание добавлено" });
-    else if (oldHw && !newHw)
-      entries.push({ date: now, text: "Домашнее задание убрано" });
-    else entries.push({ date: now, text: "Домашнее задание обновлено" });
+  if (status === "homework" && hwInput && !hwInput.value.trim()) {
+    hwInput.value = toDateTimeLocalValue(new Date().toISOString());
   }
-
-  return entries;
-}
-
-function formatHistoryDate(isoStr) {
-  if (!isoStr) return "—";
-  const d = new Date(isoStr);
-  if (isNaN(d.getTime())) return isoStr;
-  return d.toLocaleDateString("ru-RU", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function renderTaskHistoryHtml(taskId, history) {
-  const rows = Array.isArray(history) ? history : [];
-  const entriesHtml = rows.length
-    ? rows
-        .map(
-          (entry, i) => `
-        <div class="task-history__entry" data-history-idx="${i}">
-          <span class="task-history__date">${escapeHtml(formatHistoryDate(entry.date))}</span>
-          <span class="task-history__text">${escapeHtml(entry.text || "")}</span>
-          <button class="task-history__del" type="button"
-            data-del-history="${escapeAttr(taskId)}"
-            data-del-idx="${i}"
-            title="Удалить запись">×</button>
-        </div>`,
-        )
-        .join("")
-    : `<div class="task-history__empty muted">История пуста</div>`;
-
-  return `
-    <div class="task-history" data-history-for="${escapeAttr(taskId)}">
-      <div class="task-history__header">
-        <span class="task-history__label">История</span>
-      </div>
-      <div class="task-history__list">${entriesHtml}</div>
-      <div class="task-history__add">
-        <input class="task-history__note-input" type="text"
-          placeholder="Добавить запись вручную…"
-          data-history-note-for="${escapeAttr(taskId)}" />
-        <button class="icon-btn" type="button"
-          data-add-history-note="${escapeAttr(taskId)}">Добавить</button>
-      </div>
-    </div>`;
-}
-
-async function deleteHistoryEntry(taskId, subjectId, idx) {
-  const tasks = state.tasksBySubjectId[subjectId] || [];
-  const task = tasks.find((t) => t.id === taskId);
-  if (!task) return;
-  const history = Array.isArray(task.details?.history)
-    ? [...task.details.history]
-    : [];
-  history.splice(idx, 1);
-  task.details = { ...(task.details || {}), history };
-  try {
-    await window.db
-      .collection("users")
-      .doc(state.selectedUserId)
-      .collection("subjects")
-      .doc(subjectId)
-      .collection("tasks")
-      .doc(taskId)
-      .update({ "details.history": history });
-    await refreshHistoryBlock(taskId, subjectId, history);
-    setStatus("Запись удалена", "success");
-  } catch (err) {
-    setStatus("Не удалось удалить запись", "error");
-    console.error(err);
+  if (
+    (status === "in_progress" || status === "completed") &&
+    updatedInput &&
+    !updatedInput.value.trim()
+  ) {
+    updatedInput.value = toDateTimeLocalValue(new Date().toISOString());
   }
-}
-
-async function addHistoryNote(taskId, subjectId, text) {
-  const trimmed = text.trim();
-  if (!trimmed) return;
-  const tasks = state.tasksBySubjectId[subjectId] || [];
-  const task = tasks.find((t) => t.id === taskId);
-  if (!task) return;
-  const newEntry = { date: new Date().toISOString(), text: trimmed };
-  const history = [
-    newEntry,
-    ...(Array.isArray(task.details?.history) ? task.details.history : []),
-  ];
-  task.details = { ...(task.details || {}), history };
-  try {
-    await window.db
-      .collection("users")
-      .doc(state.selectedUserId)
-      .collection("subjects")
-      .doc(subjectId)
-      .collection("tasks")
-      .doc(taskId)
-      .update({ "details.history": history });
-    await refreshHistoryBlock(taskId, subjectId, history);
-    setStatus("Запись добавлена", "success");
-  } catch (err) {
-    setStatus("Не удалось добавить запись", "error");
-    console.error(err);
-  }
-}
-
-async function refreshHistoryBlock(taskId, subjectId, history) {
-  const wrap = els.tasksEditor.querySelector(`[data-history-for="${taskId}"]`);
-  if (!wrap) return;
-  const tmp = document.createElement("div");
-  tmp.innerHTML = renderTaskHistoryHtml(taskId, history);
-  const newWrap = tmp.firstElementChild;
-  wrap.replaceWith(newWrap);
-  bindHistoryHandlers(newWrap, taskId, subjectId);
-}
-
-function bindHistoryHandlers(container, taskId, subjectId) {
-  container.querySelectorAll("[data-del-history]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const idx = Number(btn.getAttribute("data-del-idx"));
-      void deleteHistoryEntry(taskId, subjectId, idx);
-    });
-  });
-  const noteInput = container.querySelector(
-    `[data-history-note-for="${taskId}"]`,
-  );
-  const addBtn = container.querySelector(`[data-add-history-note="${taskId}"]`);
-  if (addBtn && noteInput) {
-    const doAdd = () => {
-      void addHistoryNote(taskId, subjectId, noteInput.value);
-      noteInput.value = "";
-    };
-    addBtn.addEventListener("click", doAdd);
-    noteInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        doAdd();
-      }
-    });
+  if (status === "not_started") {
+    if (hwInput) hwInput.value = "";
+    if (updatedInput) updatedInput.value = "";
   }
 }
 
@@ -1469,49 +1282,46 @@ function buildTaskPayload(row, oldTask = null) {
       ? orderInput
       : Number(row.getAttribute("data-order-index")) || 1;
   const flag = row.querySelector('[data-f="flag"]')?.value || "";
-  const tools = readTaskToolsFromRow(row);
   const statusVal =
     row.querySelector('[data-f="status"]')?.value || "not_started";
 
   const oldStatus = oldTask?.status || "not_started";
   const statusChanged = statusVal !== oldStatus;
-  const isActivation =
-    oldStatus === "not_started" && statusVal !== "not_started";
   const createdFromForm = fromDateTimeLocalValue(
     row.querySelector('[data-f="created_at"]')?.value,
   );
+  const updatedFromForm = fromDateTimeLocalValue(
+    row.querySelector('[data-f="updated_at"]')?.value,
+  );
 
-  let createdAtIso =
-    oldStatus === "not_started" ? null : oldTask?.created_at || null;
+  let createdAtIso = oldTask?.created_at || null;
   let updatedAtIso = oldTask?.updated_at || null;
 
   if (statusVal === "not_started") {
     createdAtIso = null;
     updatedAtIso = null;
-  } else if (isActivation) {
-    const nowIso = new Date().toISOString();
-    updatedAtIso = nowIso;
-    createdAtIso = createdFromForm || nowIso;
   } else if (statusChanged) {
-    updatedAtIso = new Date().toISOString();
-    createdAtIso = createdFromForm || createdAtIso;
-  } else if (createdFromForm) {
-    createdAtIso = createdFromForm;
+    if (statusVal === "in_progress") {
+      updatedAtIso = updatedFromForm || new Date().toISOString();
+    } else if (statusVal === "homework") {
+      createdAtIso = createdFromForm || new Date().toISOString();
+      updatedAtIso = new Date().toISOString();
+    } else if (statusVal === "completed") {
+      updatedAtIso = updatedFromForm || new Date().toISOString();
+    }
+  } else {
+    if (statusVal === "homework" && createdFromForm) {
+      createdAtIso = createdFromForm;
+    }
+    if (
+      (statusVal === "in_progress" || statusVal === "completed") &&
+      updatedFromForm
+    ) {
+      updatedAtIso = updatedFromForm;
+    }
   }
 
   const homework = splitLines(row.querySelector('[data-f="homework"]')?.value);
-
-  // Автоматически генерируем записи истории если есть старая версия задания
-  const oldHistory = Array.isArray(oldTask?.details?.history)
-    ? oldTask.details.history
-    : [];
-  const newEntries = oldTask
-    ? generateHistoryEntries(oldTask, {
-        status: statusVal,
-        details: { flag, homework, isPinned: oldTask?.details?.isPinned },
-      })
-    : [];
-  const history = [...newEntries, ...oldHistory];
 
   const payload = {
     title: row.querySelector('[data-f="title"]')?.value?.trim() || "Задание",
@@ -1535,8 +1345,6 @@ function buildTaskPayload(row, oldTask = null) {
       ),
       attachments: [],
       flag,
-      ...(tools.length ? { tools } : {}),
-      history,
     },
   };
   if (createdAtIso) payload.created_at = createdAtIso;
@@ -1551,7 +1359,6 @@ async function saveTaskFromRow(row) {
   const taskId = row.getAttribute("data-task-id");
   const subjectId = row.getAttribute("data-subject-id-tr");
   if (!taskId || !subjectId) return;
-  // Находим старую версию задания для генерации истории
   const oldTask =
     (state.tasksBySubjectId[subjectId] || []).find((t) => t.id === taskId) ||
     null;
@@ -1875,9 +1682,16 @@ function toDateTimeLocalValue(iso) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function getAdminAssignedIso(task) {
-  if (!task || task.status === "not_started") return null;
+function getAdminHomeworkDateIso(task) {
+  if (!task || task.status !== "homework") return null;
   return task.created_at || null;
+}
+
+function getAdminUpdatedDateIso(task) {
+  if (!task || (task.status !== "in_progress" && task.status !== "completed")) {
+    return null;
+  }
+  return task.updated_at || null;
 }
 
 function fromDateTimeLocalValue(s) {
@@ -1908,38 +1722,6 @@ function formatStatus(status) {
   if (status === "homework") return "Сделать ДЗ";
   if (status === "completed") return "Пройдено";
   return "—";
-}
-
-const TASK_TOOL_OPTIONS = [
-  { key: "python", label: "Python" },
-  { key: "excel", label: "Excel" },
-  { key: "word", label: "Word" },
-  { key: "calc", label: "Calc" },
-  { key: "writer", label: "Writer" },
-  { key: "hand", label: "Hand" },
-];
-
-function normalizeTaskTools(details) {
-  if (Array.isArray(details?.tools)) {
-    return details.tools.map((x) => String(x || "").trim()).filter(Boolean);
-  }
-  const legacy = String(details?.tool || "").trim();
-  return legacy ? [legacy] : [];
-}
-
-function renderTaskToolsFieldHtml(selectedTools) {
-  const selected = new Set(selectedTools);
-  const items = TASK_TOOL_OPTIONS.map(
-    (option) =>
-      `<label class="tool-check"><input type="checkbox" data-f="tool" value="${escapeAttr(option.key)}" ${selected.has(option.key) ? "checked" : ""} /><span>${escapeHtml(option.label)}</span></label>`,
-  ).join("");
-  return `<div class="tool-checkboxes" role="group">${items}</div>`;
-}
-
-function readTaskToolsFromRow(row) {
-  return Array.from(row.querySelectorAll('[data-f="tool"]:checked')).map(
-    (input) => input.value,
-  );
 }
 
 function setStatus(message, kind = "muted") {

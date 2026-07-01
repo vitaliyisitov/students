@@ -917,19 +917,28 @@ function renderTaskFootHtml(task) {
       : "";
   }
 
-  const assignedText = formatAssignedDate(getTaskAssignedDateISO(task));
-  const daysRef =
-    status === "homework"
-      ? task.updatedAtISO || task.createdAtISO
-      : task.updatedAtISO || task.createdAtISO;
-  const daysText = formatDaysPassed(daysSince(daysRef));
+  if (status === "in_progress") {
+    const progressText = formatInProgressDate(task.updatedAtISO);
+    const daysText = formatDaysPassed(daysSince(task.updatedAtISO));
+    if (!progressText && !daysText) return "";
+    return `<div class="task__foot">
+      ${progressText ? `<span class="task__date">${escapeHtml(progressText)}</span>` : "<span></span>"}
+      ${daysText ? `<span class="task__days">${escapeHtml(daysText)}</span>` : ""}
+    </div>`;
+  }
 
-  if (!assignedText && !daysText) return "";
+  if (status === "homework") {
+    const assignedText = formatAssignedDate(getTaskAssignedDateISO(task));
+    const daysRef = task.updatedAtISO || task.createdAtISO;
+    const daysText = formatDaysPassed(daysSince(daysRef));
+    if (!assignedText && !daysText) return "";
+    return `<div class="task__foot">
+      ${assignedText ? `<span class="task__date">${escapeHtml(assignedText)}</span>` : "<span></span>"}
+      ${daysText ? `<span class="task__days">${escapeHtml(daysText)}</span>` : ""}
+    </div>`;
+  }
 
-  return `<div class="task__foot">
-    ${assignedText ? `<span class="task__date">${escapeHtml(assignedText)}</span>` : "<span></span>"}
-    ${daysText ? `<span class="task__days">${escapeHtml(daysText)}</span>` : ""}
-  </div>`;
+  return "";
 }
 
 function daysSince(iso) {
@@ -956,6 +965,18 @@ function formatDaysPassed(days) {
     else if (mod10 >= 2 && mod10 <= 4) word = "дня";
   }
   return `${days} ${word}`;
+}
+
+function formatInProgressDate(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const datePart = d.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  return `В процессе с ${datePart}`;
 }
 
 function formatCompletedDate(iso) {
@@ -1019,43 +1040,8 @@ function renderTaskFilters() {
   setActiveFilterChip(state.filter || "all");
 }
 
-const TASK_TOOL_PRESETS = {
-  python: { label: "Python", icon: "./icons/python.png" },
-  excel: { label: "Excel", icon: "./icons/excel.png" },
-  word: { label: "Word", icon: "./icons/word.png" },
-  geogebra: { label: "GeoGebra", icon: "./icons/geogebra.png" },
-};
-
-function getTaskTools(task) {
-  const details =
-    task?.details && typeof task.details === "object" ? task.details : {};
-  const keys = Array.isArray(details.tools)
-    ? details.tools
-    : details.tool
-      ? [details.tool]
-      : [];
-
-  return keys
-    .map((key) => {
-      const preset = TASK_TOOL_PRESETS[String(key || "").trim()];
-      return preset ? { ...preset, key: String(key).trim() } : null;
-    })
-    .filter(Boolean);
-}
-
-function renderTaskToolsHtml(tools) {
-  if (!tools.length) return "";
-  const items = tools
-    .map(
-      (tool) =>
-        `<span class="task__tool" title="${escapeAttr(tool.label)}"><img src="${escapeAttr(tool.icon)}" width="22" height="22" alt="" /></span>`,
-    )
-    .join("");
-  return `<div class="task__tools" aria-label="Программы">${items}</div>`;
-}
-
 function getTaskAssignedDateISO(task) {
-  if ((task?.status || "not_started") === "not_started") return null;
+  if ((task?.status || "not_started") !== "homework") return null;
   return task?.createdAtISO || null;
 }
 
@@ -1325,31 +1311,6 @@ function parseRichLink(line) {
   }
   if (isValidHttpUrl(value)) return { label: "Ссылка", href: value };
   return null;
-}
-
-function renderHistorySection(history) {
-  if (!Array.isArray(history) || !history.length) return "";
-  const itemsHtml = history
-    .map((entry) => {
-      const date = entry.date ? new Date(entry.date) : null;
-      const dateStr =
-        date && !isNaN(date.getTime())
-          ? date.toLocaleDateString("ru-RU", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })
-          : "";
-      return `<div class="history-entry">
-      ${dateStr ? `<span class="history-entry__date">${escapeHtml(dateStr)}</span>` : ""}
-      <span class="history-entry__text">${escapeHtml(entry.text || "")}</span>
-    </div>`;
-    })
-    .join("");
-  return `<div class="section section--history">
-    <div class="section__title">История</div>
-    <div class="history-list">${itemsHtml}</div>
-  </div>`;
 }
 
 function renderAttachmentsSection(attachments) {
