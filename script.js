@@ -29,6 +29,7 @@ const els = {
   nowDate: document.getElementById("nowDate"),
   nowTime: document.getElementById("nowTime"),
   subjectTabs: document.getElementById("subjectTabs"),
+  dashboardPanel: document.getElementById("dashboardPanel"),
 
   greetingEyebrow: document.getElementById("greetingEyebrow"),
   greetingTitle: document.getElementById("greetingTitle"),
@@ -65,9 +66,12 @@ const els = {
   modalSubtitle: document.getElementById("modalSubtitle"),
   modalContent: document.getElementById("modalContent"),
 
-  appGate: document.getElementById("appGate"),
-  appGateTitle: document.getElementById("appGateTitle"),
-  appGateMessage: document.getElementById("appGateMessage"),
+  appState: document.getElementById("appState"),
+  appStateIcon: document.getElementById("appStateIcon"),
+  appStateEyebrow: document.getElementById("appStateEyebrow"),
+  appStateTitle: document.getElementById("appStateTitle"),
+  appStateText: document.getElementById("appStateText"),
+  appStateHint: document.getElementById("appStateHint"),
   appShell: document.getElementById("appShell"),
   appLoader: document.getElementById("appLoader"),
 };
@@ -77,17 +81,51 @@ let countdownTimer = null;
 let lastFocusedBeforeModal = null;
 let subjectTabsBound = false;
 
+const STATE_SCREEN_COPY = {
+  paused: {
+    eyebrow: "",
+    title: "Кабинет на паузе",
+    text: "До встречи в новом учебном году",
+    icon: "clock",
+  },
+  missing_token: {
+    eyebrow: "",
+    title: "Нужна ссылка",
+    text: "Откройте кабинет по ссылке от преподавателя",
+    hint: "",
+    icon: "link",
+  },
+  invalid_token: {
+    eyebrow: "",
+    title: "Неверная ссылка",
+    text: "Проверьте ссылку или запросите новую",
+    icon: "warning",
+  },
+};
+
+const STATE_SCREEN_ICONS = {
+  clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.2 2"/></svg>`,
+  link: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a4 4 0 0 0 5.66 0l2.12-2.12a4 4 0 0 0-5.66-5.66L11 6"/><path d="M14 11a4 4 0 0 0-5.66 0L6.22 13.12a4 4 0 1 0 5.66 5.66L13 18"/></svg>`,
+  warning: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>`,
+};
+
 void init();
 
 async function init() {
   setAppLoading(true);
   try {
     await loadDataFromFirebase();
-    if (!isDashboardShellVisible()) {
+    if (els.appState && !els.appState.hidden) {
       startClock();
       return;
     }
     if (!state.selectedSubjectId) {
+      state.selectedSubjectId = data.subjects[0]?.id || null;
+    }
+    if (
+      state.selectedSubjectId &&
+      !data.subjects.some((s) => s.id === state.selectedSubjectId)
+    ) {
       state.selectedSubjectId = data.subjects[0]?.id || null;
     }
     renderSubjectTabs();
@@ -143,6 +181,7 @@ async function loadDataFromFirebase() {
 
   if (!token) {
     setDashboardGate(null);
+    showDashboardShell();
     return;
   }
 
@@ -225,10 +264,6 @@ async function loadDataFromFirebase() {
   }
 }
 
-function isDashboardShellVisible() {
-  return !els.appShell?.hidden;
-}
-
 function setAppLoading(isLoading) {
   const loader = els.appLoader;
   document.body.classList.toggle("is-app-loading", isLoading);
@@ -237,32 +272,50 @@ function setAppLoading(isLoading) {
   loader.setAttribute("aria-hidden", isLoading ? "false" : "true");
 }
 
+function showDashboardShell() {
+  if (els.appState) {
+    els.appState.hidden = true;
+    els.appState.className = "state-screen";
+  }
+  if (els.appShell) els.appShell.hidden = false;
+}
+
+function showAppState(reason) {
+  const block = STATE_SCREEN_COPY[reason] || STATE_SCREEN_COPY.invalid_token;
+  if (!els.appState) return;
+
+  els.appState.className = `state-screen state-screen--${reason}`;
+
+  if (els.appStateIcon) {
+    els.appStateIcon.className = "state-screen__icon";
+    els.appStateIcon.innerHTML = STATE_SCREEN_ICONS[block.icon] || "";
+  }
+  if (els.appStateEyebrow) {
+    els.appStateEyebrow.textContent = block.eyebrow || "";
+    els.appStateEyebrow.hidden = !block.eyebrow;
+  }
+  if (els.appStateTitle) els.appStateTitle.textContent = block.title;
+  if (els.appStateText) els.appStateText.textContent = block.text;
+  if (els.appStateHint) {
+    if (block.hint) {
+      els.appStateHint.textContent = block.hint;
+      els.appStateHint.hidden = false;
+    } else {
+      els.appStateHint.textContent = "";
+      els.appStateHint.hidden = true;
+    }
+  }
+
+  els.appState.hidden = false;
+  if (els.appShell) els.appShell.hidden = true;
+}
+
 function setDashboardGate(reason) {
-  if (!els.appShell) return;
-  if (!els.appGate || !els.appGateTitle || !els.appGateMessage) {
-    els.appShell.hidden = false;
-    return;
-  }
   if (!reason) {
-    els.appGate.hidden = true;
-    els.appShell.hidden = false;
+    if (els.appState) els.appState.hidden = true;
     return;
   }
-  const copy = {
-    missing_token: {
-      title: "Нужна персональная ссылка",
-      text: "Откройте кабинет по ссылке от преподавателя. В адресе должен быть параметр ?k=...",
-    },
-    invalid_token: {
-      title: "Ссылка недействительна",
-      text: "Проверьте ссылку целиком или запросите новую у преподавателя.",
-    },
-  };
-  const block = copy[reason] || copy.invalid_token;
-  els.appGateTitle.textContent = block.title;
-  els.appGateMessage.textContent = block.text;
-  els.appGate.hidden = false;
-  els.appShell.hidden = true;
+  showAppState(reason);
 }
 
 function sortDbTaskRows(rows) {
@@ -406,10 +459,32 @@ function bindEvents() {
 }
 
 function renderAll() {
+  if (isCabinetPaused()) {
+    showAppState("paused");
+    renderServiceBtns();
+    return;
+  }
+
+  showDashboardShell();
   renderGreeting();
   renderExam();
   renderTasks();
   renderServiceBtns();
+}
+
+function hasSubjects() {
+  return Array.isArray(data.subjects) && data.subjects.length > 0;
+}
+
+function isSubjectExamEnded(subject) {
+  const date = parseISODate(subject?.exam?.dateISO);
+  if (!date) return false;
+  return daysUntil(date) < 0;
+}
+
+function isCabinetPaused() {
+  if (!hasSubjects()) return true;
+  return data.subjects.every(isSubjectExamEnded);
 }
 
 // Иконки сервисов.
@@ -417,14 +492,18 @@ function renderAll() {
 // favicon — фолбэк через Google Favicon API
 const SERVICE_META = {
   // Доски
-  miro:     { label: "Miro",          icon: "./icons/miro.webp" },
-  unidraw:  { label: "Unidraw",       icon: "./icons/unidraw.webp" },
+  miro: { label: "Miro", icon: "./icons/miro.webp" },
+  unidraw: { label: "Unidraw", icon: "./icons/unidraw.webp" },
   // Звонки
-  teams:    { label: "Teams",         icon: "./icons/teams.webp" },
-  telemost: { label: "Телемост",      icon: "./icons/telemost.webp" },
-  ktalk:    { label: "Контур Толк",   icon: "./icons/call.webp",     favicon: "ktalk.ru" },
+  teams: { label: "Teams", icon: "./icons/teams.webp" },
+  telemost: { label: "Телемост", icon: "./icons/telemost.webp" },
+  ktalk: {
+    label: "Контур Толк",
+    icon: "./icons/call.webp",
+    favicon: "ktalk.ru",
+  },
   // Свой сервис — иконка и название берутся из кастомных полей
-  other:    { label: "Сервис" },
+  other: { label: "Сервис" },
 };
 
 function getServiceFaviconUrl(service) {
@@ -432,7 +511,8 @@ function getServiceFaviconUrl(service) {
   if (!meta) return null;
   // Сначала пробуем свою иконку, затем Google Favicon API
   if (meta.icon) return meta.icon;
-  if (meta.favicon) return `https://www.google.com/s2/favicons?domain=${meta.favicon}&sz=32`;
+  if (meta.favicon)
+    return `https://www.google.com/s2/favicons?domain=${meta.favicon}&sz=32`;
   return null;
 }
 
@@ -507,6 +587,7 @@ function renderSubjectTabs() {
     els.subjectTabs.style.display = "none";
     return;
   }
+  els.subjectTabs.hidden = false;
   els.subjectTabs.style.display = "flex";
   els.subjectTabs.innerHTML = subjects
     .map((s) => {

@@ -45,75 +45,83 @@
     <!-- Цвет панели браузера на мобильных -->
     <meta name="theme-color" content="#007aff" />
 
-    <link rel="stylesheet" href="./styles.css?v=3" />
+    <link rel="stylesheet" href="./styles.css?v=12" />
     <link rel="icon" href="favicon.png" type="image/png" />
+    <style>
+      body.is-app-loading #appShell,
+      body.is-app-loading #appState {
+        display: none !important;
+      }
+    </style>
   </head>
-  <body>
+  <body class="is-app-loading">
     <a class="skip-link" href="#main">Перейти к содержимому</a>
 
-    <header class="topbar">
-      <div class="topbar__inner">
-        <div class="brand">
-          <div class="brand__mark" aria-hidden="true">
-            <dotlottie-wc
-              src="https://lottie.host/c9f73cc6-1648-4bea-97bb-1f10770c81b2/Zja4zojMY8.lottie"
-              style="width: 300px; height: 300px"
-              autoplay
-              loop
-            ></dotlottie-wc>
+    <div class="topbar-wrap">
+      <header class="topbar">
+        <div class="topbar__inner">
+          <div class="brand">
+            <div class="brand__mark" aria-hidden="true">
+              <dotlottie-wc
+                src="https://lottie.host/c9f73cc6-1648-4bea-97bb-1f10770c81b2/Zja4zojMY8.lottie"
+                style="width: 300px; height: 300px"
+                autoplay
+                loop
+              ></dotlottie-wc>
+            </div>
+            <div class="brand__text">
+              <div class="brand__title">Кабинет ученика</div>
+              <div class="brand__subtitle">Подготовка к экзаменам</div>
+            </div>
           </div>
-          <div class="brand__text">
-            <div class="brand__title">Кабинет ученика</div>
-            <div class="brand__subtitle">Подготовка к экзаменам</div>
-          </div>
-        </div>
 
-        <div class="topbar__right">
-          <div class="topbar__actions">
-            <a
-              id="boardBtn"
-              class="topbar__action-btn"
-              href="https://miro.com/"
-              target="_blank"
-              rel="noreferrer"
-              title="Открыть доску"
-              hidden
-            >
-              <img
-                src="./icons/miro.webp"
-                width="18"
-                height="18"
-                style="border-radius: 5px"
-                alt="Доска"
-              />
-              <span>Доска</span>
-            </a>
-            <a
-              id="callBtn"
-              class="topbar__action-btn"
-              href="https://3wu9oqfv.ktalk.ru/cah2j43sov5f"
-              target="_blank"
-              rel="noreferrer"
-              title="Войти в звонок"
-              hidden
-            >
-              <img
-                src="./icons/call.webp"
-                width="18"
-                height="18"
-                style="border-radius: 5px"
-                alt="Звонок"
-              />
-              <span>Звонок</span>
-            </a>
-          </div>
-          <div class="clock" aria-label="Текущие дата и время">
-            <div class="clock__date" id="nowDate">—</div>
-            <div class="clock__time" id="nowTime">—</div>
+          <div class="topbar__right">
+            <div class="topbar__actions">
+              <a
+                id="boardBtn"
+                class="topbar__action-btn"
+                href="https://miro.com/"
+                target="_blank"
+                rel="noreferrer"
+                title="Открыть доску"
+                hidden
+              >
+                <img
+                  src="./icons/miro.webp"
+                  width="18"
+                  height="18"
+                  style="border-radius: 5px"
+                  alt="Доска"
+                />
+                <span>Доска</span>
+              </a>
+              <a
+                id="callBtn"
+                class="topbar__action-btn"
+                href="https://3wu9oqfv.ktalk.ru/cah2j43sov5f"
+                target="_blank"
+                rel="noreferrer"
+                title="Войти в звонок"
+                hidden
+              >
+                <img
+                  src="./icons/call.webp"
+                  width="18"
+                  height="18"
+                  style="border-radius: 5px"
+                  alt="Звонок"
+                />
+                <span>Звонок</span>
+              </a>
+            </div>
+            <div class="clock" aria-label="Текущие дата и время">
+              <div class="clock__date" id="nowDate">—</div>
+              <div class="clock__time" id="nowTime">—</div>
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </div>
 
     <div id="tickerBar" class="ticker-bar" hidden>
       <div class="ticker__track" id="tickerTrack">
@@ -122,33 +130,48 @@
     </div>
 
     <main class="container" id="main">
-      <div class="app-gate" id="appGate" hidden>
-        <div class="app-gate__card card">
-          <div class="card__header">
-            <div>
-              <div class="eyebrow">Доступ</div>
-              <h2 class="h2" id="appGateTitle">—</h2>
+      <div class="state-stage" id="stateStage">
+        <div class="app-loader state-screen" id="appLoader" aria-live="polite">
+          <div class="state-screen__content">
+            <div class="state-screen__icon-wrap">
+              <div class="app-loader__spinner" aria-hidden="true"></div>
             </div>
+            <h2 class="state-screen__title">Данные загружаются</h2>
+            <p class="state-screen__text">Пожалуйста, подождите</p>
           </div>
-          <p class="muted" id="appGateMessage"></p>
         </div>
+
+        <section
+          class="state-screen"
+          id="appState"
+          hidden
+          aria-live="polite"
+        >
+          <div class="state-screen__content">
+            <div class="state-screen__icon-wrap">
+              <div class="state-screen__icon-glow" aria-hidden="true"></div>
+              <div
+                class="state-screen__icon"
+                id="appStateIcon"
+                aria-hidden="true"
+              ></div>
+            </div>
+            <div class="state-screen__eyebrow" id="appStateEyebrow"></div>
+            <h2 class="state-screen__title" id="appStateTitle"></h2>
+            <p class="state-screen__text" id="appStateText"></p>
+            <p class="state-screen__hint muted" id="appStateHint" hidden></p>
+          </div>
+        </section>
       </div>
 
-      <div class="app-loader" id="appLoader" aria-live="polite">
-        <div class="app-loader__card">
-          <div class="app-loader__spinner" aria-hidden="true"></div>
-          <div class="app-loader__title">Данные загружаются</div>
-          <div class="app-loader__subtitle">Пожалуйста, подождите</div>
-        </div>
-      </div>
-      <div id="appShell">
+      <div id="appShell" hidden>
         <div
           class="tabs"
           id="subjectTabs"
           aria-label="Переключение предмета"
         ></div>
 
-        <section class="bento" aria-label="Панель ученика">
+        <section class="bento" id="dashboardPanel" aria-label="Панель ученика">
           <article class="card card--hero" id="cardGreeting">
             <div class="card__header">
               <div>
@@ -350,7 +373,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
     <script src="./firebase.config.js?v=2"></script>
     <script src="./firebase.config.js?v=3"></script>
-    <script src="./script.js?v=2" defer></script>
+    <script src="./script.js?v=6" defer></script>
     <script
       src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.14/dist/dotlottie-wc.js"
       type="module"
