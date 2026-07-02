@@ -499,11 +499,26 @@
   flex-shrink: 0;
 }
 
+/* ─── Корень админки ─────────────────────────────────────────────────────── */
+
+#adminAppRoot {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
 /* ─── Основная сетка ─────────────────────────────────────────────────────── */
 
 .admin {
   display: grid;
   gap: 14px;
+  padding-top: 4px;
+}
+
+#adminAppRoot .topbar-wrap {
+  padding-top: 14px;
 }
 
 .admin__card {
@@ -1068,32 +1083,41 @@ details.task-row[open] .task-row__summary::after {
 /* ─── Плавающий статус-бар (только в админке) ─── */
 .admin-status--float {
   position: fixed;
-  bottom: 24px;
+  bottom: 20px;
   right: 20px;
+  left: auto;
   z-index: 100;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
+  max-width: min(480px, calc(100vw - 32px));
   font-size: 13px;
-  padding: 8px 14px;
-  background: rgba(246, 247, 251, 0.92);
+  line-height: 1.4;
+  padding: 10px 12px 10px 14px;
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(15, 23, 42, 0.1);
   border-radius: 14px;
-  box-shadow: 0 4px 20px rgba(2, 6, 23, 0.12);
+  box-shadow: 0 8px 28px rgba(2, 6, 23, 0.12);
+  box-sizing: border-box;
 }
 
 /* Кнопка «Сохранить всё» */
 #statusSaveAll {
   display: none;
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-top: 1px;
 }
 #statusSaveAll.is-visible {
   display: inline-flex;
 }
 #statusText {
-  flex-shrink: 0;
-  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
   display: flex;
   align-items: center;
   gap: 6px;

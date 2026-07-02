@@ -2530,7 +2530,6 @@ function renderTrialsEditor() {
     <div class="trial-subject-tabs">${tabsHtml}</div>
     <div class="trial-rows-wrap">
       <div class="trial-toolbar">
-        <button class="icon-btn" type="button" id="saveAllTrialsBtn">💾 Сохранить все пробники</button>
         <button class="icon-btn" type="button" id="addTrialBtn">+ Добавить пробник</button>
       </div>
       ${rows || `<p class="muted" style="margin:0;padding:4px 2px;">Пробников пока нет.</p>`}
@@ -2549,9 +2548,6 @@ function renderTrialsEditor() {
   });
 
   root.querySelector("#addTrialBtn")?.addEventListener("click", addTrial);
-  root
-    .querySelector("#saveAllTrialsBtn")
-    ?.addEventListener("click", () => void saveAllTrialsInSubject());
 
   root.querySelectorAll("[data-save-trial]").forEach((btn) => {
     btn.addEventListener("click", () => saveTrial(btn.dataset.saveTrial));
@@ -2681,6 +2677,7 @@ function trialRowHtml(t, pos = t.order_index ?? 1) {
           ${taskCount ? `<span class="trial-row__report-meta">${taskCount} заданий</span>` : ""}
         </div>
         ${reportHtml}
+      </div>
       </div>
     </div>`;
 }
