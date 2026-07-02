@@ -1172,13 +1172,73 @@ function openTrialModal(trialId, catalogSlug) {
     </div>
   </div>`;
 
-  const html = `<div class="trial-modal__grid">${filesHtml}${resultHtml}</div>`;
+  const reportHtml = renderTrialTaskResultsReadonly(trial, catalogSlug);
+
+  const html = `<div class="trial-modal__layout">
+    <div class="trial-modal__left">${filesHtml}${resultHtml}</div>
+    ${reportHtml}
+  </div>`;
 
   els.modalContent.innerHTML = html;
   els.modal.classList.add("is-open");
   els.modal.setAttribute("aria-hidden", "false");
   document.body.style.overflow = "hidden";
   setTimeout(() => els.modalClose.focus(), 0);
+}
+
+const TRIAL_TASK_COUNTS = {
+  ege_info: 27,
+  ege_math: 19,
+  oge_info: 16,
+  oge_math: 25,
+};
+
+function getTrialTaskCount(catalogSlug) {
+  return TRIAL_TASK_COUNTS[String(catalogSlug || "").toLowerCase()] || 0;
+}
+
+function normalizeTrialTaskResults(raw, count) {
+  const src = Array.isArray(raw) ? raw : [];
+  return Array.from({ length: count }, (_, i) => {
+    const v = src[i];
+    if (v === true || v === "correct" || v === 1) return "correct";
+    if (v === false || v === "incorrect" || v === 0) return "incorrect";
+    return null;
+  });
+}
+
+function renderTrialTaskResultsReadonly(trial, catalogSlug) {
+  const taskCount = getTrialTaskCount(catalogSlug);
+  if (!taskCount) return "";
+  const results = normalizeTrialTaskResults(trial.task_results, taskCount);
+  const correctCount = results.filter((r) => r === "correct").length;
+  const incorrectCount = results.filter((r) => r === "incorrect").length;
+  const items = results
+    .map((value, i) => {
+      let mark = "—";
+      let mod = "trial-task-row--unset";
+      if (value === "correct") {
+        mark = "✓";
+        mod = "trial-task-row--ok";
+      } else if (value === "incorrect") {
+        mark = "✕";
+        mod = "trial-task-row--bad";
+      }
+      return `<div class="trial-task-row trial-task-row--readonly ${mod}">
+        <span class="trial-task-row__num">${i + 1}</span>
+        <span class="trial-task-row__mark" aria-label="${value === "correct" ? "Верно" : value === "incorrect" ? "Неверно" : "Не отмечено"}">${mark}</span>
+      </div>`;
+    })
+    .join("");
+  return `<div class="section trial-modal__report">
+    <div class="section__title">Отчёт по заданиям</div>
+    <div class="trial-task-summary">
+      <span class="trial-task-summary__ok">${correctCount} верно</span>
+      <span class="trial-task-summary__bad">${incorrectCount} неверно</span>
+      <span class="trial-task-summary__total">${taskCount} заданий</span>
+    </div>
+    <div class="trial-task-results trial-task-results--readonly">${items}</div>
+  </div>`;
 }
 
 function formatTrialDate(dateStr) {

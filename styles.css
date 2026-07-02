@@ -747,11 +747,17 @@ body.is-app-loading #appState {
 
 .trials-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 960px) {
+  .trials-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
   .trials-grid {
     grid-template-columns: 1fr;
   }
@@ -857,7 +863,148 @@ body.is-app-loading #appState {
   opacity: 0.5;
 }
 
-/* Лейаут контента модалки: на мобиле — столбик, на планшете — 2 колонки */
+/* Лейаут контента модалки: слева файлы и результат, справа отчёт */
+.trial-modal__layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.trial-modal__left {
+  display: grid;
+  gap: 8px;
+}
+
+@media (min-width: 760px) {
+  .trial-modal__layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+}
+
+.trial-modal__report {
+  min-width: 0;
+}
+
+.trial-task-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 10px 0 12px;
+  font-size: 12px;
+}
+
+.trial-task-summary__ok {
+  color: #15803d;
+  font-weight: 600;
+}
+
+.trial-task-summary__bad {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.trial-task-summary__total {
+  color: var(--muted);
+}
+
+.trial-task-results {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  max-height: 420px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.trial-task-results--readonly {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.trial-task-row {
+  display: grid;
+  grid-template-columns: 28px 1fr 1fr;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.03);
+}
+
+.trial-task-row--readonly {
+  grid-template-columns: 28px 1fr;
+}
+
+.trial-task-row__num {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+}
+
+.trial-task-row__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 800;
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--muted);
+}
+
+.trial-task-row--ok .trial-task-row__mark {
+  background: rgba(21, 128, 61, 0.12);
+  color: #15803d;
+}
+
+.trial-task-row--bad .trial-task-row__mark {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+.trial-task-row--unset .trial-task-row__mark {
+  opacity: 0.45;
+}
+
+.trial-task-btn {
+  appearance: none;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  width: 100%;
+  min-height: 28px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  color: var(--muted);
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.trial-task-btn--ok.is-active {
+  background: rgba(21, 128, 61, 0.12);
+  border-color: rgba(21, 128, 61, 0.28);
+  color: #15803d;
+}
+
+.trial-task-btn--bad.is-active {
+  background: rgba(220, 38, 38, 0.1);
+  border-color: rgba(220, 38, 38, 0.24);
+  color: #dc2626;
+}
+
+.trial-task-btn:hover {
+  border-color: rgba(15, 23, 42, 0.22);
+}
+
+/* Legacy grid alias */
 .trial-modal__grid {
   display: grid;
   grid-template-columns: 1fr;
