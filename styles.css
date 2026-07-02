@@ -827,6 +827,17 @@ body.is-app-loading #appState {
   margin-top: 1px;
 }
 
+.trial-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(15, 23, 42, 0.06);
+  min-height: 22px;
+}
+
 .trial-card__meta {
   display: flex;
   align-items: center;
@@ -839,11 +850,16 @@ body.is-app-loading #appState {
 .trial-card__date {
   font-size: 12px;
   color: var(--muted);
+  min-width: 0;
 }
 
 .trial-card__time {
   font-size: 12px;
   color: var(--muted);
+  margin-left: auto;
+  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .trial-card__time--empty {
@@ -911,6 +927,7 @@ body.is-app-loading #appState {
 
 .trial-task-results {
   display: grid;
+  grid-auto-flow: column;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
   max-height: 420px;
@@ -919,7 +936,7 @@ body.is-app-loading #appState {
 }
 
 .trial-task-results--readonly {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-height: 460px;
 }
 
 .trial-task-row {
@@ -950,10 +967,23 @@ body.is-app-loading #appState {
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  font-size: 14px;
-  font-weight: 800;
   background: rgba(15, 23, 42, 0.06);
   color: var(--muted);
+}
+
+.trial-task-icon {
+  width: 15px;
+  height: 15px;
+  display: block;
+  flex-shrink: 0;
+}
+
+.trial-task-icon--dash {
+  width: auto;
+  height: auto;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .trial-task-row--ok .trial-task-row__mark {
@@ -977,9 +1007,10 @@ body.is-app-loading #appState {
   border-radius: 999px;
   width: 100%;
   min-height: 28px;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   cursor: pointer;
   color: var(--muted);
   transition:
@@ -1019,13 +1050,44 @@ body.is-app-loading #appState {
   }
 }
 
-/* Сетка карточек результата: 2 колонки, карточка времени — на всю ширину снизу */
+/* Сетка результата в модалке: 2 карточки сверху, время снизу на всю ширину */
 .trial-card__stats--modal {
-  grid-template-columns: 1fr 1fr;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-template-rows: auto auto;
+  gap: 8px;
+  align-items: stretch;
+  margin-top: 12px;
+}
+
+.trial-card__stats--modal .trial-card__stat {
+  min-width: 0;
+  padding: 14px 16px;
+  gap: 6px;
+}
+
+.trial-card__stats--modal .trial-card__stat-value {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  word-break: break-word;
+}
+
+.trial-card__stats--modal .trial-card__stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: normal;
 }
 
 .trial-card__stats--modal .trial-card__stat--time {
   grid-column: 1 / -1;
+}
+
+.trial-card__stats--modal .trial-card__stat--time .trial-card__stat-value {
+  font-size: 22px;
+  line-height: 1.25;
 }
 
 /* Пустая карточка-заглушка */
@@ -1040,22 +1102,31 @@ body.is-app-loading #appState {
 }
 
 /* Время: чуть меньше шрифт, иконка выровнена */
-.trial-card__stat-value--time {
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0;
-  line-height: 1.3;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
 /* ─── Мини-бенто со статистикой (используется и в карточке, и в модалке) ── */
 
 .trial-card__stats {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 6px;
+}
+
+.trial-card > .trial-card__stats {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.trial-card__stat-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  color: rgba(15, 23, 42, 0.28);
+  flex-shrink: 0;
+}
+
+.trial-card__stat-arrow svg {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 .trial-card__stat {
@@ -1066,6 +1137,7 @@ body.is-app-loading #appState {
   flex-direction: column;
   gap: 4px;
   border: 1px solid transparent;
+  min-width: 0;
 }
 
 .trial-card__stat-value {
@@ -1076,12 +1148,16 @@ body.is-app-loading #appState {
   letter-spacing: -0.01em;
 }
 
+.trial-card .trial-card__stat-value {
+  font-size: 28px;
+}
+
 .trial-card__stat-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
   color: var(--muted);
+  white-space: normal;
 }
 
 /* ОГЭ оценки */

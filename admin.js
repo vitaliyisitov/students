@@ -2176,10 +2176,38 @@ function initPageTabs() {
     });
   });
 
-  // Кнопка «Сохранить все» в статус-баре — сохраняет текущий блок заданий
-  document.getElementById("statusSaveAll")?.addEventListener("click", () => {
-    const subjectId = state.activeTaskSubjectId;
-    if (subjectId) void saveAllTasksInBlock(subjectId);
+  // Кнопка «Сохранить все» — задания текущего предмета + все пробники
+  document.getElementById("statusSaveAll")?.addEventListener("click", async () => {
+    const taskSubjectId = state.activeTaskSubjectId;
+    const trialSubjectId = state.selectedTrialSubjectId;
+    let taskRows = 0;
+    if (taskSubjectId) {
+      const block = els.tasksEditor.querySelector(
+        `[data-task-block="${taskSubjectId}"]`,
+      );
+      taskRows = block
+        ? block.querySelectorAll("[data-task-id]").length
+        : 0;
+    }
+    const trialRows = trialSubjectId
+      ? els.trialsEditor.querySelectorAll("[data-trial-id]").length
+      : 0;
+    if (!taskRows && !trialRows) {
+      setStatus("Нечего сохранять", "muted");
+      return;
+    }
+    try {
+      if (taskRows) await saveAllTasksInBlock(taskSubjectId);
+      if (trialRows) await saveAllTrialsInSubject();
+      if (taskRows && trialRows) {
+        setStatus(
+          `Сохранено ${taskRows} заданий и ${trialRows} пробников ✅`,
+          "success",
+        );
+      }
+    } catch (err) {
+      console.error(err);
+    }
   });
 
   document.getElementById("addTickerBtn")?.addEventListener("click", addTicker);
@@ -2367,6 +2395,14 @@ function normalizeTrialTaskResults(raw, count) {
   });
 }
 
+function trialTaskOkIcon() {
+  return `<svg class="trial-task-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`;
+}
+
+function trialTaskBadIcon() {
+  return `<svg class="trial-task-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>`;
+}
+
 function renderTrialTaskResultsEditor(results) {
   const items = results
     .map((value, i) => {
@@ -2375,12 +2411,48 @@ function renderTrialTaskResultsEditor(results) {
       const badActive = value === "incorrect" ? " is-active" : "";
       return `<div class="trial-task-row" data-trial-task-row="${i}">
         <span class="trial-task-row__num">${n}</span>
-        <button type="button" class="trial-task-btn trial-task-btn--ok${okActive}" data-trial-task-ok="${i}" aria-label="Задание ${n}: верно">✓</button>
-        <button type="button" class="trial-task-btn trial-task-btn--bad${badActive}" data-trial-task-no="${i}" aria-label="Задание ${n}: неверно">✕</button>
+        <button type="button" class="trial-task-btn trial-task-btn--ok${okActive}" data-trial-task-ok="${i}" aria-label="Задание ${n}: верно">${trialTaskOkIcon()}</button>
+        <button type="button" class="trial-task-btn trial-task-btn--bad${badActive}" data-trial-task-no="${i}" aria-label="Задание ${n}: неверно">${trialTaskBadIcon()}</button>
       </div>`;
     })
     .join("");
-  return `<div class="trial-task-results">${items}</div>`;
+  return `<div class="trial-task-results trial-task-results--admin">${items}</div>`;
+}
+
+function buildTrialPayloadFromRow(row) {
+  const trialId = row.getAttribute("data-trial-id");
+  const attEditor = document.getElementById(`trial-files-${trialId}`);
+  return {
+    title: row.querySelector('[data-tf="title"]')?.value.trim() || "",
+    date: row.querySelector('[data-tf="date"]')?.value || "",
+    score: row.querySelector('[data-tf="score"]')?.value.trim() || "",
+    time: row.querySelector('[data-tf="time"]')?.value.trim() || "",
+    attachments: readAttachmentsFromRow(attEditor),
+    section_label:
+      row.querySelector('[data-tf="section_label"]')?.value.trim() || "",
+    is_homework: row.querySelector('[data-tf="is_homework"]')?.checked ?? false,
+    task_results: readTrialTaskResultsFromRow(row),
+  };
+}
+
+function getNextTrialDefaultTitle() {
+  const nums = state.trials
+    .map((t) => {
+      const m = String(t.title || "").match(/пробный\s+вариант\s*№?\s*(\d+)/i);
+      return m ? Number(m[1]) : null;
+    })
+    .filter((n) => Number.isFinite(n) && n > 0);
+  const next = nums.length ? Math.max(...nums) + 1 : state.trials.length + 1;
+  return `Пробный вариант №${next}`;
+}
+
+function scrollTrialRowIntoView(trialId) {
+  requestAnimationFrame(() => {
+    const row = els.trialsEditor.querySelector(`[data-trial-id="${trialId}"]`);
+    if (!row) return;
+    row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    row.querySelector('[data-tf="title"]')?.focus({ preventScroll: true });
+  });
 }
 
 function readTrialTaskResultsFromRow(row) {
@@ -2457,7 +2529,8 @@ function renderTrialsEditor() {
   root.innerHTML = `
     <div class="trial-subject-tabs">${tabsHtml}</div>
     <div class="trial-rows-wrap">
-      <div style="display:flex;gap:8px;justify-content:flex-end;padding:0 2px 6px;">
+      <div class="trial-toolbar">
+        <button class="icon-btn" type="button" id="saveAllTrialsBtn">💾 Сохранить все пробники</button>
         <button class="icon-btn" type="button" id="addTrialBtn">+ Добавить пробник</button>
       </div>
       ${rows || `<p class="muted" style="margin:0;padding:4px 2px;">Пробников пока нет.</p>`}
@@ -2476,6 +2549,9 @@ function renderTrialsEditor() {
   });
 
   root.querySelector("#addTrialBtn")?.addEventListener("click", addTrial);
+  root
+    .querySelector("#saveAllTrialsBtn")
+    ?.addEventListener("click", () => void saveAllTrialsInSubject());
 
   root.querySelectorAll("[data-save-trial]").forEach((btn) => {
     btn.addEventListener("click", () => saveTrial(btn.dataset.saveTrial));
@@ -2551,12 +2627,11 @@ function trialRowHtml(t, pos = t.order_index ?? 1) {
     : `<p class="muted trial-row__report-empty">Для этого предмета не задано число заданий.</p>`;
   return `
     <div class="trial-row" data-trial-id="${t.id}" data-task-count="${taskCount}">
-      <div class="trial-row__layout">
-        <div class="trial-row__left">
+      <div class="trial-row__main">
       <div class="trial-row__fields">
         <label class="trial-field">
           <span>Название</span>
-          <input type="text" data-tf="title" value="${escapeAttrAdmin(t.title || "")}" placeholder="Пробник 1 — март 2026" />
+          <input type="text" data-tf="title" value="${escapeAttrAdmin(t.title || "")}" placeholder="Пробный вариант №1" />
         </label>
         <label class="trial-field">
           <span>Дата</span>
@@ -2574,7 +2649,7 @@ function trialRowHtml(t, pos = t.order_index ?? 1) {
       <div class="trial-row__meta">
         <label class="trial-field trial-field--section">
           <span>Раздел (заголовок над пробником)</span>
-          <input type="text" data-tf="section_label" value="${escapeAttrAdmin(t.section_label || "")}" placeholder="Декабрь 2025" />
+          <input type="text" data-tf="section_label" value="${escapeAttrAdmin(t.section_label || "")}" placeholder="Результаты" />
         </label>
         <label class="trial-field trial-field--hw">
           <span>Задание на ДЗ</span>
@@ -2600,14 +2675,12 @@ function trialRowHtml(t, pos = t.order_index ?? 1) {
         <button class="icon-btn" type="button" data-save-trial="${t.id}">Сохранить</button>
         <button class="icon-btn danger" type="button" data-delete-trial="${t.id}">Удалить</button>
       </div>
+      <div class="trial-row__report">
+        <div class="trial-row__report-head">
+          <span class="trial-row__report-title">Отчёт по заданиям</span>
+          ${taskCount ? `<span class="trial-row__report-meta">${taskCount} заданий</span>` : ""}
         </div>
-        <div class="trial-row__report">
-          <div class="trial-row__report-head">
-            <span class="trial-row__report-title">Отчёт по заданиям</span>
-            ${taskCount ? `<span class="trial-row__report-meta">${taskCount} заданий</span>` : ""}
-          </div>
-          ${reportHtml}
-        </div>
+        ${reportHtml}
       </div>
     </div>`;
 }
@@ -2626,6 +2699,8 @@ async function addTrial() {
     }
     const catalogSlug = getSelectedTrialCatalogSlug();
     const taskCount = getTrialTaskCount(catalogSlug);
+    const defaultTitle = getNextTrialDefaultTitle();
+    const orderIndex = state.trials.length + 1;
     const ref = await window.db
       .collection("users")
       .doc(state.selectedUserId)
@@ -2633,28 +2708,29 @@ async function addTrial() {
       .doc(subjectId)
       .collection("trials")
       .add({
-        title: "",
+        title: defaultTitle,
         date: new Date().toISOString().slice(0, 10),
         score: "",
         attachments: [],
-        section_label: "",
+        section_label: "Результаты",
         is_homework: false,
-        order_index: state.trials.length + 1,
+        order_index: orderIndex,
         task_results: Array.from({ length: taskCount }, () => null),
         created_at: new Date().toISOString(),
       });
     state.trials.push({
       id: ref.id,
-      title: "",
+      title: defaultTitle,
       date: new Date().toISOString().slice(0, 10),
       score: "",
       attachments: [],
-      section_label: "",
+      section_label: "Результаты",
       is_homework: false,
-      order_index: state.trials.length,
+      order_index: orderIndex,
       task_results: Array.from({ length: taskCount }, () => null),
     });
     renderTrialsEditor();
+    scrollTrialRowIntoView(ref.id);
   } catch (err) {
     setStatus("Ошибка при создании пробника", "error");
     console.error(err);
@@ -2665,18 +2741,7 @@ async function saveTrial(trialId) {
   if (!state.selectedUserId || !trialId) return;
   const row = els.trialsEditor.querySelector(`[data-trial-id="${trialId}"]`);
   if (!row) return;
-  const attEditor = document.getElementById(`trial-files-${trialId}`);
-  const payload = {
-    title: row.querySelector('[data-tf="title"]')?.value.trim() || "",
-    date: row.querySelector('[data-tf="date"]')?.value || "",
-    score: row.querySelector('[data-tf="score"]')?.value.trim() || "",
-    time: row.querySelector('[data-tf="time"]')?.value.trim() || "",
-    attachments: readAttachmentsFromRow(attEditor),
-    section_label:
-      row.querySelector('[data-tf="section_label"]')?.value.trim() || "",
-    is_homework: row.querySelector('[data-tf="is_homework"]')?.checked ?? false,
-    task_results: readTrialTaskResultsFromRow(row),
-  };
+  const payload = buildTrialPayloadFromRow(row);
   const subjectId = state.selectedTrialSubjectId;
   try {
     await window.db
@@ -2693,6 +2758,45 @@ async function saveTrial(trialId) {
   } catch (err) {
     setStatus("Ошибка при сохранении пробника", "error");
     console.error(err);
+  }
+}
+
+async function saveAllTrialsInSubject() {
+  const subjectId = state.selectedTrialSubjectId;
+  if (!state.selectedUserId || !subjectId) return 0;
+  const rows = Array.from(
+    els.trialsEditor.querySelectorAll("[data-trial-id]"),
+  );
+  if (!rows.length) return 0;
+  setStatus(`Сохраняю ${rows.length} пробников…`, "muted");
+  try {
+    const batch = window.db.batch();
+    const payloads = new Map();
+    rows.forEach((row) => {
+      const trialId = row.getAttribute("data-trial-id");
+      if (!trialId) return;
+      const payload = buildTrialPayloadFromRow(row);
+      payloads.set(trialId, payload);
+      const ref = window.db
+        .collection("users")
+        .doc(state.selectedUserId)
+        .collection("subjects")
+        .doc(subjectId)
+        .collection("trials")
+        .doc(trialId);
+      batch.update(ref, payload);
+    });
+    await batch.commit();
+    payloads.forEach((payload, trialId) => {
+      const local = state.trials.find((t) => t.id === trialId);
+      if (local) Object.assign(local, payload);
+    });
+    setStatus(`Сохранено ${rows.length} пробников ✅`, "success");
+    return rows.length;
+  } catch (err) {
+    setStatus("Ошибка при сохранении пробников", "error");
+    console.error(err);
+    return 0;
   }
 }
 

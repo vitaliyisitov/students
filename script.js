@@ -1057,23 +1057,32 @@ function formatAssignedDate(iso) {
   return `Задано ${datePart}`;
 }
 
+function getTrialGradeLabel(catalogSlug) {
+  return catalogSlug?.startsWith("oge") ? "Оценка" : "Тестовый балл";
+}
+
+function trialScoreConvertArrow() {
+  return `<span class="trial-card__stat-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 8 4 4-4 4"/></svg></span>`;
+}
+
 function renderTrialCard(trial, catalogSlug) {
   const title = trial.title || "Пробный вариант";
   const dateStr = trial.date ? formatTrialDate(trial.date) : null;
   const score = trial.score ? String(trial.score).trim() : null;
   const converted = score ? convertScore(score, catalogSlug) : null;
-  const gradeLabel = catalogSlug?.startsWith("oge") ? "Оценка" : "Тест. балл";
+  const gradeLabel = getTrialGradeLabel(catalogSlug);
   const cardLevel = converted?.level ? `trial-card--${converted.level}` : "";
   const timeStr = trial.time ? String(trial.time).trim() : null;
 
   const statsHtml = `<div class="trial-card__stats">
     <div class="trial-card__stat trial-card__stat--score ${score ? "" : "trial-card__stat--empty"}">
       <div class="trial-card__stat-value">${score ? escapeHtml(score) : "—"}</div>
-      <div class="trial-card__stat-label">Баллы</div>
+      <div class="trial-card__stat-label">Первичный балл</div>
     </div>
+    ${trialScoreConvertArrow()}
     <div class="trial-card__stat ${converted ? `trial-card__stat--${converted.level}` : "trial-card__stat--empty"}">
       <div class="trial-card__stat-value">${converted ? escapeHtml(converted.display) : "—"}</div>
-      <div class="trial-card__stat-label">${gradeLabel}</div>
+      <div class="trial-card__stat-label">${escapeHtml(gradeLabel)}</div>
     </div>
   </div>`;
 
@@ -1081,12 +1090,10 @@ function renderTrialCard(trial, catalogSlug) {
     ? `<span class="trial-card__hw-badge">ДЗ</span>`
     : "";
 
-  const metaItems = [
-    dateStr
-      ? `<span class="trial-card__date"><img src="./icons/calendar.png" width="12" height="12" alt="" aria-hidden="true" class="trial-card__meta-icon"> ${escapeHtml(dateStr)}</span>`
-      : "",
-    `<span class="trial-card__time ${timeStr ? "" : "trial-card__time--empty"}"><img src="./icons/clock.png" width="12" height="12" alt="" aria-hidden="true" class="trial-card__meta-icon"> ${timeStr ? escapeHtml(timeStr) : "—"}</span>`,
-  ].filter(Boolean);
+  const footHtml = `<div class="trial-card__foot">
+    <span class="trial-card__date">${dateStr ? `<img src="./icons/calendar.png" width="12" height="12" alt="" aria-hidden="true" class="trial-card__meta-icon"> ${escapeHtml(dateStr)}` : ""}</span>
+    <span class="trial-card__time ${timeStr ? "" : "trial-card__time--empty"}"><img src="./icons/clock.png" width="12" height="12" alt="" aria-hidden="true" class="trial-card__meta-icon"> ${timeStr ? escapeHtml(timeStr) : "—"}</span>
+  </div>`;
 
   return `<button class="trial-card ${cardLevel}" type="button" data-trial-open="${escapeAttr(trial.id)}">
     <div class="trial-card__top">
@@ -1096,7 +1103,7 @@ function renderTrialCard(trial, catalogSlug) {
       </div>
     </div>
     ${statsHtml}
-    ${metaItems.length ? `<div class="trial-card__meta">${metaItems.join('<span class="trial-card__meta-sep">·</span>')}</div>` : ""}
+    ${footHtml}
   </button>`;
 }
 
@@ -1110,7 +1117,7 @@ function openTrialModal(trialId, catalogSlug) {
 
   const score = trial.score ? String(trial.score).trim() : null;
   const converted = score ? convertScore(score, catalogSlug) : null;
-  const gradeLabel = catalogSlug?.startsWith("oge") ? "Оценка" : "Тест. балл";
+  const gradeLabel = getTrialGradeLabel(catalogSlug);
   const dateStr = trial.date ? formatTrialDate(trial.date) : null;
   const timeStr = trial.time ? String(trial.time).trim() : null;
   const attachments = Array.isArray(trial.attachments)
@@ -1156,17 +1163,17 @@ function openTrialModal(trialId, catalogSlug) {
 
   const resultHtml = `<div class="section">
     <div class="section__title">Результат</div>
-    <div class="trial-card__stats trial-card__stats--modal" style="margin-top:12px">
+    <div class="trial-card__stats trial-card__stats--modal">
       <div class="trial-card__stat trial-card__stat--score ${score ? "" : "trial-card__stat--empty"}">
         <div class="trial-card__stat-value">${score ? escapeHtml(score) : "—"}</div>
-        <div class="trial-card__stat-label">Первичные баллы</div>
+        <div class="trial-card__stat-label">Первичный балл</div>
       </div>
       <div class="trial-card__stat ${converted ? `trial-card__stat--${converted.level}` : "trial-card__stat--empty"}">
         <div class="trial-card__stat-value">${converted ? escapeHtml(converted.display) : "—"}</div>
         <div class="trial-card__stat-label">${escapeHtml(gradeLabel)}</div>
       </div>
       <div class="trial-card__stat trial-card__stat--time ${timeStr ? "" : "trial-card__stat--empty"}">
-        <div class="trial-card__stat-value trial-card__stat-value--time">${timeStr ? escapeHtml(timeStr) : "—"}</div>
+        <div class="trial-card__stat-value">${timeStr ? escapeHtml(timeStr) : "—"}</div>
         <div class="trial-card__stat-label">Время выполнения</div>
       </div>
     </div>
@@ -1207,26 +1214,40 @@ function normalizeTrialTaskResults(raw, count) {
   });
 }
 
+function trialTaskOkIcon() {
+  return `<svg class="trial-task-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`;
+}
+
+function trialTaskBadIcon() {
+  return `<svg class="trial-task-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>`;
+}
+
+function trialTaskResultsGridStyle(count, cols = 2) {
+  const rows = Math.ceil(count / cols) || 1;
+  return `grid-template-rows: repeat(${rows}, auto);`;
+}
+
 function renderTrialTaskResultsReadonly(trial, catalogSlug) {
   const taskCount = getTrialTaskCount(catalogSlug);
   if (!taskCount) return "";
   const results = normalizeTrialTaskResults(trial.task_results, taskCount);
   const correctCount = results.filter((r) => r === "correct").length;
   const incorrectCount = results.filter((r) => r === "incorrect").length;
+  const cols = 2;
   const items = results
     .map((value, i) => {
-      let mark = "—";
+      let markHtml = `<span class="trial-task-icon trial-task-icon--dash">—</span>`;
       let mod = "trial-task-row--unset";
       if (value === "correct") {
-        mark = "✓";
+        markHtml = trialTaskOkIcon();
         mod = "trial-task-row--ok";
       } else if (value === "incorrect") {
-        mark = "✕";
+        markHtml = trialTaskBadIcon();
         mod = "trial-task-row--bad";
       }
       return `<div class="trial-task-row trial-task-row--readonly ${mod}">
         <span class="trial-task-row__num">${i + 1}</span>
-        <span class="trial-task-row__mark" aria-label="${value === "correct" ? "Верно" : value === "incorrect" ? "Неверно" : "Не отмечено"}">${mark}</span>
+        <span class="trial-task-row__mark" aria-label="${value === "correct" ? "Верно" : value === "incorrect" ? "Неверно" : "Не отмечено"}">${markHtml}</span>
       </div>`;
     })
     .join("");
@@ -1237,7 +1258,7 @@ function renderTrialTaskResultsReadonly(trial, catalogSlug) {
       <span class="trial-task-summary__bad">${incorrectCount} неверно</span>
       <span class="trial-task-summary__total">${taskCount} заданий</span>
     </div>
-    <div class="trial-task-results trial-task-results--readonly">${items}</div>
+    <div class="trial-task-results trial-task-results--readonly" style="${trialTaskResultsGridStyle(taskCount, cols)}">${items}</div>
   </div>`;
 }
 
