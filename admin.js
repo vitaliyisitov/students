@@ -2513,7 +2513,7 @@ function renderTrialsEditor() {
   const tabsHtml = subjects
     .map((s) => {
       const active = s.id === state.selectedTrialSubjectId ? "is-active" : "";
-      return `<button class="admin-page-tab ${active}" type="button" data-trial-subject="${escapeAttr(s.id)}">${escapeHtml(s.title || s.id)}</button>`;
+      return `<button class="trial-subject-tab ${active}" type="button" data-trial-subject="${escapeAttr(s.id)}">${escapeHtml(s.title || s.id)}</button>`;
     })
     .join("");
 
