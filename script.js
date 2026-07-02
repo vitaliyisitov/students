@@ -991,16 +991,13 @@ function formatCompletedDate(iso) {
   return `Пройдено ${datePart}`;
 }
 
-const TASK_STATUS_ICON_STROKE = "1.9";
-
-const TASK_STATUS_ICONS = {
-  not_started: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${TASK_STATUS_ICON_STROKE}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>`,
-  in_progress: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${TASK_STATUS_ICON_STROKE}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.2 2"/></svg>`,
-  homework: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${TASK_STATUS_ICON_STROKE}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>`,
-  completed: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${TASK_STATUS_ICON_STROKE}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`,
+const TASK_STATUS_ICON_FILES = {
+  all: "./icons/all.svg",
+  not_started: "./icons/not_started.svg",
+  in_progress: "./icons/in_progress.svg",
+  homework: "./icons/homework.svg",
+  completed: "./icons/completed.svg",
 };
-
-const TASK_FILTER_ALL_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${TASK_STATUS_ICON_STROKE}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>`;
 
 const TASK_FILTER_OPTIONS = [
   { key: "all", label: "Все" },
@@ -1010,15 +1007,14 @@ const TASK_FILTER_OPTIONS = [
   { key: "completed", label: "Пройдено" },
 ];
 
-function getTaskStatusIconSvg(status) {
-  if (status === "all") return TASK_FILTER_ALL_ICON;
-  return TASK_STATUS_ICONS[status] || TASK_STATUS_ICONS.not_started;
+function getTaskStatusIconSrc(status) {
+  return TASK_STATUS_ICON_FILES[status] || TASK_STATUS_ICON_FILES.not_started;
 }
 
 function renderStatusIconCircle(status, className = "status-icon-circle") {
-  const icon = getTaskStatusIconSvg(status);
-  const mod = status && status !== "all" ? ` ${className}--${status}` : "";
-  return `<span class="${className}${mod}">${icon}</span>`;
+  const mod = status ? ` ${className}--${status}` : "";
+  const src = getTaskStatusIconSrc(status);
+  return `<span class="${className}${mod}"><img src="${escapeAttr(src)}" width="22" height="22" alt="" aria-hidden="true" decoding="async" /></span>`;
 }
 
 function renderTaskStatusHtml(status) {

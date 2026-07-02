@@ -1653,44 +1653,26 @@ body.is-app-loading #appState {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.1);
+  line-height: 0;
 }
 
-.chip__icon svg,
-.task__status-icon svg {
+.chip__icon {
+  width: 22px;
+  height: 22px;
+}
+
+.task__status-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.chip__icon img,
+.task__status-icon img {
   display: block;
-  width: 11px;
-  height: 11px;
-}
-
-.chip[data-filter="all"] .chip__icon {
-  color: rgba(51, 65, 85, 0.9);
-  background: rgba(100, 116, 139, 0.1);
-}
-
-.chip[data-filter="not_started"] .chip__icon {
-  color: rgba(51, 65, 85, 0.95);
-  background: rgba(100, 116, 139, 0.12);
-}
-
-.chip[data-filter="in_progress"] .chip__icon {
-  color: rgba(0, 64, 140, 0.95);
-  background: rgba(0, 122, 255, 0.12);
-}
-
-.chip[data-filter="homework"] .chip__icon {
-  color: rgba(142, 83, 0, 0.95);
-  background: rgba(255, 159, 10, 0.14);
-}
-
-.chip[data-filter="completed"] .chip__icon {
-  color: rgba(18, 100, 42, 0.95);
-  background: rgba(52, 199, 89, 0.14);
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .chip:hover {
@@ -1703,7 +1685,39 @@ body.is-app-loading #appState {
   box-shadow: var(--shadow-soft), var(--ring);
 }
 
-.chip.is-active {
+/* Активный фильтр в ЛК — цвет совпадает со статусом */
+.chip[data-filter="all"].is-active {
+  border-color: rgba(100, 116, 139, 0.28);
+  background: rgba(100, 116, 139, 0.12);
+  color: rgba(51, 65, 85, 0.95);
+}
+
+.chip[data-filter="not_started"].is-active {
+  border-color: rgba(100, 116, 139, 0.28);
+  background: rgba(100, 116, 139, 0.12);
+  color: rgba(51, 65, 85, 0.95);
+}
+
+.chip[data-filter="in_progress"].is-active {
+  border-color: rgba(0, 122, 255, 0.25);
+  background: rgba(0, 122, 255, 0.12);
+  color: rgba(0, 64, 140, 0.95);
+}
+
+.chip[data-filter="homework"].is-active {
+  border-color: rgba(255, 159, 10, 0.28);
+  background: rgba(255, 159, 10, 0.14);
+  color: rgba(142, 83, 0, 0.95);
+}
+
+.chip[data-filter="completed"].is-active {
+  border-color: rgba(52, 199, 89, 0.28);
+  background: rgba(52, 199, 89, 0.14);
+  color: rgba(18, 100, 42, 0.95);
+}
+
+/* Чипы без data-filter (админка и пр.) */
+.chip.is-active:not([data-filter]) {
   border-color: rgba(0, 122, 255, 0.25);
   background: rgba(0, 122, 255, 0.12);
 }
@@ -1800,26 +1814,6 @@ body.is-app-loading #appState {
   border: 1px solid rgba(15, 23, 42, 0.1);
   flex-shrink: 0;
   max-width: 48%;
-}
-
-.task__status--not_started .task__status-icon {
-  color: rgba(51, 65, 85, 0.95);
-  background: rgba(255, 255, 255, 0.65);
-}
-
-.task__status--in_progress .task__status-icon {
-  color: rgba(0, 64, 140, 0.95);
-  background: rgba(255, 255, 255, 0.65);
-}
-
-.task__status--homework .task__status-icon {
-  color: rgba(142, 83, 0, 0.95);
-  background: rgba(255, 255, 255, 0.65);
-}
-
-.task__status--completed .task__status-icon {
-  color: rgba(18, 100, 42, 0.95);
-  background: rgba(255, 255, 255, 0.65);
 }
 
 .task__status--not_started {
