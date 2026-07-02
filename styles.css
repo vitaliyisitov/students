@@ -1667,12 +1667,45 @@ body.is-app-loading #appState {
   height: 24px;
 }
 
-.chip__icon img,
+.chip__icon img {
+  display: block;
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
 .task__status-icon img {
   display: block;
-  width: 100%;
-  height: 100%;
+  width: 15px;
+  height: 15px;
   object-fit: contain;
+}
+
+/* Пилюли статусов в ЛК */
+.filters .chip {
+  padding: 6px 10px 6px 7px;
+  font-size: 12px;
+  gap: 6px;
+}
+
+.filters .chip__icon {
+  width: 18px;
+  height: 18px;
+}
+
+.filters .chip__icon img {
+  width: 18px;
+  height: 18px;
+}
+
+.task__status .task__status-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.task__status .task__status-icon img {
+  width: 18px;
+  height: 18px;
 }
 
 .chip:hover {
@@ -1687,9 +1720,9 @@ body.is-app-loading #appState {
 
 /* Активный фильтр в ЛК — цвет совпадает со статусом */
 .chip[data-filter="all"].is-active {
-  border-color: rgba(100, 116, 139, 0.28);
-  background: rgba(100, 116, 139, 0.12);
-  color: rgba(51, 65, 85, 0.95);
+  border-color: rgba(30, 41, 59, 0.26);
+  background: rgba(30, 41, 59, 0.14);
+  color: rgba(15, 23, 42, 0.9);
 }
 
 .chip[data-filter="not_started"].is-active {
@@ -1804,8 +1837,8 @@ body.is-app-loading #appState {
 .task__status {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 5px 11px 5px 5px;
+  gap: 6px;
+  padding: 5px 10px 5px 5px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 750;

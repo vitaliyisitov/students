@@ -1014,7 +1014,7 @@ function getTaskStatusIconSrc(status) {
 function renderStatusIconCircle(status, className = "status-icon-circle") {
   const mod = status ? ` ${className}--${status}` : "";
   const src = getTaskStatusIconSrc(status);
-  return `<span class="${className}${mod}"><img src="${escapeAttr(src)}" width="22" height="22" alt="" aria-hidden="true" decoding="async" /></span>`;
+  return `<span class="${className}${mod}"><img src="${escapeAttr(src)}" width="18" height="18" alt="" aria-hidden="true" decoding="async" /></span>`;
 }
 
 function renderTaskStatusHtml(status) {
