@@ -1727,10 +1727,13 @@ function formatStatus(status) {
 function setStatus(message, kind = "muted") {
   const textEl = document.getElementById("statusText");
   if (textEl) {
+    const showLoader =
+      kind === "muted" &&
+      (/\.{3}$/u.test(message) ||
+        /^(Ожидание|Сохраняю|Создаю|Загружаю|Меняю|Удаляю)/iu.test(message));
     textEl.innerHTML =
-      kind === "muted"
-        ? `${escapeHtml(message)} <span class="loader"></span>`
-        : escapeHtml(message);
+      escapeHtml(message) +
+      (showLoader ? ' <span class="loader" aria-hidden="true"></span>' : "");
   }
   els.statusBox.classList.remove("is-error", "is-success");
   if (kind === "error") els.statusBox.classList.add("is-error");

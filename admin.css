@@ -279,9 +279,7 @@
   width: fit-content;
   max-width: 100%;
   flex-shrink: 0;
-  align-self: start;
-  position: relative;
-  z-index: 2;
+  overflow: hidden;
 }
 
 .admin-page-tab {
@@ -311,10 +309,17 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
-.admin-tab-panel {
-  display: grid;
+.admin-panels {
+  display: flex;
+  flex-direction: column;
   gap: 14px;
-  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.admin-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   min-width: 0;
 }
 
@@ -547,8 +552,9 @@
 /* ─── Основная сетка ─────────────────────────────────────────────────────── */
 
 .admin {
-  display: grid;
-  gap: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   padding-top: 8px;
 }
 
@@ -559,12 +565,6 @@
 
 #adminAppRoot .container.admin {
   padding-top: 8px;
-}
-
-@media (max-width: 1320px) {
-  #adminAppRoot .container.admin {
-    padding-right: calc(var(--page-gutter) + 148px);
-  }
 }
 
 .admin__card {
@@ -1126,64 +1126,64 @@ details.task-row[open] .task-row__summary::after {
   }
 }
 
-/* ─── Плавающий статус-бар (вертикальный док справа) ─── */
-.admin-status--float {
+/* ─── Плавающий статус-бар ─── */
+.admin-status-dock {
   position: fixed;
-  top: auto;
-  bottom: 88px;
-  right: max(0px, calc((100vw - var(--page-max)) / 2 - 176px));
-  left: auto;
+  right: 16px;
+  bottom: 24px;
   z-index: 100;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 8px;
-  width: 156px;
-  max-width: calc(100vw - 24px);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.45;
-  padding: 12px 10px 12px 12px;
+  gap: 10px;
+  width: 196px;
+  max-width: calc(100vw - 32px);
+  padding: 12px 14px;
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(15, 23, 42, 0.1);
-  border-right: none;
-  border-radius: 14px 0 0 14px;
-  box-shadow: -6px 8px 28px rgba(2, 6, 23, 0.1);
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(2, 6, 23, 0.12);
   box-sizing: border-box;
   pointer-events: auto;
 }
 
-/* Кнопка «Сохранить всё» */
-#statusSaveAll {
-  display: none;
-  flex-shrink: 0;
-  width: 100%;
-  justify-content: center;
+.admin-status-dock__message {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: inherit;
   white-space: normal;
-  text-align: center;
-  font-size: 12px;
-  padding: 8px 10px;
-}
-#statusSaveAll.is-visible {
-  display: inline-flex;
-}
-#statusText {
-  flex: 1;
-  min-width: 0;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  display: block;
+  overflow-wrap: break-word;
 }
 
-@media (max-width: 900px) {
-  .admin-status--float {
-    bottom: 16px;
-    width: 132px;
-    font-size: 11px;
-    padding: 10px 8px 10px 10px;
-  }
+.admin-status-dock__message .loader {
+  display: inline-block;
+  vertical-align: -2px;
+  margin-left: 6px;
+}
+
+.admin-status-dock.is-error .admin-status-dock__message {
+  color: var(--red);
+}
+
+.admin-status-dock.is-success .admin-status-dock__message {
+  color: var(--green);
+}
+
+.admin-status-dock__btn {
+  display: none;
+  width: 100%;
+  justify-content: center;
+  white-space: nowrap;
+  font-size: 13px;
+  padding: 8px 12px;
+}
+
+.admin-status-dock__btn.is-visible {
+  display: inline-flex;
 }
 .loader {
   flex-shrink: 0;
