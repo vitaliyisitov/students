@@ -2164,6 +2164,8 @@ body.is-app-loading #appState {
 .code-block code {
   display: block;
   white-space: pre;
+  tab-size: 4;
+  -moz-tab-size: 4;
   font-family: inherit;
   font-size: inherit;
   color: inherit;

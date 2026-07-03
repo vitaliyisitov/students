@@ -1136,10 +1136,8 @@ function renderTaskRow(task) {
   const userName =
     state.users.find((u) => u.id === state.selectedUserId)?.name || "";
   const flag = details.flag || (details.isPinned === true ? "pinned" : "");
-  const homework = Array.isArray(details.homework)
-    ? details.homework.join("\n")
-    : "";
-  const hints = Array.isArray(details.hints) ? details.hints.join("\n") : "";
+  const homework = formatRichTextField(details.homework);
+  const hints = formatRichTextField(details.hints);
   const lessonFilesRaw = Array.isArray(details.lessonFiles)
     ? details.lessonFiles
     : [];
@@ -1321,7 +1319,7 @@ function buildTaskPayload(row, oldTask = null) {
     }
   }
 
-  const homework = splitLines(row.querySelector('[data-f="homework"]')?.value);
+  const homework = readRichTextField(row.querySelector('[data-f="homework"]')?.value);
 
   const payload = {
     title: row.querySelector('[data-f="title"]')?.value?.trim() || "Задание",
@@ -1339,7 +1337,7 @@ function buildTaskPayload(row, oldTask = null) {
       homeworkFiles: readAttachmentsFromRow(
         row.querySelector('[id^="hw-files-"]'),
       ),
-      hints: splitLines(row.querySelector('[data-f="hints"]')?.value),
+      hints: readRichTextField(row.querySelector('[data-f="hints"]')?.value),
       hintFiles: readAttachmentsFromRow(
         row.querySelector('[id^="hint-files-"]'),
       ),
@@ -1548,11 +1546,13 @@ async function saveAllTmplInBlock(catalogId) {
           lessonFiles: readAttachmentsFromRow(
             row.querySelector('[id^="tmpl-lesson-files-"]'),
           ),
-          homework: splitLines(row.querySelector('[data-f="homework"]')?.value),
+          homework: readRichTextField(
+            row.querySelector('[data-f="homework"]')?.value,
+          ),
           homeworkFiles: readAttachmentsFromRow(
             row.querySelector('[id^="tmpl-hw-files-"]'),
           ),
-          hints: splitLines(row.querySelector('[data-f="hints"]')?.value),
+          hints: readRichTextField(row.querySelector('[data-f="hints"]')?.value),
           hintFiles: readAttachmentsFromRow(
             row.querySelector('[id^="tmpl-hint-files-"]'),
           ),
@@ -1705,6 +1705,16 @@ function splitLines(value) {
     .split("\n")
     .map((x) => x.trim())
     .filter(Boolean);
+}
+
+function formatRichTextField(value) {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.join("\n");
+  return "";
+}
+
+function readRichTextField(value) {
+  return String(value ?? "").replace(/\r\n/g, "\n").replace(/\s+$/, "");
 }
 
 function parseAttachmentsJson(raw) {
@@ -3250,10 +3260,8 @@ function renderTmplRow(t) {
     t.default_details && typeof t.default_details === "object"
       ? t.default_details
       : {};
-  const homework = Array.isArray(details.homework)
-    ? details.homework.join("\n")
-    : "";
-  const hints = Array.isArray(details.hints) ? details.hints.join("\n") : "";
+  const homework = formatRichTextField(details.homework);
+  const hints = formatRichTextField(details.hints);
   const lessonFilesRaw = Array.isArray(details.lessonFiles)
     ? details.lessonFiles
     : [];
@@ -3350,11 +3358,11 @@ async function saveTmplRow(row) {
       lessonFiles: readAttachmentsFromRow(
         row.querySelector('[id^="tmpl-lesson-files-"]'),
       ),
-      homework: splitLines(row.querySelector('[data-f="homework"]')?.value),
+      homework: readRichTextField(row.querySelector('[data-f="homework"]')?.value),
       homeworkFiles: readAttachmentsFromRow(
         row.querySelector('[id^="tmpl-hw-files-"]'),
       ),
-      hints: splitLines(row.querySelector('[data-f="hints"]')?.value),
+      hints: readRichTextField(row.querySelector('[data-f="hints"]')?.value),
       hintFiles: readAttachmentsFromRow(
         row.querySelector('[id^="tmpl-hint-files-"]'),
       ),
