@@ -845,7 +845,7 @@ function openModal(task) {
     : [];
   els.modalContent.innerHTML = [
     renderSectionWithFiles(
-      "Конспект",
+      "Записи с занятия",
       details.lessonNotes || "",
       lessonFiles,
       "./icons/notes.png",
@@ -1308,21 +1308,21 @@ function renderSectionWithFiles(title, rawValue, files, iconSrc) {
 
   return `
     <div class="section">
-      <div class="section__title">${escapeHtml(title)}</div>
+      <div class="section__title">${
+        iconSrc
+          ? `<span class="section__icon" aria-hidden="true"><img src="${escapeAttr(iconSrc)}" width="28" height="28" alt="" /></span>`
+          : ""
+      }<span>${escapeHtml(title)}</span></div>
       ${bodyHtml}
       ${links.length ? renderLinks(links) : ""}
       ${
         fileLinks.length
-          ? `<div class="attachments-list" style="margin-top:10px">${fileLinks
+          ? `<div class="attachments-list">${fileLinks
               .map(
                 (a) => `
         <a class="attachment-link" href="${escapeAttr(a.href)}" target="_blank" rel="noreferrer">
-          <span class="attachment-link__icon" aria-hidden="true">${
-            iconSrc
-              ? `<img src="${escapeAttr(iconSrc)}" width="16" height="16" alt="" />`
-              : getFileIcon(a.href, a.label)
-          }</span>
-          <span>${escapeHtml(a.label)}</span>
+          <span class="attachment-link__icon" aria-hidden="true">${renderFileIconHtml(a.href, a.label)}</span>
+          <span class="attachment-link__label">${escapeHtml(a.label)}</span>
         </a>`,
               )
               .join("")}</div>`
@@ -1417,15 +1417,46 @@ function renderRichBodyHtml(rawValue) {
   return { bodyHtml, links };
 }
 
-function getFileIcon(href, label) {
-  const s = ((href || "") + " " + (label || "")).toLowerCase();
-  if (/\.(jpe?g|png|gif|webp|svg|bmp|heic)(\?|#|$)/.test(s)) return "🖼️";
-  if (/\.pdf(\?|#|$)/.test(s)) return "📄";
-  if (/\.(mp4|mov|avi|mkv|webm|m4v)(\?|#|$)/.test(s)) return "🎬";
-  if (/\.(mp3|wav|ogg|m4a|aac)(\?|#|$)/.test(s)) return "🎵";
-  if (/\.(docx?|pages)(\?|#|$)/.test(s)) return "📝";
-  if (/\.(xlsx?|numbers|csv)(\?|#|$)/.test(s)) return "📊";
-  return "📎";
+function getFileExtension(href, label) {
+  for (const source of [href, label]) {
+    if (!source) continue;
+    const path = String(source).toLowerCase().split(/[?#]/)[0];
+    const match = path.match(/\.([a-z0-9]+)$/);
+    if (match) return match[1];
+  }
+  return "";
+}
+
+// ─── Иконки типов файлов (папка ./icons/) ───────────────────────────────────
+// Добавляй или меняй строки: массив расширений (без точки) → путь к PNG/SVG.
+// Порядок важен: проверка сверху вниз, первое совпадение побеждает.
+const FILE_TYPE_ICON_RULES = [
+  { exts: ["pdf"], icon: "./icons/file_pdf.png" },
+  {
+    exts: ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "heic"],
+    icon: "./icons/file_image.png",
+  },
+  { exts: ["mp4", "mov", "avi", "mkv", "webm", "m4v"], icon: "./icons/file_video.png" },
+  { exts: ["mp3", "wav", "ogg", "m4a", "aac"], icon: "./icons/file_audio.png" },
+  { exts: ["doc", "docx", "pages"], icon: "./icons/file_doc.png" },
+  { exts: ["xls", "xlsx", "numbers", "csv"], icon: "./icons/file_sheet.png" },
+  { exts: ["py", "ipynb", "js", "html", "css"], icon: "./icons/file_code.png" },
+  { exts: ["zip", "rar", "7z"], icon: "./icons/file_archive.png" },
+];
+
+// Если расширение не найдено в списке выше
+const FILE_TYPE_ICON_DEFAULT = "./icons/file_default.png";
+
+function getFileIconSrc(href, label) {
+  const ext = getFileExtension(href, label);
+  if (!ext) return FILE_TYPE_ICON_DEFAULT;
+  const rule = FILE_TYPE_ICON_RULES.find((r) => r.exts.includes(ext));
+  return rule?.icon || FILE_TYPE_ICON_DEFAULT;
+}
+
+function renderFileIconHtml(href, label) {
+  const src = getFileIconSrc(href, label);
+  return `<img src="${escapeAttr(src)}" width="18" height="18" alt="" decoding="async" />`;
 }
 
 function parseRichLink(line) {
@@ -1470,8 +1501,8 @@ function renderAttachmentsSection(attachments) {
           .map(
             (a) => `
           <a class="attachment-link" href="${escapeAttr(a.href)}" target="_blank" rel="noreferrer">
-            <span class="attachment-link__icon" aria-hidden="true">${getFileIcon(a.href, a.label)}</span>
-            <span>${escapeHtml(a.label)}</span>
+            <span class="attachment-link__icon" aria-hidden="true">${renderFileIconHtml(a.href, a.label)}</span>
+            <span class="attachment-link__label">${escapeHtml(a.label)}</span>
           </a>`,
           )
           .join("")}
