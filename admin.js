@@ -1230,7 +1230,7 @@ function renderTaskRow(task) {
           <div class="attachments-editor" id="hw-files-${escapeAttr(task.id)}">${homeworkFilesHtml}</div>
         </div>
         <div class="admin-field admin-field--files">
-          <span>Подсказки (1 строка = 1 пункт)</span>
+          <span>Подсказки (код: ```python ... ```)</span>
           <textarea data-f="hints" rows="2">${escapeHtml(hints)}</textarea>
           <button class="icon-btn" type="button" data-add-hint-file="${escapeAttr(task.id)}">+ Файл</button>
           <div class="attachments-editor" id="hint-files-${escapeAttr(task.id)}">${hintFilesHtml}</div>
@@ -3312,7 +3312,7 @@ function renderTmplRow(t) {
           <button class="icon-btn" type="button" data-add-tmpl-hw-file="${escapeAttr(t.id)}">+ Добавить файл к домашке</button>
         </div>
         <div class="admin-field">
-          <span>Подсказки (1 строка = 1 пункт)</span>
+          <span>Подсказки (код: ```python ... ```)</span>
           <textarea data-f="hints" rows="3">${escapeHtml(hints)}</textarea>
           <div class="attachments-editor" id="tmpl-hint-files-${escapeAttr(t.id)}">${hintFilesHtml}</div>
           <button class="icon-btn" type="button" data-add-tmpl-hint-file="${escapeAttr(t.id)}">+ Добавить файл к подсказкам</button>

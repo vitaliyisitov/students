@@ -1270,39 +1270,19 @@ function formatTrialDate(dateStr) {
 }
 
 function renderRichSection(title, rawValue) {
-  const lines = normalizeRichLines(rawValue);
-  const parsed = lines.reduce(
-    (acc, line) => {
-      const link = parseRichLink(line);
-      link ? acc.links.push(link) : acc.texts.push(line);
-      return acc;
-    },
-    { texts: [], links: [] },
-  );
-
-  const bodyHtml = parsed.texts.length
-    ? `<div class="section__body">${parsed.texts.map((x) => escapeHtml(x)).join("<br />")}</div>`
-    : "";
+  const { bodyHtml, links } = renderRichBodyHtml(rawValue);
 
   return `
     <div class="section">
       <div class="section__title">${escapeHtml(title)}</div>
       ${bodyHtml}
-      ${parsed.links.length ? renderLinks(parsed.links) : ""}
-      ${!parsed.texts.length && !parsed.links.length ? `<div class="section__body">—</div>` : ""}
+      ${links.length ? renderLinks(links) : ""}
+      ${!bodyHtml && !links.length ? `<div class="section__body">—</div>` : ""}
     </div>`;
 }
 
 function renderSectionWithFiles(title, rawValue, files, iconSrc) {
-  const lines = normalizeRichLines(rawValue);
-  const parsed = lines.reduce(
-    (acc, line) => {
-      const link = parseRichLink(line);
-      link ? acc.links.push(link) : acc.texts.push(line);
-      return acc;
-    },
-    { texts: [], links: [] },
-  );
+  const { bodyHtml, links } = renderRichBodyHtml(rawValue);
 
   const fileLinks = (files || [])
     .map((item) => {
@@ -1324,18 +1304,13 @@ function renderSectionWithFiles(title, rawValue, files, iconSrc) {
     })
     .filter(Boolean);
 
-  const bodyHtml = parsed.texts.length
-    ? `<div class="section__body">${parsed.texts.map((x) => escapeHtml(x)).join("<br />")}</div>`
-    : "";
-
-  const hasContent =
-    parsed.texts.length || parsed.links.length || fileLinks.length;
+  const hasContent = bodyHtml || links.length || fileLinks.length;
 
   return `
     <div class="section">
       <div class="section__title">${escapeHtml(title)}</div>
       ${bodyHtml}
-      ${parsed.links.length ? renderLinks(parsed.links) : ""}
+      ${links.length ? renderLinks(links) : ""}
       ${
         fileLinks.length
           ? `<div class="attachments-list" style="margin-top:10px">${fileLinks
@@ -1357,13 +1332,89 @@ function renderSectionWithFiles(title, rawValue, files, iconSrc) {
     </div>`;
 }
 
-function normalizeRichLines(rawValue) {
-  if (Array.isArray(rawValue))
-    return rawValue.map((x) => String(x || "").trim()).filter(Boolean);
-  return String(rawValue || "")
-    .split("\n")
-    .map((x) => x.trim())
-    .filter(Boolean);
+const CODE_FENCE_RE = /```([a-zA-Z0-9_+-]*)\s*\r?\n([\s\S]*?)```/g;
+
+function normalizeRichText(rawValue) {
+  if (Array.isArray(rawValue)) {
+    return rawValue.map((x) => String(x ?? "")).join("\n");
+  }
+  return String(rawValue ?? "");
+}
+
+function parseRichTextSegments(text) {
+  const segments = [];
+  let lastIndex = 0;
+  let match;
+  CODE_FENCE_RE.lastIndex = 0;
+  while ((match = CODE_FENCE_RE.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ type: "text", content: text.slice(lastIndex, match.index) });
+    }
+    segments.push({
+      type: "code",
+      lang: (match[1] || "").trim(),
+      content: match[2].replace(/\s+$/, ""),
+    });
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    segments.push({ type: "text", content: text.slice(lastIndex) });
+  }
+  if (!segments.length && text) {
+    segments.push({ type: "text", content: text });
+  }
+  return segments;
+}
+
+function renderCodeBlock(lang, code) {
+  const langAttr = lang ? ` data-lang="${escapeAttr(lang)}"` : "";
+  const label = lang
+    ? `<span class="code-block__lang">${escapeHtml(lang)}</span>`
+    : "";
+  return `<pre class="code-block"${langAttr}>${label}<code>${escapeHtml(code)}</code></pre>`;
+}
+
+function renderTextSegmentHtml(content, linksOut) {
+  const lines = content.split("\n");
+  const parts = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      parts.push("<br />");
+      continue;
+    }
+    const link = parseRichLink(trimmed);
+    if (link) {
+      linksOut.push(link);
+    } else {
+      parts.push(escapeHtml(line));
+      parts.push("<br />");
+    }
+  }
+  if (parts.length && parts[parts.length - 1] === "<br />") {
+    parts.pop();
+  }
+  return parts.join("");
+}
+
+function renderRichBodyHtml(rawValue) {
+  const text = normalizeRichText(rawValue);
+  const links = [];
+  if (!text.trim()) {
+    return { bodyHtml: "", links };
+  }
+
+  const segments = parseRichTextSegments(text);
+  const htmlParts = segments.map((seg) => {
+    if (seg.type === "code") {
+      return renderCodeBlock(seg.lang, seg.content);
+    }
+    return renderTextSegmentHtml(seg.content, links);
+  });
+
+  const joined = htmlParts.filter(Boolean).join("");
+  const bodyHtml = joined ? `<div class="section__body">${joined}</div>` : "";
+  return { bodyHtml, links };
 }
 
 function getFileIcon(href, label) {

@@ -2135,6 +2135,45 @@ body.is-app-loading #appState {
   line-height: 1.5;
 }
 
+.code-block {
+  margin: 10px 0 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #1e293b;
+  color: #e2e8f0;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  overflow-x: auto;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+}
+
+.code-block__lang {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.55);
+  font-family: var(--font);
+}
+
+.code-block code {
+  display: block;
+  white-space: pre;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  background: none;
+}
+
+.section__body > .code-block:first-child {
+  margin-top: 0;
+}
+
 .list {
   margin: 8px 0 0;
   padding-left: 18px;
