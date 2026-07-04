@@ -712,6 +712,45 @@ function groupTasksByPart(tasks, catalogSlug) {
   return groups.length ? groups : [{ label: null, tasks }];
 }
 
+const TASK_FILTER_EMPTY_STUBS = {
+  homework: {
+    icon: "./icons/tasks_empty_homework.svg",
+    title: "Домашнего задания нет",
+    text: "Сейчас ничего не задано, можно отдохнуть",
+  },
+  in_progress: {
+    icon: "./icons/tasks_empty_in_progress.svg",
+    title: "В процессе ничего нет",
+    text: "Сейчас нет заданий, которые ты решаешь",
+  },
+  completed: {
+    icon: "./icons/tasks_empty_completed.svg",
+    title: "Пройденных заданий пока нет",
+    text: "Скоро здесь появятся пройденные задания",
+  },
+  not_started: {
+    icon: "./icons/tasks_empty_not_started.svg",
+    title: "Не начатых заданий нет",
+    text: "Все задания уже в процессе или пройдены",
+  },
+};
+
+function renderTasksFilterEmpty(filter) {
+  const stub = TASK_FILTER_EMPTY_STUBS[filter];
+  if (stub) {
+    return `<div class="trials-empty tasks-empty">
+      <img class="trials-empty__icon" src="${escapeAttr(stub.icon)}" alt="" />
+      <div class="trials-empty__title">${escapeHtml(stub.title)}</div>
+      <div class="trials-empty__text">${escapeHtml(stub.text)}</div>
+    </div>`;
+  }
+  return `<div class="trials-empty tasks-empty">
+    <img class="trials-empty__icon" src="./icons/tasks_empty.png" alt="" />
+    <div class="trials-empty__title">Нет заданий</div>
+    <div class="trials-empty__text">По этому фильтру заданий не найдено.</div>
+  </div>`;
+}
+
 function renderTasks() {
   setActiveFilterChip(state.filter);
 
@@ -748,9 +787,9 @@ function renderTasks() {
       els.trialsPanel.innerHTML =
         scaleSection +
         `<div class="trials-empty">
-          <img class="trials-empty__icon" src="./icons/trials_empty.png" alt="" />
+          <img class="trials-empty__icon" src="./icons/trials_empty.svg" alt="" />
           <div class="trials-empty__title">Пробные варианты</div>
-          <div class="trials-empty__text">Здесь будут появляться результаты пробных экзаменов и полных вариантов.</div>
+          <div class="trials-empty__text">Здесь будут появляться результаты пробных экзаменов и полных вариантов</div>
         </div>`;
     } else {
       // Группируем пробники по section_label — одинаковые метки всегда под одним хедером
@@ -796,11 +835,7 @@ function renderTasks() {
   const filtered = filterTasks(tasks, state.filter);
 
   if (!filtered.length) {
-    els.tasksGrid.innerHTML = `
-      <div class="section" style="grid-column: 1 / -1;">
-        <div class="section__title">Нет заданий</div>
-        <div class="section__body">По фильтру ничего не найдено.</div>
-      </div>`;
+    els.tasksGrid.innerHTML = renderTasksFilterEmpty(state.filter);
     return;
   }
 
@@ -849,18 +884,21 @@ function openModal(task) {
       details.lessonNotes || "",
       lessonFiles,
       "./icons/notes.png",
+      "lesson",
     ),
     renderSectionWithFiles(
       "Домашнее задание",
       details.homework || [],
       homeworkFiles,
       "./icons/homework.png",
+      "homework",
     ),
     renderSectionWithFiles(
       "Подсказки",
       details.hints || [],
       hintFiles,
       "./icons/hints.png",
+      "hints",
     ),
     attachments.length ? renderAttachmentsSection(attachments) : "",
   ].join("");
@@ -1269,6 +1307,17 @@ function formatTrialDate(dateStr) {
   });
 }
 
+const SECTION_EMPTY_STUBS = {
+  lesson: "Запись с занятия пока не добавлена",
+  homework: "Домашнее задание пока не задано",
+  hints: "Подсказок пока нет",
+};
+
+function renderSectionEmptyStub(kind) {
+  const text = SECTION_EMPTY_STUBS[kind] || "Пока ничего не добавлено";
+  return `<div class="section__empty">${escapeHtml(text)}</div>`;
+}
+
 function renderRichSection(title, rawValue) {
   const { bodyHtml, links } = renderRichBodyHtml(rawValue);
 
@@ -1277,11 +1326,11 @@ function renderRichSection(title, rawValue) {
       <div class="section__title">${escapeHtml(title)}</div>
       ${bodyHtml}
       ${links.length ? renderLinks(links) : ""}
-      ${!bodyHtml && !links.length ? `<div class="section__body">—</div>` : ""}
+      ${!bodyHtml && !links.length ? renderSectionEmptyStub("") : ""}
     </div>`;
 }
 
-function renderSectionWithFiles(title, rawValue, files, iconSrc) {
+function renderSectionWithFiles(title, rawValue, files, iconSrc, emptyKind) {
   const { bodyHtml, links } = renderRichBodyHtml(rawValue);
   const fileLinks = parseFileAttachmentLinks(files);
   const hasContent = bodyHtml || links.length || fileLinks.length;
@@ -1297,7 +1346,7 @@ function renderSectionWithFiles(title, rawValue, files, iconSrc) {
       ${bodyHtml}
       ${links.length ? renderLinks(links) : ""}
       ${renderNestedAttachmentsHtml(fileLinks)}
-      ${!hasContent ? `<div class="section__body">—</div>` : ""}
+      ${!hasContent ? renderSectionEmptyStub(emptyKind) : ""}
     </div>`;
 }
 
@@ -1617,6 +1666,7 @@ function getGreeting() {
 }
 
 function startClock() {
+  if (!els.nowDate || !els.nowTime) return;
   const tick = () => {
     const now = new Date();
     els.nowDate.textContent = now.toLocaleDateString(undefined, {

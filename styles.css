@@ -308,6 +308,10 @@ a {
   gap: 2px;
 }
 
+body.is-app-loading .clock {
+  visibility: hidden;
+}
+
 .clock__date {
   font-size: 12px;
   color: var(--muted);
@@ -1763,6 +1767,10 @@ body.is-app-loading #appState {
   align-items: stretch;
 }
 
+.tasks-empty {
+  grid-column: 1 / -1;
+}
+
 .task {
   text-align: left;
   width: 100%;
@@ -2169,8 +2177,20 @@ body.is-app-loading #appState {
 
 .section--with-icon .section__body,
 .section--with-icon .links,
-.section--with-icon .section__attachments {
+.section--with-icon .section__attachments,
+.section--with-icon .section__empty {
   margin-left: 38px;
+}
+
+.section__empty {
+  margin-top: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px dashed rgba(15, 23, 42, 0.12);
+  background: rgba(15, 23, 42, 0.03);
+  color: rgba(18, 20, 23, 0.42);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .section__attachments {
