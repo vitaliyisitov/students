@@ -1394,7 +1394,28 @@ body.is-app-loading #appState {
   font-weight: 650;
   font-size: 13px;
   background: rgba(255, 255, 255, 0.66);
-  white-space: nowrap;
+}
+
+.subject-title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.pill .subject-title__main {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.pill .subject-title__level {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(18, 20, 23, 0.52);
+  letter-spacing: -0.01em;
 }
 
 .pill-icon {
@@ -1427,6 +1448,25 @@ body.is-app-loading #appState {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  text-align: left;
+}
+
+.tab-title {
+  display: inline;
+  line-height: inherit;
+}
+
+.tab-title__main {
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: -0.01em;
+}
+
+.tab-title__level {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(18, 20, 23, 0.52);
+  letter-spacing: -0.01em;
 }
 
 .tab-icon {

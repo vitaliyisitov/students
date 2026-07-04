@@ -703,11 +703,14 @@ function renderSubjectSettings() {
     const cat = byCatalog.get(s.catalog_id);
     const title = s.title || cat?.title || "Предмет";
     const defaults = cat ? getCatalogDefaults(cat) : null;
-    const examDate = s.exam_date || resolveDefaultExamDate(defaults?.default_exam_date) || "";
+    const examDate =
+      s.exam_date || resolveDefaultExamDate(defaults?.default_exam_date) || "";
     const duration = Number(
       s.duration_minutes || defaults?.default_duration_minutes || 235,
     );
-    const tasksTotal = Number(s.tasks_total || defaults?.default_tasks_total || 0);
+    const tasksTotal = Number(
+      s.tasks_total || defaults?.default_tasks_total || 0,
+    );
 
     return `
       <div class="subject-setting" data-subject-id="${escapeAttr(s.id)}">
@@ -2915,7 +2918,7 @@ const SUBJECT_CATALOG = [
     sort_order: 1,
     default_tasks_total: 25,
     default_duration_minutes: 235,
-    default_exam_date: "2026-06-02",
+    default_exam_date: "2027-06-02",
   },
   {
     slug: "oge_info",
@@ -2923,7 +2926,7 @@ const SUBJECT_CATALOG = [
     sort_order: 2,
     default_tasks_total: 16,
     default_duration_minutes: 150,
-    default_exam_date: "2026-06-15",
+    default_exam_date: "2027-06-15",
   },
   {
     slug: "ege_math",
@@ -2931,7 +2934,7 @@ const SUBJECT_CATALOG = [
     sort_order: 3,
     default_tasks_total: 19,
     default_duration_minutes: 235,
-    default_exam_date: "2026-05-31",
+    default_exam_date: "2027-05-31",
   },
   {
     slug: "ege_math_basic",
@@ -2939,7 +2942,7 @@ const SUBJECT_CATALOG = [
     sort_order: 4,
     default_tasks_total: 21,
     default_duration_minutes: 180,
-    default_exam_date: "2026-06-03",
+    default_exam_date: "2027-06-03",
   },
   {
     slug: "ege_info",
@@ -2947,7 +2950,7 @@ const SUBJECT_CATALOG = [
     sort_order: 5,
     default_tasks_total: 27,
     default_duration_minutes: 235,
-    default_exam_date: "2026-06-10",
+    default_exam_date: "2027-06-10",
   },
 ];
 
@@ -2971,17 +2974,9 @@ function resolveDefaultExamDate(isoDate) {
 
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  let exam = new Date(
-    now.getFullYear(),
-    parsed.getMonth(),
-    parsed.getDate(),
-  );
+  let exam = new Date(now.getFullYear(), parsed.getMonth(), parsed.getDate());
   if (exam < today) {
-    exam = new Date(
-      now.getFullYear() + 1,
-      parsed.getMonth(),
-      parsed.getDate(),
-    );
+    exam = new Date(now.getFullYear() + 1, parsed.getMonth(), parsed.getDate());
   }
   return formatCatalogISODate(exam);
 }
@@ -3061,10 +3056,7 @@ async function checkState() {
       dbLog("Предметы в каталоге:", "log-inf");
       catSnap.docs.forEach((d) => {
         const c = d.data();
-        dbLog(
-          `  ${c.title} (${c.default_tasks_total} заданий)`,
-          "log-ok",
-        );
+        dbLog(`  ${c.title} (${c.default_tasks_total} заданий)`, "log-ok");
       });
     }
 
@@ -3139,10 +3131,7 @@ async function seedDatabase(forceReset) {
       const cnt = existingTmpl.docs.filter(
         (d) => d.data().catalog_id === catalogId,
       ).length;
-      dbLog(
-        `  ⏭  ${c.title} — уже есть ${cnt} шаблонов`,
-        "log-dim",
-      );
+      dbLog(`  ⏭  ${c.title} — уже есть ${cnt} шаблонов`, "log-dim");
       continue;
     }
     const batch = window.db.batch();

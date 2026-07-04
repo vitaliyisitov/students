@@ -600,7 +600,7 @@ function renderSubjectTabs() {
       const active = s.id === state.selectedSubjectId ? "is-active" : "";
       return `<button class="tab ${active}" type="button" data-subject="${escapeAttr(s.id)}" aria-pressed="${s.id === state.selectedSubjectId}">
         <img src="${escapeAttr(subjectIconSrc(s.catalogSlug))}" alt="" aria-hidden="true" class="tab-icon" width="18" height="18" />
-        <span>${escapeHtml(s.title)}</span>
+        ${renderSubjectTabTitleHtml(s.title)}
       </button>`;
     })
     .join("");
@@ -613,8 +613,14 @@ function renderGreeting() {
 
   els.greetingEyebrow.textContent = greeting.subtitle;
   els.greetingTitle.innerHTML = `${escapeHtml(greeting.title)}, ${escapeHtml(name)} <img src="./icons/wave.png" alt="" aria-hidden="true" class="greeting-icon" width="36" height="36" />`;
-  if (els.subjectPillText)
-    els.subjectPillText.textContent = subject ? subject.title : "—";
+  if (els.subjectPillText) {
+    els.subjectPillText.innerHTML = subject
+      ? renderSubjectTitleHtml(subject.title)
+      : "—";
+  }
+  if (els.subjectPill) {
+    els.subjectPill.title = subject?.title || "Выбранный предмет";
+  }
   if (els.subjectPillIcon) {
     els.subjectPillIcon.src = subjectIconSrc(subject?.catalogSlug);
     els.subjectPillIcon.hidden = !subject;
@@ -693,8 +699,8 @@ const PART_CONFIG = {
   },
   ege_math_basic: {
     parts: [
-      { label: "Краткий ответ", from: 1, to: 16 },
-      { label: "Развернутый ответ", from: 17, to: Infinity },
+      { label: "Алгебра", from: 1, to: 16 },
+      { label: "Геометрия", from: 17, to: Infinity },
     ],
   },
   ege_info: {
@@ -1739,7 +1745,11 @@ function renderTaskFlagIconClass(flagKey, baseClass = "task__flag-icon") {
   return flagSize !== 17 ? `${baseClass} ${baseClass}--${flagKey}` : baseClass;
 }
 
-function renderTaskFlagIconHtml(flagKey, baseClass = "task__flag-icon", iconSize) {
+function renderTaskFlagIconHtml(
+  flagKey,
+  baseClass = "task__flag-icon",
+  iconSize,
+) {
   const flagMeta = TASK_FLAGS[flagKey];
   if (!flagMeta) return "";
   const flagSize = iconSize ?? flagMeta.size ?? 17;
@@ -2089,6 +2099,36 @@ const SUBJECT_ICON_FALLBACK = "./icons/subjects/subject.png";
 
 function subjectIconSrc(catalogSlug) {
   return SUBJECT_ICONS[catalogSlug] || SUBJECT_ICON_FALLBACK;
+}
+
+function splitSubjectTitle(title) {
+  const raw = String(title || "").trim();
+  if (!raw) return { main: "—", level: "" };
+
+  const match = raw.match(/^(.+?)\s*\((.+)\)\s*$/);
+  if (!match) return { main: raw, level: "" };
+
+  return {
+    main: match[1].trim(),
+    level: match[2].trim(),
+  };
+}
+
+function renderSubjectTitleHtml(title) {
+  const { main, level } = splitSubjectTitle(title);
+  if (!level) return escapeHtml(main);
+
+  return `<span class="subject-title">
+    <span class="subject-title__main">${escapeHtml(main)}</span>
+    <span class="subject-title__level">${escapeHtml(level)}</span>
+  </span>`;
+}
+
+function renderSubjectTabTitleHtml(title) {
+  const { main, level } = splitSubjectTitle(title);
+  if (!level) return `<span>${escapeHtml(main)}</span>`;
+
+  return `<span class="tab-title"><span class="tab-title__main">${escapeHtml(main)}</span><span class="tab-title__level"> (${escapeHtml(level)})</span></span>`;
 }
 
 function escapeHtml(value) {
