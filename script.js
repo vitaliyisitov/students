@@ -923,8 +923,10 @@ function isModalOpen() {
 
 function renderTaskCard(task) {
   const flagKey = getTaskFlag(task);
-  const flagImg = flagKey
-    ? `<img src="${escapeAttr(TASK_FLAGS[flagKey].src)}" width="17" height="17" alt="${escapeAttr(TASK_FLAGS[flagKey].alt)}" class="task__flag-icon" />`
+  const flagMeta = flagKey ? TASK_FLAGS[flagKey] : null;
+  const flagSize = flagMeta?.size || 17;
+  const flagImg = flagMeta
+    ? `<img src="${escapeAttr(flagMeta.src)}" width="${flagSize}" height="${flagSize}" alt="${escapeAttr(flagMeta.alt)}" class="${flagSize !== 17 ? `task__flag-icon task__flag-icon--${flagKey}` : "task__flag-icon"}" />`
     : "";
   const footHtml = renderTaskFootHtml(task);
 
@@ -932,10 +934,12 @@ function renderTaskCard(task) {
     <button class="task" type="button" data-task="${escapeAttr(task.id)}">
       <div class="task__top">
         <div class="task__head-text">
-          <div class="task__title">${flagImg}${escapeHtml(task.title)}</div>
+          <div class="task__title-row">
+            <div class="task__title">${flagImg}${escapeHtml(task.title)}</div>
+            ${renderTaskStatusHtml(task.status)}
+          </div>
           <div class="task__desc">${escapeHtml(task.description || "")}</div>
         </div>
-        ${renderTaskStatusHtml(task.status)}
       </div>
       ${footHtml}
     </button>`;
@@ -1124,9 +1128,13 @@ function renderTrialCard(trial, catalogSlug) {
     ? `<span class="trial-card__hw-badge">ДЗ</span>`
     : "";
 
+  const timeHtml = timeStr
+    ? `<span class="trial-card__time"><img src="./icons/trial/clock.svg" width="12" height="12" alt="" aria-hidden="true" class="trial-card__meta-icon"> ${escapeHtml(timeStr)}</span>`
+    : "";
+
   const footHtml = `<div class="trial-card__foot">
-    <span class="trial-card__date">${dateStr ? `<img src="./icons/trial/calendar.png" width="12" height="12" alt="" aria-hidden="true" class="trial-card__meta-icon"> ${escapeHtml(dateStr)}` : ""}</span>
-    <span class="trial-card__time ${timeStr ? "" : "trial-card__time--empty"}"><img src="./icons/trial/clock.png" width="12" height="12" alt="" aria-hidden="true" class="trial-card__meta-icon"> ${timeStr ? escapeHtml(timeStr) : "—"}</span>
+    <span class="trial-card__date">${dateStr ? `<img src="./icons/trial/calendar.svg" width="12" height="12" alt="" aria-hidden="true" class="trial-card__meta-icon"> ${escapeHtml(dateStr)}` : ""}</span>
+    ${timeHtml}
   </div>`;
 
   return `<button class="trial-card ${cardLevel}" type="button" data-trial-open="${escapeAttr(trial.id)}">
@@ -1291,9 +1299,7 @@ function renderTrialTaskResultsReadonly(trial, catalogSlug) {
   }
 
   const results = normalizeTrialTaskResults(trial.task_results, taskCount);
-  const hasAnyMark = results.some(
-    (r) => r === "correct" || r === "incorrect",
-  );
+  const hasAnyMark = results.some((r) => r === "correct" || r === "incorrect");
 
   if (!hasAnyMark) {
     return `<div class="section trial-modal__report">
@@ -1543,7 +1549,13 @@ const FILE_LINK_ICON_RULES = [
     icon: "./icons/files_preview/file_cloud.svg",
   },
   {
-    hosts: ["youtube.com", "youtu.be", "rutube.ru", "vk.com/video", "vkvideo.ru"],
+    hosts: [
+      "youtube.com",
+      "youtu.be",
+      "rutube.ru",
+      "vk.com/video",
+      "vkvideo.ru",
+    ],
     icon: "./icons/files_preview/file_video.svg",
   },
 ];
@@ -1702,9 +1714,9 @@ function isValidHttpUrl(value) {
 }
 
 const TASK_FLAGS = {
-  pinned: { src: "./icons/flag_card/flag_pinned.png", alt: "Закреплено" },
-  redo: { src: "./icons/flag_card/flag_redo.png", alt: "Перерешать" },
-  new_topic: { src: "./icons/flag_card/flag_new.png", alt: "Новая тема" },
+  pinned: { src: "./icons/flag_card/flag_pinned.svg", alt: "Закреплено" },
+  redo: { src: "./icons/flag_card/flag_redo.svg", alt: "Перерешать", size: 25 },
+  new_topic: { src: "./icons/flag_card/flag_new.svg", alt: "Новая тема" },
 };
 
 function getTaskFlag(task) {
