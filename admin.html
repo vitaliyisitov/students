@@ -93,7 +93,11 @@
         <p id="statusText" class="admin-status-dock__message">
           Ожидание данных <span class="loader" aria-hidden="true"></span>
         </p>
-        <button class="icon-btn admin-status-dock__btn" type="button" id="statusSaveAll">
+        <button
+          class="icon-btn admin-status-dock__btn"
+          type="button"
+          id="statusSaveAll"
+        >
           💾 Сохранить
         </button>
       </aside>
@@ -124,315 +128,352 @@
         </nav>
 
         <div class="admin-panels">
-        <!-- ─── Панель: Ученики ─── -->
-        <div class="admin-tab-panel" data-page-panel="students">
-          <section class="card admin__card">
-            <div class="card__header">
-              <div>
-                <div class="eyebrow">Новый ученик</div>
-                <h1 class="h2">Создание ученика</h1>
-              </div>
-            </div>
-            <form id="createStudentForm" class="admin-form">
-              <label class="admin-field">
-                <span>Имя</span>
-                <input id="createName" type="text" required />
-              </label>
-              <div class="admin-field">
-                <span>Предметы</span>
-                <div id="createSubjects" class="subject-checks"></div>
-              </div>
-              <button class="icon-btn" type="submit">Создать ученика</button>
-            </form>
-          </section>
-
-          <!-- ─── Сплит: список слева, детали справа ─── -->
-          <div class="students-split">
-
-            <!-- Левая колонка: список учеников -->
-            <aside class="students-split__sidebar">
-              <section class="card admin__card students-split__list-card">
-                <div class="card__header">
-                  <div>
-                    <div class="eyebrow">Текущие ученики</div>
-                    <h2 class="h2">Список</h2>
-                  </div>
+          <!-- ─── Панель: Ученики ─── -->
+          <div class="admin-tab-panel" data-page-panel="students">
+            <section class="card admin__card">
+              <div class="card__header">
+                <div>
+                  <div class="eyebrow">Новый ученик</div>
+                  <h1 class="h2">Создание ученика</h1>
                 </div>
-                <div id="studentsList" class="students-list"></div>
-              </section>
-            </aside>
-
-            <!-- Правая колонка: данные + задания + пробники -->
-            <div class="students-split__main">
-
-              <section class="card admin__card">
-                <div class="card__header">
-                  <div>
-                    <div class="eyebrow">Редактирование</div>
-                    <h2 class="h2">Данные ученика</h2>
-                  </div>
+              </div>
+              <form id="createStudentForm" class="admin-form">
+                <label class="admin-field">
+                  <span>Имя</span>
+                  <input id="createName" type="text" required />
+                </label>
+                <div class="admin-field">
+                  <span>Предметы</span>
+                  <div id="createSubjects" class="subject-checks"></div>
                 </div>
-                <form id="editStudentForm" class="admin-form" hidden>
-                  <div class="admin-form-row">
-                    <label class="admin-field">
-                      <span>Имя</span>
-                      <input id="editName" type="text" required />
-                    </label>
-                    <label class="admin-field">
-                      <span>Статус доступа</span>
-                      <select id="editActive">
-                        <option value="true">Активен</option>
-                        <option value="false">Архив (доступ закрыт)</option>
-                      </select>
-                    </label>
+                <button class="icon-btn" type="submit">Создать ученика</button>
+              </form>
+            </section>
+
+            <!-- ─── Сплит: список слева, детали справа ─── -->
+            <div class="students-split">
+              <!-- Левая колонка: список учеников -->
+              <aside class="students-split__sidebar">
+                <section class="card admin__card students-split__list-card">
+                  <div class="card__header">
+                    <div>
+                      <div class="eyebrow">Текущие ученики</div>
+                      <h2 class="h2">Список</h2>
+                    </div>
                   </div>
-                  <div class="admin-field">
-                    <span>Токен ссылки</span>
-                    <div class="token-row">
-                      <code id="editToken">—</code>
-                      <button class="icon-btn" id="copyLinkBtn" type="button">
-                        Копировать ссылку
+                  <div id="studentsList" class="students-list"></div>
+                </section>
+              </aside>
+
+              <!-- Правая колонка: данные + задания + пробники -->
+              <div class="students-split__main">
+                <section class="card admin__card">
+                  <div class="card__header">
+                    <div>
+                      <div class="eyebrow">Редактирование</div>
+                      <h2 class="h2">Данные ученика</h2>
+                    </div>
+                  </div>
+                  <form id="editStudentForm" class="admin-form" hidden>
+                    <div class="admin-form-row">
+                      <label class="admin-field">
+                        <span>Имя</span>
+                        <input id="editName" type="text" required />
+                      </label>
+                      <label class="admin-field">
+                        <span>Статус доступа</span>
+                        <select id="editActive">
+                          <option value="true">Активен</option>
+                          <option value="false">Архив (доступ закрыт)</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div class="admin-field">
+                      <span>Токен ссылки</span>
+                      <div class="token-row">
+                        <code id="editToken">—</code>
+                        <button class="icon-btn" id="copyLinkBtn" type="button">
+                          Копировать ссылку
+                        </button>
+                      </div>
+                    </div>
+                    <div class="admin-form-row">
+                      <div class="admin-field">
+                        <span>Доска</span>
+                        <div class="admin-service-row">
+                          <select id="editBoardService">
+                            <option value="">— нет —</option>
+                            <option value="miro">Miro</option>
+                            <option value="unidraw">Unidraw</option>
+                            <option value="other">Свой сервис…</option>
+                          </select>
+                          <div
+                            class="admin-service-custom"
+                            id="boardCustomFields"
+                            hidden
+                          >
+                            <input
+                              id="editBoardCustomName"
+                              type="text"
+                              placeholder="Название сервиса"
+                            />
+                            <input
+                              id="editBoardCustomIcon"
+                              type="url"
+                              placeholder="URL иконки (https://...)"
+                            />
+                          </div>
+                          <input
+                            id="editBoardUrl"
+                            type="url"
+                            placeholder="https://..."
+                          />
+                        </div>
+                      </div>
+                      <div class="admin-field">
+                        <span>Звонок</span>
+                        <div class="admin-service-row">
+                          <select id="editCallService">
+                            <option value="">— нет —</option>
+                            <option value="teams">Microsoft Teams</option>
+                            <option value="telemost">Яндекс Телемост</option>
+                            <option value="ktalk">Контур Толк</option>
+                            <option value="other">Свой сервис…</option>
+                          </select>
+                          <div
+                            class="admin-service-custom"
+                            id="callCustomFields"
+                            hidden
+                          >
+                            <input
+                              id="editCallCustomName"
+                              type="text"
+                              placeholder="Название сервиса"
+                            />
+                            <input
+                              id="editCallCustomIcon"
+                              type="url"
+                              placeholder="URL иконки (https://...)"
+                            />
+                          </div>
+                          <input
+                            id="editCallUrl"
+                            type="url"
+                            placeholder="https://..."
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div class="admin-field">
+                      <span>Предметы ученика</span>
+                      <div id="editSubjects" class="subject-checks"></div>
+                    </div>
+                    <div class="admin-field">
+                      <span>Параметры экзамена по предметам</span>
+                      <div id="subjectSettings" class="subject-settings"></div>
+                    </div>
+                    <button class="icon-btn" type="submit">
+                      Сохранить изменения
+                    </button>
+                    <div class="danger-zone">
+                      <button
+                        class="icon-btn danger"
+                        id="archiveBtn"
+                        type="button"
+                      >
+                        Переключить архив/активен
+                      </button>
+                      <button
+                        class="icon-btn danger"
+                        id="deleteStudentBtn"
+                        type="button"
+                      >
+                        Удалить ученика
                       </button>
                     </div>
-                  </div>
-                  <div class="admin-form-row">
-                    <div class="admin-field">
-                      <span>Доска</span>
-                      <div class="admin-service-row">
-                        <select id="editBoardService">
-                          <option value="">— нет —</option>
-                          <option value="miro">Miro</option>
-                          <option value="unidraw">Unidraw</option>
-                          <option value="other">Свой сервис…</option>
-                        </select>
-                        <div class="admin-service-custom" id="boardCustomFields" hidden>
-                          <input id="editBoardCustomName" type="text" placeholder="Название сервиса" />
-                          <input id="editBoardCustomIcon" type="url" placeholder="URL иконки (https://...)" />
-                        </div>
-                        <input id="editBoardUrl" type="url" placeholder="https://..." />
-                      </div>
-                    </div>
-                    <div class="admin-field">
-                      <span>Звонок</span>
-                      <div class="admin-service-row">
-                        <select id="editCallService">
-                          <option value="">— нет —</option>
-                          <option value="teams">Microsoft Teams</option>
-                          <option value="telemost">Яндекс Телемост</option>
-                          <option value="ktalk">Контур Толк</option>
-                          <option value="other">Свой сервис…</option>
-                        </select>
-                        <div class="admin-service-custom" id="callCustomFields" hidden>
-                          <input id="editCallCustomName" type="text" placeholder="Название сервиса" />
-                          <input id="editCallCustomIcon" type="url" placeholder="URL иконки (https://...)" />
-                        </div>
-                        <input id="editCallUrl" type="url" placeholder="https://..." />
-                      </div>
-                    </div>
-                  </div>
-                  <div class="admin-field">
-                    <span>Предметы ученика</span>
-                    <div id="editSubjects" class="subject-checks"></div>
-                  </div>
-                  <div class="admin-field">
-                    <span>Параметры экзамена по предметам</span>
-                    <div id="subjectSettings" class="subject-settings"></div>
-                  </div>
-                  <button class="icon-btn" type="submit">
-                    Сохранить изменения
-                  </button>
-                  <div class="danger-zone">
-                    <button class="icon-btn danger" id="archiveBtn" type="button">
-                      Переключить архив/активен
-                    </button>
-                    <button
-                      class="icon-btn danger"
-                      id="deleteStudentBtn"
-                      type="button"
-                    >
-                      Удалить ученика
-                    </button>
-                  </div>
-                </form>
-                <p id="emptyEditHint" class="muted admin-empty">
-                  Выбери ученика из списка, чтобы редактировать данные.
-                </p>
-              </section>
-
-              <section class="card admin__card">
-                <div class="card__header">
-                  <div>
-                    <div class="eyebrow">Задания</div>
-                    <h2 class="h2">Редактирование по предметам</h2>
-                  </div>
-                </div>
-                <div id="tasksEditor" class="tasks-editor">
-                  <p class="muted admin-empty">
-                    Выбери ученика, затем предмет — здесь появятся все задания для
-                    редактирования.
+                  </form>
+                  <p id="emptyEditHint" class="muted admin-empty">
+                    Выбери ученика из списка, чтобы редактировать данные.
                   </p>
-                </div>
-              </section>
+                </section>
 
-              <section class="card admin__card">
-                <div class="card__header">
-                  <div>
-                    <div class="eyebrow">Пробники</div>
-                    <h2 class="h2">Пробные варианты</h2>
+                <section class="card admin__card">
+                  <div class="card__header">
+                    <div>
+                      <div class="eyebrow">Задания</div>
+                      <h2 class="h2">Редактирование по предметам</h2>
+                    </div>
                   </div>
-                </div>
-                <div id="trialsEditor" class="tasks-editor">
-                  <p class="muted admin-empty">Выбери ученика из списка.</p>
-                </div>
-              </section>
+                  <div id="tasksEditor" class="tasks-editor">
+                    <p class="muted admin-empty">
+                      Выбери ученика, затем предмет — здесь появятся все задания
+                      для редактирования.
+                    </p>
+                  </div>
+                </section>
 
+                <section class="card admin__card">
+                  <div class="card__header">
+                    <div>
+                      <div class="eyebrow">Пробники</div>
+                      <h2 class="h2">Пробные варианты</h2>
+                    </div>
+                  </div>
+                  <div id="trialsEditor" class="tasks-editor">
+                    <p class="muted admin-empty">Выбери ученика из списка.</p>
+                  </div>
+                </section>
+              </div>
+              <!-- /students-split__main -->
             </div>
-            <!-- /students-split__main -->
+            <!-- /students-split -->
           </div>
-          <!-- /students-split -->
-        </div>
-        <!-- /panel students -->
+          <!-- /panel students -->
 
-        <!-- ─── Панель: Шаблоны ─── -->
-        <div class="admin-tab-panel" data-page-panel="templates" hidden>
-          <section class="card admin__card">
-            <div class="card__header">
-              <div>
-                <div class="eyebrow">Файлы заданий</div>
-                <h2 class="h2">Загрузка файлов в предмет</h2>
+          <!-- ─── Панель: Шаблоны ─── -->
+          <div class="admin-tab-panel" data-page-panel="templates" hidden>
+            <section class="card admin__card">
+              <div class="card__header">
+                <div>
+                  <div class="eyebrow">Файлы заданий</div>
+                  <h2 class="h2">Загрузка файлов в предмет</h2>
+                </div>
               </div>
-            </div>
-            <div class="admin-form" id="subjectFileUploadForm">
-              <p class="muted" style="margin: 0; font-size: 13px">
-                Файл ляжет в общую папку предмета и станет доступен через
-                браузер файлов для всех учеников.
-              </p>
-              <div
-                style="
-                  display: flex;
-                  gap: 10px;
-                  flex-wrap: wrap;
-                  align-items: flex-end;
-                "
-              >
-                <label class="admin-field" style="flex: 1; min-width: 160px">
-                  <span>Предмет</span>
-                  <select id="subjectFileSubject"></select>
-                </label>
-                <label class="admin-field" style="flex: 2; min-width: 200px">
-                  <span>Папка / название задания</span>
-                  <input
-                    id="subjectFileFolder"
-                    type="text"
-                    placeholder="Задание 1-5 Шины"
-                    list="subjectFolderList"
-                    autocomplete="off"
-                  />
-                  <datalist id="subjectFolderList"></datalist>
-                </label>
-              </div>
-              <div
-                style="
-                  display: flex;
-                  gap: 10px;
-                  align-items: center;
-                  flex-wrap: wrap;
-                "
-              >
-                <label class="icon-btn" style="cursor: pointer">
-                  📎 Выбрать файл
-                  <input
-                    id="subjectFileInput"
-                    type="file"
-                    style="display: none"
-                  />
-                </label>
-                <span id="subjectFileName" class="muted" style="font-size: 13px"
-                  >Файл не выбран</span
+              <div class="admin-form" id="subjectFileUploadForm">
+                <p class="muted" style="margin: 0; font-size: 13px">
+                  Файл ляжет в общую папку предмета и станет доступен через
+                  браузер файлов для всех учеников.
+                </p>
+                <div
+                  style="
+                    display: flex;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                    align-items: flex-end;
+                  "
                 >
+                  <label class="admin-field" style="flex: 1; min-width: 160px">
+                    <span>Предмет</span>
+                    <select id="subjectFileSubject"></select>
+                  </label>
+                  <label class="admin-field" style="flex: 2; min-width: 200px">
+                    <span>Папка / название задания</span>
+                    <input
+                      id="subjectFileFolder"
+                      type="text"
+                      placeholder="Задание 1-5 Шины"
+                      list="subjectFolderList"
+                      autocomplete="off"
+                    />
+                    <datalist id="subjectFolderList"></datalist>
+                  </label>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    gap: 10px;
+                    align-items: center;
+                    flex-wrap: wrap;
+                  "
+                >
+                  <label class="icon-btn" style="cursor: pointer">
+                    📎 Выбрать файл
+                    <input
+                      id="subjectFileInput"
+                      type="file"
+                      style="display: none"
+                    />
+                  </label>
+                  <span
+                    id="subjectFileName"
+                    class="muted"
+                    style="font-size: 13px"
+                    >Файл не выбран</span
+                  >
+                </div>
+                <button
+                  class="icon-btn"
+                  type="button"
+                  id="subjectFileUploadBtn"
+                  disabled
+                >
+                  Загрузить файл
+                </button>
+                <div
+                  id="subjectFileLog"
+                  class="setup-log"
+                  style="display: none"
+                ></div>
               </div>
-              <button
-                class="icon-btn"
-                type="button"
-                id="subjectFileUploadBtn"
-                disabled
-              >
-                Загрузить файл
-              </button>
-              <div
-                id="subjectFileLog"
-                class="setup-log"
-                style="display: none"
-              ></div>
-            </div>
-          </section>
+            </section>
 
-          <section class="card admin__card">
-            <div class="card__header">
-              <div>
-                <div class="eyebrow">Шаблоны заданий</div>
-                <h2 class="h2">Заполнение шаблонов</h2>
+            <section class="card admin__card">
+              <div class="card__header">
+                <div>
+                  <div class="eyebrow">Шаблоны заданий</div>
+                  <h2 class="h2">Заполнение шаблонов</h2>
+                </div>
+                <button class="icon-btn" type="button" id="loadTemplatesBtn">
+                  Загрузить шаблоны
+                </button>
               </div>
-              <button class="icon-btn" type="button" id="loadTemplatesBtn">
-                Загрузить шаблоны
-              </button>
-            </div>
-            <p class="muted admin-empty" style="margin: 0 18px 14px">
-              Заполни описание, конспект и подсказки. Данные подтянутся к
-              ученикам при добавлении предмета.
-            </p>
-            <div id="templatesEditor" class="tasks-editor"></div>
-          </section>
-        </div>
-        <!-- /panel templates -->
-
-        <!-- ─── Панель: База данных ─── -->
-        <div class="admin-tab-panel" data-page-panel="database" hidden>
-          <section class="card admin__card">
-            <div class="card__header">
-              <div>
-                <div class="eyebrow">Данные</div>
-                <h2 class="h2">Каталог и шаблоны</h2>
-              </div>
-            </div>
-            <div class="admin-form">
-              <p class="muted" style="margin: 0; font-size: 13px">
-                Создаёт 4 предмета (<code>subject_catalog</code>) и шаблоны
-                заданий (<code>task_templates</code>). Данные учеников не
-                затрагиваются.
+              <p class="muted admin-empty" style="margin: 0 18px 14px">
+                Заполни описание, конспект и подсказки. Данные подтянутся к
+                ученикам при добавлении предмета.
               </p>
-              <div style="display: flex; gap: 10px; flex-wrap: wrap">
-                <button class="icon-btn" type="button" id="checkBtn">
-                  Проверить состояние
-                </button>
-                <button class="icon-btn" type="button" id="seedBtn">
-                  Заполнить базу
-                </button>
-                <button class="icon-btn danger" type="button" id="resetBtn">
-                  Сбросить и пересоздать
-                </button>
-              </div>
-              <div class="setup-log" id="setupLog">
-                Нажми «Проверить состояние» чтобы начать…
-              </div>
-            </div>
-          </section>
+              <div id="templatesEditor" class="tasks-editor"></div>
+            </section>
+          </div>
+          <!-- /panel templates -->
 
-          <section class="card admin__card">
-            <div class="card__header">
-              <div>
-                <div class="eyebrow">Безопасность</div>
-                <h2 class="h2">Правила Firestore</h2>
+          <!-- ─── Панель: База данных ─── -->
+          <div class="admin-tab-panel" data-page-panel="database" hidden>
+            <section class="card admin__card">
+              <div class="card__header">
+                <div>
+                  <div class="eyebrow">Данные</div>
+                  <h2 class="h2">Каталог и шаблоны</h2>
+                </div>
               </div>
-              <button class="icon-btn" type="button" id="copyRulesBtn">
-                Скопировать
-              </button>
-            </div>
-            <p class="muted admin-empty" style="margin: 0 18px 12px">
-              Вставь в Firebase Console → Firestore Database → Rules → Publish:
-            </p>
-            <div style="padding: 0 18px 18px">
-              <pre class="rules-block" id="rulesBlock">
+              <div class="admin-form">
+                <p class="muted" style="margin: 0; font-size: 13px">
+                  Создаёт 4 предмета (<code>subject_catalog</code>) и шаблоны
+                  заданий (<code>task_templates</code>). Данные учеников не
+                  затрагиваются.
+                </p>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap">
+                  <button class="icon-btn" type="button" id="checkBtn">
+                    Проверить состояние
+                  </button>
+                  <button class="icon-btn" type="button" id="seedBtn">
+                    Заполнить базу
+                  </button>
+                  <button class="icon-btn danger" type="button" id="resetBtn">
+                    Сбросить и пересоздать
+                  </button>
+                </div>
+                <div class="setup-log" id="setupLog">
+                  Нажми «Проверить состояние» чтобы начать…
+                </div>
+              </div>
+            </section>
+
+            <section class="card admin__card">
+              <div class="card__header">
+                <div>
+                  <div class="eyebrow">Безопасность</div>
+                  <h2 class="h2">Правила Firestore</h2>
+                </div>
+                <button class="icon-btn" type="button" id="copyRulesBtn">
+                  Скопировать
+                </button>
+              </div>
+              <p class="muted admin-empty" style="margin: 0 18px 12px">
+                Вставь в Firebase Console → Firestore Database → Rules →
+                Publish:
+              </p>
+              <div style="padding: 0 18px 18px">
+                <pre class="rules-block" id="rulesBlock">
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -492,32 +533,32 @@ service cloud.firestore {
     }
   }
 }</pre
-              >
-            </div>
-          </section>
-        </div>
-        <!-- /panel database -->
-
-        <!-- ─── Панель: Объявления ─── -->
-        <div class="admin-tab-panel" data-page-panel="tickers" hidden>
-          <section class="card admin__card">
-            <div class="card__header">
-              <div>
-                <div class="eyebrow">Бегущая строка</div>
-                <h2 class="h2">Объявления</h2>
+                >
               </div>
-              <button class="icon-btn" type="button" id="addTickerBtn">
-                + Добавить
-              </button>
-            </div>
-            <div
-              id="tickersList"
-              class="admin-form"
-              style="gap: 16px; display: flex; flex-direction: column"
-            ></div>
-          </section>
-        </div>
-        <!-- /panel tickers -->
+            </section>
+          </div>
+          <!-- /panel database -->
+
+          <!-- ─── Панель: Объявления ─── -->
+          <div class="admin-tab-panel" data-page-panel="tickers" hidden>
+            <section class="card admin__card">
+              <div class="card__header">
+                <div>
+                  <div class="eyebrow">Бегущая строка</div>
+                  <h2 class="h2">Объявления</h2>
+                </div>
+                <button class="icon-btn" type="button" id="addTickerBtn">
+                  + Добавить
+                </button>
+              </div>
+              <div
+                id="tickersList"
+                class="admin-form"
+                style="gap: 16px; display: flex; flex-direction: column"
+              ></div>
+            </section>
+          </div>
+          <!-- /panel tickers -->
         </div>
       </main>
     </div>

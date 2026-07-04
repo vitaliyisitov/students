@@ -1144,12 +1144,12 @@ function openTrialModal(trialId, catalogSlug) {
       ${
         attachments.length
           ? attachments
-              .map(
-                (a) => `
-            <a class="attachment-link" href="${escapeAttr(a.url)}" target="_blank" rel="noreferrer">
-              <span class="attachment-link__icon" aria-hidden="true"><img src="./icons/variant.png" width="16" height="16" alt="" /></span>
-              <span>${escapeHtml(a.label || a.url)}</span>
-            </a>`,
+              .map((a) =>
+                renderAttachmentLinkHtml(
+                  a.url,
+                  a.label || a.url,
+                  `<img src="./icons/variant.png" width="16" height="16" alt="" />`,
+                ),
               )
               .join("")
           : `<span class="muted" style="font-size:13px">Файлы не прикреплены</span>`
@@ -1283,31 +1283,12 @@ function renderRichSection(title, rawValue) {
 
 function renderSectionWithFiles(title, rawValue, files, iconSrc) {
   const { bodyHtml, links } = renderRichBodyHtml(rawValue);
-
-  const fileLinks = (files || [])
-    .map((item) => {
-      const s = String(item || "").trim();
-      if (!s) return null;
-      if (s.includes("|")) {
-        const idx = s.indexOf("|");
-        return {
-          label: s.slice(0, idx).trim() || "Файл",
-          href: s.slice(idx + 1).trim(),
-        };
-      }
-      try {
-        new URL(s);
-        return { label: "Открыть файл", href: s };
-      } catch {
-        return null;
-      }
-    })
-    .filter(Boolean);
-
+  const fileLinks = parseFileAttachmentLinks(files);
   const hasContent = bodyHtml || links.length || fileLinks.length;
+  const sectionMod = iconSrc ? " section--with-icon" : "";
 
   return `
-    <div class="section">
+    <div class="section${sectionMod}">
       <div class="section__title">${
         iconSrc
           ? `<span class="section__icon" aria-hidden="true"><img src="${escapeAttr(iconSrc)}" width="28" height="28" alt="" /></span>`
@@ -1315,19 +1296,7 @@ function renderSectionWithFiles(title, rawValue, files, iconSrc) {
       }<span>${escapeHtml(title)}</span></div>
       ${bodyHtml}
       ${links.length ? renderLinks(links) : ""}
-      ${
-        fileLinks.length
-          ? `<div class="attachments-list">${fileLinks
-              .map(
-                (a) => `
-        <a class="attachment-link" href="${escapeAttr(a.href)}" target="_blank" rel="noreferrer">
-          <span class="attachment-link__icon" aria-hidden="true">${renderFileIconHtml(a.href, a.label)}</span>
-          <span class="attachment-link__label">${escapeHtml(a.label)}</span>
-        </a>`,
-              )
-              .join("")}</div>`
-          : ""
-      }
+      ${renderNestedAttachmentsHtml(fileLinks)}
       ${!hasContent ? `<div class="section__body">—</div>` : ""}
     </div>`;
 }
@@ -1348,7 +1317,10 @@ function parseRichTextSegments(text) {
   CODE_FENCE_RE.lastIndex = 0;
   while ((match = CODE_FENCE_RE.exec(text)) !== null) {
     if (match.index > lastIndex) {
-      segments.push({ type: "text", content: text.slice(lastIndex, match.index) });
+      segments.push({
+        type: "text",
+        content: text.slice(lastIndex, match.index),
+      });
     }
     segments.push({
       type: "code",
@@ -1431,13 +1403,16 @@ function getFileExtension(href, label) {
 // Добавляй или меняй строки: массив расширений (без точки) → путь к PNG/SVG.
 // Порядок важен: проверка сверху вниз, первое совпадение побеждает.
 const FILE_TYPE_ICON_RULES = [
-  { exts: ["pdf"], icon: "./icons/file_pdf.png" },
+  { exts: ["pdf"], icon: "./icons/file_pdf.svg" },
   {
     exts: ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "heic"],
     icon: "./icons/file_image.png",
   },
-  { exts: ["mp4", "mov", "avi", "mkv", "webm", "m4v"], icon: "./icons/file_video.png" },
-  { exts: ["mp3", "wav", "ogg", "m4a", "aac"], icon: "./icons/file_audio.png" },
+  {
+    exts: ["mp4", "mov", "avi", "mkv", "webm", "m4v"],
+    icon: "./icons/file_video.png",
+  },
+  { exts: ["mp3", "wav", "ogg", "m4a", "aac"], icon: "./icons/file_audio.svg" },
   { exts: ["doc", "docx", "pages"], icon: "./icons/file_doc.png" },
   { exts: ["xls", "xlsx", "numbers", "csv"], icon: "./icons/file_sheet.png" },
   { exts: ["py", "ipynb", "js", "html", "css"], icon: "./icons/file_code.png" },
@@ -1472,10 +1447,11 @@ function parseRichLink(line) {
   return null;
 }
 
-function renderAttachmentsSection(attachments) {
-  const links = attachments
+function parseFileAttachmentLinks(files) {
+  return (files || [])
     .map((item) => {
       const s = String(item || "").trim();
+      if (!s) return null;
       if (s.includes("|")) {
         const idx = s.indexOf("|");
         return {
@@ -1491,21 +1467,42 @@ function renderAttachmentsSection(attachments) {
       }
     })
     .filter(Boolean);
+}
 
+function renderAttachmentLinkHtml(href, label, iconHtml) {
+  const iconPart = iconHtml
+    ? `<span class="attachment-link__icon" aria-hidden="true">${iconHtml}</span>`
+    : "";
+  const compactClass = iconHtml ? "" : " attachment-link--compact";
+  return `<a class="attachment-link${compactClass}" href="${escapeAttr(href)}" target="_blank" rel="noreferrer">
+          ${iconPart}<span class="attachment-link__label">${escapeHtml(label)}</span>
+          <span class="attachment-link__open" aria-hidden="true">↗</span>
+        </a>`;
+}
+
+function renderNestedAttachmentsHtml(fileLinks) {
+  if (!fileLinks.length) return "";
+  return `<div class="section__attachments">
+      <div class="attachments-list">${fileLinks
+        .map((a) =>
+          renderAttachmentLinkHtml(
+            a.href,
+            a.label,
+            renderFileIconHtml(a.href, a.label),
+          ),
+        )
+        .join("")}</div>
+    </div>`;
+}
+
+function renderAttachmentsSection(attachments) {
+  const links = parseFileAttachmentLinks(attachments);
   if (!links.length) return "";
   return `
     <div class="section section--attachments">
       <div class="section__title">📎 Записи и файлы</div>
       <div class="attachments-list">
-        ${links
-          .map(
-            (a) => `
-          <a class="attachment-link" href="${escapeAttr(a.href)}" target="_blank" rel="noreferrer">
-            <span class="attachment-link__icon" aria-hidden="true">${renderFileIconHtml(a.href, a.label)}</span>
-            <span class="attachment-link__label">${escapeHtml(a.label)}</span>
-          </a>`,
-          )
-          .join("")}
+        ${links.map((a) => renderAttachmentLinkHtml(a.href, a.label, renderFileIconHtml(a.href, a.label))).join("")}
       </div>
     </div>`;
 }

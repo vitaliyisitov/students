@@ -2067,8 +2067,10 @@ body.is-app-loading #appState {
 .modal__dialog {
   position: relative;
   width: min(900px, calc(100vw - 22px));
+  max-width: calc(100vw - 22px);
   max-height: calc(100vh - 22px);
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.84);
   border: 1px solid rgba(255, 255, 255, 0.55);
@@ -2114,6 +2116,9 @@ body.is-app-loading #appState {
   padding: 16px 18px 18px;
   display: grid;
   gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .section {
@@ -2121,6 +2126,9 @@ body.is-app-loading #appState {
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid rgba(15, 23, 42, 0.1);
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .section__title {
@@ -2153,6 +2161,24 @@ body.is-app-loading #appState {
   color: rgba(18, 20, 23, 0.76);
   font-size: 13px;
   line-height: 1.5;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.section--with-icon .section__body,
+.section--with-icon .links,
+.section--with-icon .section__attachments {
+  margin-left: 38px;
+}
+
+.section__attachments {
+  margin-top: 10px;
+}
+
+.section__attachments .attachments-list {
+  margin-top: 0;
 }
 
 .code-block {
@@ -2166,7 +2192,13 @@ body.is-app-loading #appState {
     monospace;
   font-size: 12px;
   line-height: 1.55;
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   border: 1px solid rgba(15, 23, 42, 0.18);
 }
 
@@ -2184,6 +2216,9 @@ body.is-app-loading #appState {
 .code-block code {
   display: block;
   white-space: pre;
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
   tab-size: 4;
   -moz-tab-size: 4;
   font-family: inherit;
@@ -2247,21 +2282,24 @@ body.is-app-loading #appState {
 
 .attachments-list {
   margin-top: 10px;
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
 .attachment-link {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
+  width: fit-content;
+  max-width: 100%;
   text-decoration: none;
-  padding: 7px 10px;
-  border-radius: 12px;
+  padding: 8px 12px;
+  border-radius: 999px;
   background: rgba(255, 255, 255, 0.8);
   border: 1px solid rgba(0, 122, 255, 0.2);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--blue);
   transition:
     box-shadow 140ms ease,
@@ -2273,6 +2311,10 @@ body.is-app-loading #appState {
   background: rgba(0, 122, 255, 0.08);
   box-shadow: var(--shadow-soft);
   transform: translateY(-1px);
+}
+
+.attachment-link--compact {
+  padding-left: 10px;
 }
 
 .attachment-link__icon {
@@ -2295,6 +2337,23 @@ body.is-app-loading #appState {
 .attachment-link__label {
   min-width: 0;
   line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.attachment-link__open {
+  flex-shrink: 0;
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.5;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.attachment-link:hover .attachment-link__open {
+  opacity: 1;
+  transform: translate(1px, -1px);
 }
 
 .footer {

@@ -1319,7 +1319,9 @@ function buildTaskPayload(row, oldTask = null) {
     }
   }
 
-  const homework = readRichTextField(row.querySelector('[data-f="homework"]')?.value);
+  const homework = readRichTextField(
+    row.querySelector('[data-f="homework"]')?.value,
+  );
 
   const payload = {
     title: row.querySelector('[data-f="title"]')?.value?.trim() || "Задание",
@@ -1552,7 +1554,9 @@ async function saveAllTmplInBlock(catalogId) {
           homeworkFiles: readAttachmentsFromRow(
             row.querySelector('[id^="tmpl-hw-files-"]'),
           ),
-          hints: readRichTextField(row.querySelector('[data-f="hints"]')?.value),
+          hints: readRichTextField(
+            row.querySelector('[data-f="hints"]')?.value,
+          ),
           hintFiles: readAttachmentsFromRow(
             row.querySelector('[id^="tmpl-hint-files-"]'),
           ),
@@ -1714,7 +1718,9 @@ function formatRichTextField(value) {
 }
 
 function readRichTextField(value) {
-  return String(value ?? "").replace(/\r\n/g, "\n").replace(/\s+$/, "");
+  return String(value ?? "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\s+$/, "");
 }
 
 function parseAttachmentsJson(raw) {
@@ -2190,38 +2196,38 @@ function initPageTabs() {
   });
 
   // Кнопка «Сохранить все» — задания текущего предмета + все пробники
-  document.getElementById("statusSaveAll")?.addEventListener("click", async () => {
-    const taskSubjectId = state.activeTaskSubjectId;
-    const trialSubjectId = state.selectedTrialSubjectId;
-    let taskRows = 0;
-    if (taskSubjectId) {
-      const block = els.tasksEditor.querySelector(
-        `[data-task-block="${taskSubjectId}"]`,
-      );
-      taskRows = block
-        ? block.querySelectorAll("[data-task-id]").length
-        : 0;
-    }
-    const trialRows = trialSubjectId
-      ? els.trialsEditor.querySelectorAll("[data-trial-id]").length
-      : 0;
-    if (!taskRows && !trialRows) {
-      setStatus("Нечего сохранять", "muted");
-      return;
-    }
-    try {
-      if (taskRows) await saveAllTasksInBlock(taskSubjectId);
-      if (trialRows) await saveAllTrialsInSubject();
-      if (taskRows && trialRows) {
-        setStatus(
-          `Сохранено ${taskRows} заданий и ${trialRows} пробников ✅`,
-          "success",
+  document
+    .getElementById("statusSaveAll")
+    ?.addEventListener("click", async () => {
+      const taskSubjectId = state.activeTaskSubjectId;
+      const trialSubjectId = state.selectedTrialSubjectId;
+      let taskRows = 0;
+      if (taskSubjectId) {
+        const block = els.tasksEditor.querySelector(
+          `[data-task-block="${taskSubjectId}"]`,
         );
+        taskRows = block ? block.querySelectorAll("[data-task-id]").length : 0;
       }
-    } catch (err) {
-      console.error(err);
-    }
-  });
+      const trialRows = trialSubjectId
+        ? els.trialsEditor.querySelectorAll("[data-trial-id]").length
+        : 0;
+      if (!taskRows && !trialRows) {
+        setStatus("Нечего сохранять", "muted");
+        return;
+      }
+      try {
+        if (taskRows) await saveAllTasksInBlock(taskSubjectId);
+        if (trialRows) await saveAllTrialsInSubject();
+        if (taskRows && trialRows) {
+          setStatus(
+            `Сохранено ${taskRows} заданий и ${trialRows} пробников ✅`,
+            "success",
+          );
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
 
   document.getElementById("addTickerBtn")?.addEventListener("click", addTicker);
 
@@ -2774,9 +2780,7 @@ async function saveTrial(trialId) {
 async function saveAllTrialsInSubject() {
   const subjectId = state.selectedTrialSubjectId;
   if (!state.selectedUserId || !subjectId) return 0;
-  const rows = Array.from(
-    els.trialsEditor.querySelectorAll("[data-trial-id]"),
-  );
+  const rows = Array.from(els.trialsEditor.querySelectorAll("[data-trial-id]"));
   if (!rows.length) return 0;
   setStatus(`Сохраняю ${rows.length} пробников…`, "muted");
   try {
@@ -3358,7 +3362,9 @@ async function saveTmplRow(row) {
       lessonFiles: readAttachmentsFromRow(
         row.querySelector('[id^="tmpl-lesson-files-"]'),
       ),
-      homework: readRichTextField(row.querySelector('[data-f="homework"]')?.value),
+      homework: readRichTextField(
+        row.querySelector('[data-f="homework"]')?.value,
+      ),
       homeworkFiles: readAttachmentsFromRow(
         row.querySelector('[id^="tmpl-hw-files-"]'),
       ),
