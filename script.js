@@ -61,7 +61,9 @@ const els = {
 
   modal: document.getElementById("modal"),
   modalClose: document.getElementById("modalClose"),
+  modalBadges: document.getElementById("modalBadges"),
   modalBadge: document.getElementById("modalBadge"),
+  modalFlag: document.getElementById("modalFlag"),
   modalTitle: document.getElementById("modalTitle"),
   modalSubtitle: document.getElementById("modalSubtitle"),
   modalContent: document.getElementById("modalContent"),
@@ -373,7 +375,7 @@ function mapSubject(row) {
     title,
     emoji,
     exam: {
-      dateISO: row.exam_date || "2026-06-15",
+      dateISO: row.exam_date || "",
       durationMinutes: Number(row.duration_minutes || 235),
       tasksTotal: Number(row.tasks_total || 0),
     },
@@ -479,7 +481,9 @@ function hasSubjects() {
 }
 
 function isSubjectExamEnded(subject) {
-  const date = parseISODate(subject?.exam?.dateISO);
+  const dateISO = subject?.exam?.dateISO;
+  if (!dateISO) return false;
+  const date = parseISODate(dateISO);
   if (!date) return false;
   return daysUntil(date) < 0;
 }
@@ -660,7 +664,7 @@ function renderExam() {
     els.examCountdownSub.textContent = pluralizeDays(days);
   }
 
-  els.examDuration.textContent = `${exam.durationMinutes} мин`;
+  els.examDuration.textContent = formatDurationMinutes(exam.durationMinutes);
   els.examTaskCount.textContent = `${exam.tasksTotal} заданий`;
 }
 
@@ -685,6 +689,12 @@ const PART_CONFIG = {
     parts: [
       { label: "Тестовая часть", from: 1, to: 12 },
       { label: "Развернутая часть", from: 13, to: Infinity },
+    ],
+  },
+  ege_math_basic: {
+    parts: [
+      { label: "Краткий ответ", from: 1, to: 16 },
+      { label: "Развернутый ответ", from: 17, to: Infinity },
     ],
   },
   ege_info: {
@@ -863,9 +873,7 @@ function openModal(task) {
   lastFocusedBeforeModal = document.activeElement;
   els.modalTitle.textContent = task.title;
   els.modalSubtitle.textContent = task.description || "";
-  els.modalBadge.hidden = false;
-  els.modalBadge.textContent = formatStatus(task.status);
-  els.modalBadge.className = `modal__badge badge--${task.status}`;
+  renderModalTaskBadges(task);
 
   const details = task.details || {};
   const lessonFiles = Array.isArray(details.lessonFiles)
@@ -926,7 +934,7 @@ function renderTaskCard(task) {
   const flagMeta = flagKey ? TASK_FLAGS[flagKey] : null;
   const flagSize = flagMeta?.size || 17;
   const flagImg = flagMeta
-    ? `<img src="${escapeAttr(flagMeta.src)}" width="${flagSize}" height="${flagSize}" alt="${escapeAttr(flagMeta.alt)}" class="${flagSize !== 17 ? `task__flag-icon task__flag-icon--${flagKey}` : "task__flag-icon"}" />`
+    ? `<img src="${escapeAttr(flagMeta.src)}" width="${flagSize}" height="${flagSize}" alt="" class="${renderTaskFlagIconClass(flagKey, "task__flag-icon")}" />`
     : "";
   const footHtml = renderTaskFootHtml(task);
 
@@ -1238,6 +1246,11 @@ function openTrialModal(trialId, catalogSlug) {
   els.modalBadge.textContent = "";
   els.modalBadge.className = "modal__badge";
   els.modalBadge.hidden = true;
+  if (els.modalFlag) {
+    els.modalFlag.hidden = true;
+    els.modalFlag.innerHTML = "";
+    els.modalFlag.className = "modal__flag";
+  }
 
   const filesHtml = renderTrialFilesSectionHtml(attachments);
   const resultHtml = renderTrialResultSectionHtml(trial, catalogSlug);
@@ -1258,6 +1271,7 @@ function openTrialModal(trialId, catalogSlug) {
 const TRIAL_TASK_COUNTS = {
   ege_info: 27,
   ege_math: 19,
+  ege_math_basic: 21,
   oge_info: 16,
   oge_math: 25,
 };
@@ -1719,6 +1733,41 @@ const TASK_FLAGS = {
   new_topic: { src: "./icons/flag_card/flag_new.svg", alt: "Новая тема" },
 };
 
+function renderTaskFlagIconClass(flagKey, baseClass = "task__flag-icon") {
+  const flagMeta = TASK_FLAGS[flagKey];
+  const flagSize = flagMeta?.size || 17;
+  return flagSize !== 17 ? `${baseClass} ${baseClass}--${flagKey}` : baseClass;
+}
+
+function renderTaskFlagIconHtml(flagKey, baseClass = "task__flag-icon", iconSize) {
+  const flagMeta = TASK_FLAGS[flagKey];
+  if (!flagMeta) return "";
+  const flagSize = iconSize ?? flagMeta.size ?? 17;
+  const sizeClass =
+    flagSize !== 17 ? `${baseClass} ${baseClass}--${flagKey}` : baseClass;
+  return `<img src="${escapeAttr(flagMeta.src)}" width="${flagSize}" height="${flagSize}" alt="" class="${sizeClass}" />`;
+}
+
+function renderModalTaskBadges(task) {
+  const status = task.status || "not_started";
+  els.modalBadge.hidden = false;
+  els.modalBadge.innerHTML = `${renderStatusIconCircle(status, "modal__badge-icon")}${escapeHtml(formatStatus(status))}`;
+  els.modalBadge.className = `modal__badge badge--${status}`;
+
+  const flagKey = getTaskFlag(task);
+  if (!els.modalFlag) return;
+  if (flagKey) {
+    const flagMeta = TASK_FLAGS[flagKey];
+    els.modalFlag.hidden = false;
+    els.modalFlag.className = `modal__flag modal__flag--${flagKey}`;
+    els.modalFlag.innerHTML = `${renderTaskFlagIconHtml(flagKey, "modal__flag-icon", 17)}<span>${escapeHtml(flagMeta.alt)}</span>`;
+  } else {
+    els.modalFlag.hidden = true;
+    els.modalFlag.innerHTML = "";
+    els.modalFlag.className = "modal__flag";
+  }
+}
+
 function getTaskFlag(task) {
   const flag = task?.details?.flag;
   if (flag && TASK_FLAGS[flag]) return flag;
@@ -1857,6 +1906,30 @@ function pluralizeDays(n) {
   return "дней";
 }
 
+function pluralizeRu(n, one, few, many) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+}
+
+function formatDurationMinutes(totalMinutes) {
+  const minutes = Math.max(0, Math.round(Number(totalMinutes) || 0));
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  const parts = [];
+
+  if (hours > 0) {
+    parts.push(`${hours} ${pluralizeRu(hours, "час", "часа", "часов")}`);
+  }
+  if (mins > 0 || !parts.length) {
+    parts.push(`${mins} ${pluralizeRu(mins, "минута", "минуты", "минут")}`);
+  }
+
+  return parts.join(" ");
+}
+
 // ─── Конвертация баллов пробников ────────────────────────────────────────────
 // Редактируй пороги под актуальные шкалы каждого года.
 // type "grade"  → первичные баллы → оценка 2–5 (ОГЭ)
@@ -1892,6 +1965,21 @@ const SCORE_CONVERSION = {
       { min: 27, max: 34, level: "low" },
       { min: 40, max: 92, level: "mid" },
       { min: 94, max: 100, level: "high" },
+    ],
+  },
+  ege_math_basic: {
+    type: "test",
+    // индекс = первичный балл (0–38) → тестовый балл; уточни под год экзамена
+    table: [
+      0, 5, 10, 16, 21, 26, 32, 37, 42, 47, 53, 58, 62, 66, 70, 74, 78, 80, 82,
+      84, 86, 88, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 100, 100, 100,
+      100, 100, 100,
+    ],
+    thresholds: [
+      { min: 0, max: 36, level: "fail" },
+      { min: 42, max: 58, level: "low" },
+      { min: 62, max: 90, level: "mid" },
+      { min: 91, max: 100, level: "high" },
     ],
   },
   ege_info: {
@@ -1994,6 +2082,7 @@ const SUBJECT_ICONS = {
   oge_math: "./icons/subjects/oge_math.png",
   oge_info: "./icons/subjects/oge_info.png",
   ege_math: "./icons/subjects/ege_math.png",
+  ege_math_basic: "./icons/subjects/ege_math_basic.png",
   ege_info: "./icons/subjects/ege_info.png",
 };
 const SUBJECT_ICON_FALLBACK = "./icons/subjects/subject.png";

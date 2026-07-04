@@ -2126,17 +2126,107 @@ body.is-app-loading #appState {
   gap: 12px;
 }
 
+.modal__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
 .modal__badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
+  gap: 6px;
+  padding: 5px 10px 5px 5px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 750;
+  line-height: 1;
   border-radius: 999px;
   border: 1px solid rgba(15, 23, 42, 0.12);
   background: rgba(255, 255, 255, 0.7);
   width: fit-content;
+}
+
+.modal__badge-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.modal__badge-icon img {
+  width: 18px;
+  height: 18px;
+  display: block;
+  object-fit: contain;
+}
+
+.modal__flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 5px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.82);
+  color: rgba(30, 27, 75, 0.96);
+}
+
+.modal__flag-icon {
+  flex-shrink: 0;
+  display: block;
+  width: 17px;
+  height: 17px;
+}
+
+.modal__flag--pinned {
+  background: rgba(255, 59, 48, 0.08);
+  border-color: rgba(255, 59, 48, 0.22);
+  color: rgba(153, 27, 27, 0.96);
+}
+
+.modal__flag--redo {
+  background: rgba(79, 70, 229, 0.1);
+  border-color: rgba(79, 70, 229, 0.22);
+  color: rgba(49, 46, 129, 0.96);
+}
+
+.modal__flag--new_topic {
+  background: rgba(167, 139, 250, 0.14);
+  border-color: rgba(139, 92, 246, 0.24);
+  color: rgba(91, 33, 182, 0.96);
+}
+
+.modal__close {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  line-height: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.modal__close img {
+  display: block;
+  width: 24px;
+  height: auto;
+}
+
+.modal__close:hover {
+  opacity: 0.88;
+}
+
+.modal__close:focus-visible {
+  outline: none;
+  opacity: 0.88;
 }
 
 .modal__title {

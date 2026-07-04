@@ -683,7 +683,7 @@ function renderCatalogChecks(root, prefix, selectedIds) {
           data-check-value="${escapeAttr(c.id)}"
           data-checked="${isOn}"
           aria-pressed="${isOn}"
-        >${escapeHtml(c.emoji || "📘")} ${escapeHtml(c.title)}</button>`;
+        >${escapeHtml(c.title)}</button>`;
     })
     .join("");
 
@@ -702,22 +702,19 @@ function renderSubjectSettings() {
   const rows = state.selectedUserSubjects.map((s) => {
     const cat = byCatalog.get(s.catalog_id);
     const title = s.title || cat?.title || "Предмет";
-    const emoji = s.emoji || cat?.emoji || "📘";
-    const examDate = s.exam_date || cat?.default_exam_date || "";
-    const examTime = s.exam_time || cat?.default_exam_time || "10:00";
+    const defaults = cat ? getCatalogDefaults(cat) : null;
+    const examDate = s.exam_date || resolveDefaultExamDate(defaults?.default_exam_date) || "";
     const duration = Number(
-      s.duration_minutes || cat?.default_duration_minutes || 235,
+      s.duration_minutes || defaults?.default_duration_minutes || 235,
     );
-    const tasksTotal = Number(s.tasks_total || cat?.default_tasks_total || 0);
+    const tasksTotal = Number(s.tasks_total || defaults?.default_tasks_total || 0);
 
     return `
       <div class="subject-setting" data-subject-id="${escapeAttr(s.id)}">
-        <div class="subject-setting__title">${escapeHtml(emoji)} ${escapeHtml(title)}</div>
+        <div class="subject-setting__title">${escapeHtml(title)}</div>
         <div class="subject-setting__grid">
           <label><span>Дата экзамена</span>
             <input data-field="exam_date" type="date" value="${escapeAttr(examDate)}" /></label>
-          <label><span>Время</span>
-            <input data-field="exam_time" type="text" value="${escapeAttr(examTime)}" /></label>
           <label><span>Длительность (мин)</span>
             <input data-field="duration_minutes" type="number" min="1" value="${escapeAttr(duration)}" /></label>
           <label><span>Кол-во заданий</span>
@@ -776,6 +773,7 @@ async function handleCreateStudent(e) {
 async function addSubjectWithTasks(userId, catalogId) {
   const cat = state.catalog.find((c) => c.id === catalogId);
   if (!cat) return;
+  const defaults = getCatalogDefaults(cat);
 
   const subjectRef = await window.db
     .collection("users")
@@ -784,14 +782,11 @@ async function addSubjectWithTasks(userId, catalogId) {
     .add({
       catalog_id: cat.id,
       catalog_slug: cat.slug || "",
-      title: cat.title,
-      emoji: cat.emoji || "📘",
-      exam_date: cat.default_exam_date || "",
-      exam_time: cat.default_exam_time || "10:00",
-      duration_minutes: cat.default_duration_minutes || 235,
-      tasks_total: cat.default_tasks_total || 0,
-      tips: cat.default_tips || [],
-      order_index: cat.sort_order || 0,
+      title: defaults.title || cat.title,
+      exam_date: resolveDefaultExamDate(defaults.default_exam_date),
+      duration_minutes: defaults.default_duration_minutes || 235,
+      tasks_total: defaults.default_tasks_total || 0,
+      order_index: defaults.sort_order || cat.sort_order || 0,
     });
 
   const templatesSnap = await window.db
@@ -896,9 +891,6 @@ async function handleSaveStudent(e) {
           id: subjectId,
           exam_date:
             row.querySelector('[data-field="exam_date"]')?.value?.trim() ||
-            null,
-          exam_time:
-            row.querySelector('[data-field="exam_time"]')?.value?.trim() ||
             null,
           duration_minutes:
             Number.isFinite(duration) && duration > 0 ? duration : 235,
@@ -1052,7 +1044,7 @@ async function renderTasksEditor() {
   const tabs = subjects
     .map(
       (s) =>
-        `<button class="chip ${s.id === activeId ? "is-active" : ""}" type="button" data-task-subject="${escapeAttr(s.id)}">${escapeHtml(s.emoji || "📘")} ${escapeHtml(s.title || "Предмет")}</button>`,
+        `<button class="chip ${s.id === activeId ? "is-active" : ""}" type="button" data-task-subject="${escapeAttr(s.id)}">${escapeHtml(s.title || "Предмет")}</button>`,
     )
     .join("");
 
@@ -2389,6 +2381,7 @@ function initSubjectFileUpload() {
 const TRIAL_TASK_COUNTS = {
   ege_info: 27,
   ege_math: 19,
+  ege_math_basic: 21,
   oge_info: 16,
   oge_math: 25,
 };
@@ -2919,60 +2912,109 @@ const SUBJECT_CATALOG = [
   {
     slug: "oge_math",
     title: "ОГЭ Математика",
-    emoji: "📐",
     sort_order: 1,
     default_tasks_total: 25,
     default_duration_minutes: 235,
     default_exam_date: "2026-06-02",
-    default_exam_time: "10:00",
-    default_tips: [
-      "Сделай 1 задание на время, затем разбор по конспекту.",
-      "Веди журнал ошибок: тема → ошибка → правильный ход.",
-    ],
   },
   {
     slug: "oge_info",
     title: "ОГЭ Информатика",
-    emoji: "💻",
     sort_order: 2,
     default_tasks_total: 16,
     default_duration_minutes: 150,
     default_exam_date: "2026-06-15",
-    default_exam_time: "10:00",
-    default_tips: [
-      "Чередуй теорию и практику по таймеру.",
-      "Делай шаблоны кода под типовые задачи.",
-    ],
   },
   {
     slug: "ege_math",
-    title: "ЕГЭ Математика",
-    emoji: "📐",
+    title: "ЕГЭ Математика (Профильный уровень)",
     sort_order: 3,
     default_tasks_total: 19,
     default_duration_minutes: 235,
     default_exam_date: "2026-05-31",
-    default_exam_time: "10:00",
-    default_tips: [
-      "Один блок за раз: первично точность, потом скорость.",
-      "Фиксируй типовые промахи по профилю.",
-    ],
+  },
+  {
+    slug: "ege_math_basic",
+    title: "ЕГЭ Математика (Базовый уровень)",
+    sort_order: 4,
+    default_tasks_total: 21,
+    default_duration_minutes: 180,
+    default_exam_date: "2026-06-03",
   },
   {
     slug: "ege_info",
     title: "ЕГЭ Информатика",
-    emoji: "💻",
-    sort_order: 4,
+    sort_order: 5,
     default_tasks_total: 27,
     default_duration_minutes: 235,
     default_exam_date: "2026-06-10",
-    default_exam_time: "10:00",
-    default_tips: [
-      "Разбор ограничений и краевых случаев обязателен.",
-      "Тренируй ввод/вывод и устойчивость к мусору во вводе.",
-    ],
   },
 ];
+
+function parseCatalogISODate(iso) {
+  if (!iso || typeof iso !== "string") return null;
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function formatCatalogISODate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function resolveDefaultExamDate(isoDate) {
+  if (!isoDate) return "";
+  const parsed = parseCatalogISODate(isoDate);
+  if (!parsed) return isoDate.slice(0, 10);
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let exam = new Date(
+    now.getFullYear(),
+    parsed.getMonth(),
+    parsed.getDate(),
+  );
+  if (exam < today) {
+    exam = new Date(
+      now.getFullYear() + 1,
+      parsed.getMonth(),
+      parsed.getDate(),
+    );
+  }
+  return formatCatalogISODate(exam);
+}
+
+function getCatalogDefaults(cat) {
+  if (!cat) return null;
+  const source = SUBJECT_CATALOG.find((item) => item.slug === cat.slug);
+  if (!source) return cat;
+  return { ...cat, ...source };
+}
+
+const CATALOG_DEFAULT_FIELDS = [
+  "title",
+  "sort_order",
+  "default_tasks_total",
+  "default_duration_minutes",
+  "default_exam_date",
+];
+
+async function syncCatalogDefaults(existingSlugs, catalogIdBySlug) {
+  for (const cat of SUBJECT_CATALOG) {
+    const docId = catalogIdBySlug[cat.slug];
+    if (!docId || !existingSlugs[cat.slug]) continue;
+
+    const payload = {};
+    for (const field of CATALOG_DEFAULT_FIELDS) {
+      if (cat[field] !== undefined) payload[field] = cat[field];
+    }
+
+    await window.db.collection("subject_catalog").doc(docId).update(payload);
+    dbLog(`  ↻ ${cat.title} — дефолты обновлены`, "log-ok");
+  }
+}
 
 // ─── Лог (вкладка «База данных») ─────────────────────────────────────────────
 
@@ -3020,7 +3062,7 @@ async function checkState() {
       catSnap.docs.forEach((d) => {
         const c = d.data();
         dbLog(
-          `  ${c.emoji} ${c.title} (${c.default_tasks_total} заданий)`,
+          `  ${c.title} (${c.default_tasks_total} заданий)`,
           "log-ok",
         );
       });
@@ -3066,13 +3108,18 @@ async function seedDatabase(forceReset) {
 
   for (const cat of SUBJECT_CATALOG) {
     if (existingSlugs[cat.slug]) {
-      dbLog(`  ⏭  ${cat.emoji} ${cat.title} — уже есть, пропускаю`, "log-dim");
+      dbLog(`  ⏭  ${cat.title} — уже есть`, "log-dim");
       continue;
     }
     const ref = await window.db.collection("subject_catalog").add(cat);
     catalogIdBySlug[cat.slug] = ref.id;
-    dbLog(`  ✓ Создан: ${cat.emoji} ${cat.title}`, "log-ok");
+    existingSlugs[cat.slug] = true;
+    dbLog(`  ✓ Создан: ${cat.title}`, "log-ok");
   }
+
+  dbLog("", "");
+  dbLog("🔄 Синхронизирую дефолты каталога из кода...", "log-inf");
+  await syncCatalogDefaults(existingSlugs, catalogIdBySlug);
 
   dbLog("", "");
   dbLog("📝 Создаю task_templates...", "log-inf");
@@ -3093,7 +3140,7 @@ async function seedDatabase(forceReset) {
         (d) => d.data().catalog_id === catalogId,
       ).length;
       dbLog(
-        `  ⏭  ${c.emoji} ${c.title} — уже есть ${cnt} шаблонов`,
+        `  ⏭  ${c.title} — уже есть ${cnt} шаблонов`,
         "log-dim",
       );
       continue;
@@ -3118,7 +3165,7 @@ async function seedDatabase(forceReset) {
     }
     await batch.commit();
     dbLog(
-      `  ✓ ${c.emoji} ${c.title}: создано ${c.default_tasks_total} шаблонов`,
+      `  ✓ ${c.title}: создано ${c.default_tasks_total} шаблонов`,
       "log-ok",
     );
   }
@@ -3130,6 +3177,7 @@ async function seedDatabase(forceReset) {
     `✅ Готово! subject_catalog: ${finalCat.size} | task_templates: ${finalTmpl.size}`,
     "log-ok",
   );
+  await loadCatalog();
 }
 
 async function clearDbCollection(name) {
@@ -3182,7 +3230,7 @@ function renderTmplEditor() {
   const tabs = tmplCatalog
     .map(
       (c) =>
-        `<button class="chip ${c.id === activeTmplSubject ? "is-active" : ""}" type="button" data-tmpl-cat="${escapeAttr(c.id)}">${escapeHtml(c.emoji || "📘")} ${escapeHtml(c.title)}</button>`,
+        `<button class="chip ${c.id === activeTmplSubject ? "is-active" : ""}" type="button" data-tmpl-cat="${escapeAttr(c.id)}">${escapeHtml(c.title)}</button>`,
     )
     .join("");
 
