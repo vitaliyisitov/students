@@ -490,18 +490,18 @@ function isCabinetPaused() {
 }
 
 // Иконки сервисов.
-// icon  — своя иконка из папки icons/ (приоритет)
+// icon  — своя иконка из ./icons/header/ (приоритет)
 // favicon — фолбэк через Google Favicon API
 const SERVICE_META = {
   // Доски
-  miro: { label: "Miro", icon: "./icons/miro.webp" },
-  unidraw: { label: "Unidraw", icon: "./icons/unidraw.webp" },
+  miro: { label: "Miro", icon: "./icons/header/miro.webp" },
+  unidraw: { label: "Unidraw", icon: "./icons/header/unidraw.webp" },
   // Звонки
-  teams: { label: "Teams", icon: "./icons/teams.webp" },
-  telemost: { label: "Телемост", icon: "./icons/telemost.webp" },
+  teams: { label: "Teams", icon: "./icons/header/teams.webp" },
+  telemost: { label: "Телемост", icon: "./icons/header/telemost.webp" },
   ktalk: {
     label: "Контур Толк",
-    icon: "./icons/call.webp",
+    icon: "./icons/header/call.webp",
     favicon: "ktalk.ru",
   },
   // Свой сервис — иконка и название берутся из кастомных полей
@@ -714,22 +714,22 @@ function groupTasksByPart(tasks, catalogSlug) {
 
 const TASK_FILTER_EMPTY_STUBS = {
   homework: {
-    icon: "./icons/tasks_empty_homework.svg",
+    icon: "./icons/tasks_empty/tasks_empty_homework.svg",
     title: "Домашнего задания нет",
     text: "Сейчас ничего не задано, можно отдохнуть",
   },
   in_progress: {
-    icon: "./icons/tasks_empty_in_progress.svg",
+    icon: "./icons/tasks_empty/tasks_empty_in_progress.svg",
     title: "В процессе ничего нет",
     text: "Сейчас нет заданий, которые ты решаешь",
   },
   completed: {
-    icon: "./icons/tasks_empty_completed.svg",
+    icon: "./icons/tasks_empty/tasks_empty_completed.svg",
     title: "Пройденных заданий пока нет",
     text: "Скоро здесь появятся пройденные задания",
   },
   not_started: {
-    icon: "./icons/tasks_empty_not_started.svg",
+    icon: "./icons/tasks_empty/tasks_empty_not_started.svg",
     title: "Не начатых заданий нет",
     text: "Все задания уже в процессе или пройдены",
   },
@@ -745,7 +745,7 @@ function renderTasksFilterEmpty(filter) {
     </div>`;
   }
   return `<div class="trials-empty tasks-empty">
-    <img class="trials-empty__icon" src="./icons/tasks_empty.png" alt="" />
+    <img class="trials-empty__icon" src="./icons/status/all.svg" alt="" />
     <div class="trials-empty__title">Нет заданий</div>
     <div class="trials-empty__text">По этому фильтру заданий не найдено.</div>
   </div>`;
@@ -787,7 +787,7 @@ function renderTasks() {
       els.trialsPanel.innerHTML =
         scaleSection +
         `<div class="trials-empty">
-          <img class="trials-empty__icon" src="./icons/trials_empty.svg" alt="" />
+          <img class="trials-empty__icon" src="./icons/trial/trials_empty.svg" alt="" />
           <div class="trials-empty__title">Пробные варианты</div>
           <div class="trials-empty__text">Здесь будут появляться результаты пробных экзаменов и полных вариантов</div>
         </div>`;
@@ -883,21 +883,21 @@ function openModal(task) {
       "Записи с занятия",
       details.lessonNotes || "",
       lessonFiles,
-      "./icons/notes.png",
+      "./icons/modal/notes.svg",
       "lesson",
     ),
     renderSectionWithFiles(
       "Домашнее задание",
       details.homework || [],
       homeworkFiles,
-      "./icons/homework.png",
+      "./icons/modal/homework.svg",
       "homework",
     ),
     renderSectionWithFiles(
       "Подсказки",
       details.hints || [],
       hintFiles,
-      "./icons/hints.png",
+      "./icons/modal/hints.svg",
       "hints",
     ),
     attachments.length ? renderAttachmentsSection(attachments) : "",
@@ -1030,11 +1030,11 @@ function formatCompletedDate(iso) {
 }
 
 const TASK_STATUS_ICON_FILES = {
-  all: "./icons/all.svg",
-  not_started: "./icons/not_started.svg",
-  in_progress: "./icons/in_progress.svg",
-  homework: "./icons/homework.svg",
-  completed: "./icons/completed.svg",
+  all: "./icons/status/all.svg",
+  not_started: "./icons/status/not_started.svg",
+  in_progress: "./icons/status/in_progress.svg",
+  homework: "./icons/status/homework.svg",
+  completed: "./icons/status/completed.svg",
 };
 
 const TASK_FILTER_OPTIONS = [
@@ -1125,8 +1125,8 @@ function renderTrialCard(trial, catalogSlug) {
     : "";
 
   const footHtml = `<div class="trial-card__foot">
-    <span class="trial-card__date">${dateStr ? `<img src="./icons/calendar.png" width="12" height="12" alt="" aria-hidden="true" class="trial-card__meta-icon"> ${escapeHtml(dateStr)}` : ""}</span>
-    <span class="trial-card__time ${timeStr ? "" : "trial-card__time--empty"}"><img src="./icons/clock.png" width="12" height="12" alt="" aria-hidden="true" class="trial-card__meta-icon"> ${timeStr ? escapeHtml(timeStr) : "—"}</span>
+    <span class="trial-card__date">${dateStr ? `<img src="./icons/trial/calendar.png" width="12" height="12" alt="" aria-hidden="true" class="trial-card__meta-icon"> ${escapeHtml(dateStr)}` : ""}</span>
+    <span class="trial-card__time ${timeStr ? "" : "trial-card__time--empty"}"><img src="./icons/trial/clock.png" width="12" height="12" alt="" aria-hidden="true" class="trial-card__meta-icon"> ${timeStr ? escapeHtml(timeStr) : "—"}</span>
   </div>`;
 
   return `<button class="trial-card ${cardLevel}" type="button" data-trial-open="${escapeAttr(trial.id)}">
@@ -1141,6 +1141,65 @@ function renderTrialCard(trial, catalogSlug) {
   </button>`;
 }
 
+function renderTrialFilesSectionHtml(attachments) {
+  const fileLinks = (attachments || [])
+    .map((a) => ({
+      label: String(a.label || a.url || "").trim() || "Файл",
+      href: String(a.url || "").trim(),
+    }))
+    .filter((a) => a.href);
+
+  return `<div class="section">
+    <div class="section__title">Файлы</div>
+    ${
+      fileLinks.length
+        ? `<div class="attachments-list">${fileLinks
+            .map((a) =>
+              renderAttachmentLinkHtml(
+                a.href,
+                a.label,
+                renderFileIconHtml(a.href, a.label),
+              ),
+            )
+            .join("")}</div>`
+        : `<div class="section__empty">Файлы не прикреплены</div>`
+    }
+  </div>`;
+}
+
+function renderTrialResultSectionHtml(trial, catalogSlug) {
+  const score = trial.score ? String(trial.score).trim() : null;
+  const converted = score ? convertScore(score, catalogSlug) : null;
+  const gradeLabel = getTrialGradeLabel(catalogSlug);
+  const timeStr = trial.time ? String(trial.time).trim() : null;
+  const hasResult = Boolean(score || timeStr);
+
+  if (!hasResult) {
+    return `<div class="section">
+      <div class="section__title">Результат</div>
+      <div class="section__empty">Результат пока не добавлен</div>
+    </div>`;
+  }
+
+  return `<div class="section">
+    <div class="section__title">Результат</div>
+    <div class="trial-card__stats trial-card__stats--modal">
+      <div class="trial-card__stat trial-card__stat--score ${score ? "" : "trial-card__stat--empty"}">
+        <div class="trial-card__stat-value">${score ? escapeHtml(score) : "—"}</div>
+        <div class="trial-card__stat-label">Первичный балл</div>
+      </div>
+      <div class="trial-card__stat ${converted ? `trial-card__stat--${converted.level}` : "trial-card__stat--empty"}">
+        <div class="trial-card__stat-value">${converted ? escapeHtml(converted.display) : "—"}</div>
+        <div class="trial-card__stat-label">${escapeHtml(gradeLabel)}</div>
+      </div>
+      <div class="trial-card__stat trial-card__stat--time ${timeStr ? "" : "trial-card__stat--empty"}">
+        <div class="trial-card__stat-value">${timeStr ? escapeHtml(timeStr) : "—"}</div>
+        <div class="trial-card__stat-label">Время выполнения</div>
+      </div>
+    </div>
+  </div>`;
+}
+
 function openTrialModal(trialId, catalogSlug) {
   const subject = getSelectedSubject();
   const trials = (data.trialsBySubjectId || {})[subject?.id] || [];
@@ -1149,11 +1208,7 @@ function openTrialModal(trialId, catalogSlug) {
 
   lastFocusedBeforeModal = document.activeElement;
 
-  const score = trial.score ? String(trial.score).trim() : null;
-  const converted = score ? convertScore(score, catalogSlug) : null;
-  const gradeLabel = getTrialGradeLabel(catalogSlug);
   const dateStr = trial.date ? formatTrialDate(trial.date) : null;
-  const timeStr = trial.time ? String(trial.time).trim() : null;
   const attachments = Array.isArray(trial.attachments)
     ? trial.attachments
         .map((a) => {
@@ -1176,43 +1231,8 @@ function openTrialModal(trialId, catalogSlug) {
   els.modalBadge.className = "modal__badge";
   els.modalBadge.hidden = true;
 
-  const filesHtml = `<div class="section">
-    <div class="section__title">Файлы</div>
-    <div class="attachments-list">
-      ${
-        attachments.length
-          ? attachments
-              .map((a) =>
-                renderAttachmentLinkHtml(
-                  a.url,
-                  a.label || a.url,
-                  `<img src="./icons/variant.png" width="16" height="16" alt="" />`,
-                ),
-              )
-              .join("")
-          : `<span class="muted" style="font-size:13px">Файлы не прикреплены</span>`
-      }
-    </div>
-  </div>`;
-
-  const resultHtml = `<div class="section">
-    <div class="section__title">Результат</div>
-    <div class="trial-card__stats trial-card__stats--modal">
-      <div class="trial-card__stat trial-card__stat--score ${score ? "" : "trial-card__stat--empty"}">
-        <div class="trial-card__stat-value">${score ? escapeHtml(score) : "—"}</div>
-        <div class="trial-card__stat-label">Первичный балл</div>
-      </div>
-      <div class="trial-card__stat ${converted ? `trial-card__stat--${converted.level}` : "trial-card__stat--empty"}">
-        <div class="trial-card__stat-value">${converted ? escapeHtml(converted.display) : "—"}</div>
-        <div class="trial-card__stat-label">${escapeHtml(gradeLabel)}</div>
-      </div>
-      <div class="trial-card__stat trial-card__stat--time ${timeStr ? "" : "trial-card__stat--empty"}">
-        <div class="trial-card__stat-value">${timeStr ? escapeHtml(timeStr) : "—"}</div>
-        <div class="trial-card__stat-label">Время выполнения</div>
-      </div>
-    </div>
-  </div>`;
-
+  const filesHtml = renderTrialFilesSectionHtml(attachments);
+  const resultHtml = renderTrialResultSectionHtml(trial, catalogSlug);
   const reportHtml = renderTrialTaskResultsReadonly(trial, catalogSlug);
 
   const html = `<div class="trial-modal__layout">
@@ -1263,8 +1283,25 @@ function trialTaskResultsGridStyle(count, cols = 2) {
 
 function renderTrialTaskResultsReadonly(trial, catalogSlug) {
   const taskCount = getTrialTaskCount(catalogSlug);
-  if (!taskCount) return "";
+  if (!taskCount) {
+    return `<div class="section trial-modal__report">
+      <div class="section__title">Отчёт по заданиям</div>
+      <div class="section__empty">Отчёт для этого экзамена пока недоступен</div>
+    </div>`;
+  }
+
   const results = normalizeTrialTaskResults(trial.task_results, taskCount);
+  const hasAnyMark = results.some(
+    (r) => r === "correct" || r === "incorrect",
+  );
+
+  if (!hasAnyMark) {
+    return `<div class="section trial-modal__report">
+      <div class="section__title">Отчёт по заданиям</div>
+      <div class="section__empty">Отчёт по заданиям пока не заполнен</div>
+    </div>`;
+  }
+
   const correctCount = results.filter((r) => r === "correct").length;
   const incorrectCount = results.filter((r) => r === "incorrect").length;
   const cols = 2;
@@ -1448,39 +1485,127 @@ function getFileExtension(href, label) {
   return "";
 }
 
-// ─── Иконки типов файлов (папка ./icons/) ───────────────────────────────────
-// Добавляй или меняй строки: массив расширений (без точки) → путь к PNG/SVG.
-// Порядок важен: проверка сверху вниз, первое совпадение побеждает.
+// ─── Иконки типов файлов (папка ./icons/files_preview/) ─────────────────────
+// exts — расширение из URL или подписи. Порядок важен: первое совпадение побеждает.
 const FILE_TYPE_ICON_RULES = [
-  { exts: ["pdf"], icon: "./icons/file_pdf.svg" },
+  { exts: ["pdf"], icon: "./icons/files_preview/file_pdf.svg" },
   {
     exts: ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "heic"],
-    icon: "./icons/file_image.png",
+    icon: "./icons/files_preview/file_image.svg",
   },
   {
     exts: ["mp4", "mov", "avi", "mkv", "webm", "m4v"],
-    icon: "./icons/file_video.png",
+    icon: "./icons/files_preview/file_video.svg",
   },
-  { exts: ["mp3", "wav", "ogg", "m4a", "aac"], icon: "./icons/file_audio.svg" },
-  { exts: ["doc", "docx", "pages"], icon: "./icons/file_doc.png" },
-  { exts: ["xls", "xlsx", "numbers", "csv"], icon: "./icons/file_sheet.png" },
-  { exts: ["py", "ipynb", "js", "html", "css"], icon: "./icons/file_code.png" },
-  { exts: ["zip", "rar", "7z"], icon: "./icons/file_archive.png" },
+  {
+    exts: ["mp3", "wav", "ogg", "m4a", "aac"],
+    icon: "./icons/files_preview/file_audio.svg",
+  },
+  {
+    exts: ["doc", "docx", "pages", "odt", "txt", "rtf"],
+    icon: "./icons/files_preview/file_doc.svg",
+  },
+  {
+    exts: ["xls", "xlsx", "numbers", "csv", "ods"],
+    icon: "./icons/files_preview/file_sheet.svg",
+  },
+  {
+    exts: ["ppt", "pptx", "odp"],
+    icon: "./icons/files_preview/file_presentation.svg",
+  },
+  {
+    exts: ["py", "ipynb", "js", "css"],
+    icon: "./icons/files_preview/file_code.svg",
+  },
+  {
+    exts: ["zip", "rar", "7z"],
+    icon: "./icons/files_preview/file_archive.svg",
+  },
 ];
 
-// Если расширение не найдено в списке выше
-const FILE_TYPE_ICON_DEFAULT = "./icons/file_default.png";
+// Ссылки без расширения: облака, сайты. hosts — подстрока в URL (регистр не важен).
+const FILE_LINK_ICON_RULES = [
+  {
+    hosts: [
+      "drive.google.com",
+      "docs.google.com",
+      "sheets.google.com",
+      "slides.google.com",
+      "disk.yandex.",
+      "yadi.sk",
+      "dropbox.com",
+      "onedrive.live.com",
+      "1drv.ms",
+      "cloud.mail.ru",
+      "mega.nz",
+      "box.com",
+    ],
+    icon: "./icons/files_preview/file_cloud.svg",
+  },
+  {
+    hosts: ["youtube.com", "youtu.be", "rutube.ru", "vk.com/video", "vkvideo.ru"],
+    icon: "./icons/files_preview/file_video.svg",
+  },
+];
+
+const FILE_TYPE_ICON_DEFAULT = "./icons/files_preview/file_default.svg";
+const FILE_LINK_ICON_DEFAULT = "./icons/files_preview/file_link.svg";
+
+// Для http(s)-ссылок — страница сайта, не файл с кодом (index.html, page.php …)
+const WEB_PAGE_EXTENSIONS = new Set([
+  "html",
+  "htm",
+  "xhtml",
+  "php",
+  "asp",
+  "aspx",
+  "jsp",
+  "cgi",
+  "shtml",
+]);
+
+function getIconLookupUrl(href, label) {
+  for (const source of [href, label]) {
+    const value = String(source || "").trim();
+    if (!value) continue;
+    try {
+      const url = new URL(value);
+      if (url.protocol === "http:" || url.protocol === "https:") {
+        return url.href.toLowerCase();
+      }
+    } catch {
+      /* not a URL */
+    }
+  }
+  return "";
+}
 
 function getFileIconSrc(href, label) {
+  const lookupUrl = getIconLookupUrl(href, label);
   const ext = getFileExtension(href, label);
-  if (!ext) return FILE_TYPE_ICON_DEFAULT;
-  const rule = FILE_TYPE_ICON_RULES.find((r) => r.exts.includes(ext));
-  return rule?.icon || FILE_TYPE_ICON_DEFAULT;
+  const isWebPageUrl =
+    Boolean(lookupUrl) && ext && WEB_PAGE_EXTENSIONS.has(ext);
+
+  if (ext && !isWebPageUrl) {
+    const extRule = FILE_TYPE_ICON_RULES.find((r) => r.exts.includes(ext));
+    if (extRule) return extRule.icon;
+  }
+
+  if (lookupUrl) {
+    for (const rule of FILE_LINK_ICON_RULES) {
+      if (rule.hosts.some((host) => lookupUrl.includes(host.toLowerCase()))) {
+        return rule.icon;
+      }
+    }
+    return FILE_LINK_ICON_DEFAULT;
+  }
+
+  return FILE_TYPE_ICON_DEFAULT;
 }
 
 function renderFileIconHtml(href, label) {
   const src = getFileIconSrc(href, label);
-  return `<img src="${escapeAttr(src)}" width="18" height="18" alt="" decoding="async" />`;
+  return `<img src="${escapeAttr(src)}" width="15" height="15" alt="" decoding="async" />`;
 }
 
 function parseRichLink(line) {
@@ -1577,9 +1702,9 @@ function isValidHttpUrl(value) {
 }
 
 const TASK_FLAGS = {
-  pinned: { src: "./icons/flag_pinned.png", alt: "Закреплено" },
-  redo: { src: "./icons/flag_redo.png", alt: "Перерешать" },
-  new_topic: { src: "./icons/flag_new.png", alt: "Новая тема" },
+  pinned: { src: "./icons/flag_card/flag_pinned.png", alt: "Закреплено" },
+  redo: { src: "./icons/flag_card/flag_redo.png", alt: "Перерешать" },
+  new_topic: { src: "./icons/flag_card/flag_new.png", alt: "Новая тема" },
 };
 
 function getTaskFlag(task) {
@@ -1852,14 +1977,14 @@ function renderScoreBar(catalogSlug) {
 }
 
 // ─── Иконки предметов по catalogSlug ─────────────────────────────────────────
-// Добавь новые slug → файл по аналогии. Файлы должны лежать в папке ./icons/
+// Добавь новые slug → файл по аналогии. Файлы в ./icons/subjects/
 const SUBJECT_ICONS = {
-  oge_math: "./icons/oge_math.png",
-  oge_info: "./icons/oge_info.png",
-  ege_math: "./icons/ege_math.png",
-  ege_info: "./icons/ege_info.png",
+  oge_math: "./icons/subjects/oge_math.png",
+  oge_info: "./icons/subjects/oge_info.png",
+  ege_math: "./icons/subjects/ege_math.png",
+  ege_info: "./icons/subjects/ege_info.png",
 };
-const SUBJECT_ICON_FALLBACK = "./icons/subject.png";
+const SUBJECT_ICON_FALLBACK = "./icons/subjects/subject.png";
 
 function subjectIconSrc(catalogSlug) {
   return SUBJECT_ICONS[catalogSlug] || SUBJECT_ICON_FALLBACK;

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--Generator: Apple Native CoreSVG 341-->
+<!DOCTYPE svg
+PUBLIC "-//W3C//DTD SVG 1.1//EN"
+       "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 52.1582 40.2124">
+ <defs>
+  <linearGradient id="gradient1" x1="5" y1="0.0341797" x2="5" y2="40.2124" gradientUnits="userSpaceOnUse">
+   <stop offset="0" stop-color="#3f9bff" stop-opacity="1"/>
+   <stop offset="1" stop-color="#007aff" stop-opacity="1"/>
+  </linearGradient>
+ </defs>
+ <g>
+  <rect height="40.2124" opacity="0" width="52.1582" x="0" y="0"/>
+  <path d="M0 28.8135L0 25.7886L24.3701 25.7886L24.3701 14.4409L0 14.4409L0 11.416L24.3701 11.416L24.3701 0.0341797L27.395 0.0341797L27.395 11.416L51.7822 11.416L51.7822 14.4409L27.395 14.4409L27.395 25.7886L51.7822 25.7886L51.7822 28.8135L27.395 28.8135L27.395 40.2124L24.3701 40.2124L24.3701 28.8135ZM6.64795 40.2124L45.1172 40.2124C49.5435 40.2124 51.7822 37.9736 51.7822 33.6157L51.7822 6.61377C51.7822 2.27295 49.5435 0.0341797 45.1172 0.0341797L6.64795 0.0341797C2.23877 0.0341797 0 2.23877 0 6.61377L0 33.6157C0 37.9907 2.23877 40.2124 6.64795 40.2124Z" fill="url(#gradient1)"/>
+ </g>
+</svg>

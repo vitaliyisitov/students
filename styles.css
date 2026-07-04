@@ -2338,8 +2338,8 @@ body.is-app-loading #appState {
 }
 
 .attachment-link__icon {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2348,8 +2348,8 @@ body.is-app-loading #appState {
 }
 
 .attachment-link__icon img {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   display: block;
   object-fit: contain;
 }
