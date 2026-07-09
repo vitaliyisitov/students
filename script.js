@@ -985,7 +985,9 @@ function renderTaskFootHtml(task) {
 
   if (status === "homework") {
     const assignedText = formatAssignedDate(getTaskAssignedDateISO(task));
-    const daysRef = task.updatedAtISO || task.createdAtISO;
+    // Дни считаем от даты «Задано» (created_at), а не от updated_at —
+    // иначе при переназначении ДЗ без смены статуса счётчик не сбрасывается.
+    const daysRef = task.createdAtISO;
     const daysText = formatDaysPassed(daysSince(daysRef));
     if (!assignedText && !daysText) return "";
     return `<div class="task__foot">

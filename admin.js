@@ -1303,8 +1303,11 @@ function buildTaskPayload(row, oldTask = null) {
       updatedAtIso = updatedFromForm || new Date().toISOString();
     }
   } else {
+    // Статус не менялся — берём даты из формы, чтобы счётчик дней
+    // на карточке ученика пересчитывался от изменённой даты.
     if (statusVal === "homework" && createdFromForm) {
       createdAtIso = createdFromForm;
+      updatedAtIso = createdFromForm;
     }
     if (
       (statusVal === "in_progress" || statusVal === "completed") &&
