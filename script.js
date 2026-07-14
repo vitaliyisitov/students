@@ -648,10 +648,10 @@ function renderExam() {
 
   const date = parseISODate(exam.dateISO);
   els.examDate.textContent = date
-    ? date.toLocaleDateString(undefined, {
+    ? date.toLocaleDateString("ru-RU", {
         year: "numeric",
-        month: "short",
-        day: "2-digit",
+        month: "long",
+        day: "numeric",
       })
     : "—";
 

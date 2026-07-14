@@ -1886,7 +1886,7 @@ body.is-app-loading #appState {
   display: flex;
   align-items: center;
   gap: 7px;
-  color: rgba(30, 27, 75, 0.96);
+  color: var(--text);
 }
 
 .task__flag-icon {
