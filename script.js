@@ -17,6 +17,11 @@ const STORAGE_KEY = DASHBOARD_ACCESS_TOKEN
   ? `student_dashboard_v1__${DASHBOARD_ACCESS_TOKEN}`
   : "student_dashboard_v1";
 
+const THEME_STORAGE_KEY = "student_cabinet_theme";
+// Переключатель темы временно выключен. Чтобы вернуть — поставь true
+// и убери hidden у .theme-switcher в index.html
+const THEME_SWITCHER_ENABLED = false;
+
 const state = loadState() || {
   selectedSubjectId: data.subjects[0]?.id || null,
   taskStatusById: {},
@@ -114,6 +119,7 @@ const STATE_SCREEN_ICONS = {
 void init();
 
 async function init() {
+  initTheme();
   setAppLoading(true);
   try {
     await loadDataFromFirebase();
@@ -2144,6 +2150,75 @@ function escapeHtml(value) {
 
 function escapeAttr(value) {
   return escapeHtml(value).replaceAll("`", "&#096;");
+}
+
+function getThemePref() {
+  if (!THEME_SWITCHER_ENABLED) return "light";
+  try {
+    const v = localStorage.getItem(THEME_STORAGE_KEY);
+    if (v === "light" || v === "dark") return v;
+  } catch {}
+  return "light";
+}
+
+function resolveTheme(pref) {
+  return pref === "dark" ? "dark" : "light";
+}
+
+function applyTheme(pref, { animate = false } = {}) {
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const shouldAnimate = animate && !reduced && THEME_SWITCHER_ENABLED;
+
+  if (shouldAnimate) {
+    document.documentElement.classList.add("theme-changing");
+    // Нужен reflow, иначе браузер не анимирует смену CSS-переменных
+    void document.documentElement.offsetWidth;
+  }
+
+  const resolved = resolveTheme(pref);
+  document.documentElement.dataset.theme = resolved;
+  document.documentElement.dataset.themePref = pref;
+
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = resolved === "dark" ? "#0b0d12" : "#007aff";
+
+  const input = document.getElementById("themeSwitch");
+  if (input) input.checked = resolved === "dark";
+
+  if (shouldAnimate) {
+    clearTimeout(applyTheme._fadeTimer);
+    applyTheme._fadeTimer = setTimeout(() => {
+      document.documentElement.classList.remove("theme-changing");
+    }, 450);
+  }
+}
+
+function setThemePref(pref) {
+  if (!THEME_SWITCHER_ENABLED) return;
+  if (pref !== "light" && pref !== "dark") return;
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, pref);
+  } catch {}
+  applyTheme(pref, { animate: true });
+}
+
+function initTheme() {
+  applyTheme(getThemePref());
+
+  if (!THEME_SWITCHER_ENABLED) return;
+
+  const input = document.getElementById("themeSwitch");
+  if (input) {
+    input.addEventListener("change", () => {
+      setThemePref(input.checked ? "dark" : "light");
+    });
+  }
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.classList.add("theme-anim");
+    });
+  });
 }
 
 function saveState(next) {

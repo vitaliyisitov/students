@@ -45,7 +45,27 @@
     <!-- Цвет панели браузера на мобильных -->
     <meta name="theme-color" content="#007aff" />
 
-    <link rel="stylesheet" href="./styles.css?v=54" />
+    <script>
+      (function () {
+        try {
+          // Переключатель темы временно выключен — всегда светлая.
+          // Чтобы вернуть: поставь true здесь и THEME_SWITCHER_ENABLED в script.js
+          var THEME_SWITCHER_ENABLED = false;
+          var key = "student_cabinet_theme";
+          var pref = "light";
+          if (THEME_SWITCHER_ENABLED) {
+            pref = localStorage.getItem(key) || "light";
+            if (pref !== "light" && pref !== "dark") pref = "light";
+          }
+          document.documentElement.dataset.theme = pref;
+          document.documentElement.dataset.themePref = pref;
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.content = pref === "dark" ? "#0b0d12" : "#007aff";
+        } catch (e) {}
+      })();
+    </script>
+
+    <link rel="stylesheet" href="./styles.css?v=73" />
     <link rel="icon" href="favicon.png" type="image/png" />
     <style>
       body.is-app-loading #appShell,
@@ -355,11 +375,75 @@
       </div>
     </footer> -->
 
+    <svg class="theme-icons" aria-hidden="true" focusable="false">
+      <symbol id="theme-light" viewBox="0 0 24 24">
+        <circle fill="currentColor" cx="12" cy="12" r="4" />
+        <g
+          stroke="currentColor"
+          stroke-width="1.75"
+          stroke-linecap="round"
+          fill="none"
+        >
+          <line x1="12" y1="1.75" x2="12" y2="4.25" />
+          <line x1="12" y1="19.75" x2="12" y2="22.25" />
+          <line x1="1.75" y1="12" x2="4.25" y2="12" />
+          <line x1="19.75" y1="12" x2="22.25" y2="12" />
+          <line x1="4.4" y1="4.4" x2="6.15" y2="6.15" />
+          <line x1="17.85" y1="17.85" x2="19.6" y2="19.6" />
+          <line x1="17.85" y1="6.15" x2="19.6" y2="4.4" />
+          <line x1="4.4" y1="19.6" x2="6.15" y2="17.85" />
+        </g>
+      </symbol>
+      <symbol id="theme-dark" viewBox="0 0 24 24">
+        <path
+          fill="currentColor"
+          d="M15.1,14.9c-3-0.5-5.5-3-6-6C8.8,7.1,9.1,5.4,9.9,4c0.4-0.8-0.4-1.7-1.2-1.4C4.6,4,1.8,7.9,2,12.5c0.2,5.1,4.4,9.3,9.5,9.5c4.5,0.2,8.5-2.6,9.9-6.6c0.3-0.8-0.6-1.7-1.4-1.2C18.6,14.9,16.9,15.2,15.1,14.9z"
+        />
+      </symbol>
+    </svg>
+
+    <div class="theme-switcher" hidden>
+      <label class="switch" title="Тема оформления">
+        <input
+          class="switch__input"
+          id="themeSwitch"
+          type="checkbox"
+          role="switch"
+          name="dark"
+          aria-label="Тёмная тема"
+        />
+        <svg class="switch__icon" width="24" height="24" aria-hidden="true">
+          <use href="#theme-light" />
+        </svg>
+        <svg class="switch__icon" width="24" height="24" aria-hidden="true">
+          <use href="#theme-dark" />
+        </svg>
+        <span class="switch__inner"></span>
+        <span class="switch__inner-icons">
+          <svg class="switch__icon" width="24" height="24" aria-hidden="true">
+            <use href="#theme-light" />
+          </svg>
+          <svg class="switch__icon" width="24" height="24" aria-hidden="true">
+            <use href="#theme-dark" />
+          </svg>
+        </span>
+        <span class="switch__sr">Тёмная тема</span>
+      </label>
+    </div>
+    <script>
+      (function () {
+        var el = document.getElementById("themeSwitch");
+        if (el) {
+          el.checked = document.documentElement.dataset.theme === "dark";
+        }
+      })();
+    </script>
+
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
     <script src="./firebase.config.js?v=2"></script>
     <script src="./firebase.config.js?v=3"></script>
-    <script src="./script.js?v=45" defer></script>
+    <script src="./script.js?v=54" defer></script>
     <script
       src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.14/dist/dotlottie-wc.js"
       type="module"
