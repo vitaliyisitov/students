@@ -2465,7 +2465,10 @@ function normalizeTrialTaskPoints(raw, catalogSlug) {
     if (v === false || v === "incorrect") return 0;
     const n = Number(v);
     if (!Number.isFinite(n)) return null;
-    return Math.max(0, Math.min(max, Math.round(n)));
+    const rounded = Math.max(0, Math.round(n));
+    // Переменные задания — без верхней обрезки (бывают 2 и 3 балла)
+    if (isTrialTaskVariable(catalogSlug, i)) return rounded;
+    return Math.min(max, rounded);
   });
 }
 
@@ -2493,9 +2496,9 @@ function renderTrialTaskResultsEditor(points, catalogSlug) {
       const okActive = pts != null && pts > 0 ? " is-active" : "";
       const badActive = pts === 0 ? " is-active" : "";
       const pointsInput = variable
-        ? `<input class="trial-task-points" type="number" min="0" max="${max}" step="1" inputmode="numeric" data-trial-task-points="${i}" value="${pts != null ? escapeAttrAdmin(pts) : ""}" placeholder="0–${max}" title="Баллы за задание ${n} (0–${max})" aria-label="Баллы за задание ${n}" />`
+        ? `<input class="trial-task-points" type="number" min="0" step="1" inputmode="numeric" data-trial-task-points="${i}" value="${pts != null ? escapeAttrAdmin(pts) : ""}" placeholder="балл" title="Баллы за задание ${n}" aria-label="Баллы за задание ${n}" />`
         : "";
-      return `<div class="trial-task-row${variable ? " trial-task-row--variable" : ""}" data-trial-task-row="${i}" data-task-max="${max}">
+      return `<div class="trial-task-row${variable ? " trial-task-row--variable" : ""}" data-trial-task-row="${i}" data-task-max="${max}" data-task-variable="${variable ? "1" : "0"}">
         <span class="trial-task-row__num">${n}</span>
         <button type="button" class="trial-task-btn trial-task-btn--ok${okActive}" data-trial-task-ok="${i}" aria-label="Задание ${n}: верно">${trialTaskOkIcon()}</button>
         <button type="button" class="trial-task-btn trial-task-btn--bad${badActive}" data-trial-task-no="${i}" aria-label="Задание ${n}: неверно">${trialTaskBadIcon()}</button>
@@ -2558,6 +2561,7 @@ function readTrialTaskResultsFromRow(row) {
     }
     const max = Number(taskRow.getAttribute("data-task-max")) ||
       getTrialTaskMaxPoints(catalogSlug, i);
+    const variable = taskRow.getAttribute("data-task-variable") === "1";
     const pointsInput = taskRow.querySelector("[data-trial-task-points]");
     if (pointsInput) {
       const raw = String(pointsInput.value ?? "").trim();
@@ -2565,9 +2569,13 @@ function readTrialTaskResultsFromRow(row) {
         results.push(null);
       } else {
         const n = Number(raw);
-        results.push(
-          Number.isFinite(n) ? Math.max(0, Math.min(max, Math.round(n))) : null,
-        );
+        if (!Number.isFinite(n)) {
+          results.push(null);
+        } else {
+          const rounded = Math.max(0, Math.round(n));
+          // У переменных заданий верхний лимит не режем — бывают 2 и 3 балла
+          results.push(variable ? rounded : Math.min(max, rounded));
+        }
       }
       continue;
     }
@@ -2617,10 +2625,32 @@ function toggleTrialTaskResult(btn, value) {
   const row = btn.closest(".trial-row");
   if (!taskRow) return;
   const max = Number(taskRow.getAttribute("data-task-max")) || 1;
+  const variable = taskRow.getAttribute("data-task-variable") === "1";
+  const pointsInput = taskRow.querySelector("[data-trial-task-points]");
   const okBtn = taskRow.querySelector("[data-trial-task-ok]");
   const badBtn = taskRow.querySelector("[data-trial-task-no]");
   const target = value === "correct" ? okBtn : badBtn;
   const wasActive = target?.classList.contains("is-active");
+
+  if (variable && pointsInput) {
+    if (wasActive) {
+      syncTrialTaskRowUi(taskRow, null);
+    } else if (value === "incorrect") {
+      syncTrialTaskRowUi(taskRow, 0);
+    } else {
+      const raw = String(pointsInput.value ?? "").trim();
+      const n = Number(raw);
+      if (raw !== "" && Number.isFinite(n) && n > 0) {
+        syncTrialTaskRowUi(taskRow, Math.max(0, Math.round(n)));
+      } else {
+        // Баллы вводятся вручную — просто фокус на поле
+        pointsInput.focus();
+      }
+    }
+    updateTrialScoreField(row);
+    return;
+  }
+
   let points = null;
   if (!wasActive) {
     points = value === "correct" ? max : 0;
@@ -2633,14 +2663,12 @@ function onTrialTaskPointsInput(input) {
   const taskRow = input.closest("[data-trial-task-row]");
   const row = input.closest(".trial-row");
   if (!taskRow) return;
-  const max = Number(taskRow.getAttribute("data-task-max")) || 1;
   const raw = String(input.value ?? "").trim();
   let points = null;
   if (raw !== "") {
     const n = Number(raw);
     if (Number.isFinite(n)) {
-      points = Math.max(0, Math.min(max, Math.round(n)));
-      if (String(points) !== raw) input.value = String(points);
+      points = Math.max(0, Math.round(n));
     }
   }
   syncTrialTaskRowUi(taskRow, points);
@@ -2654,8 +2682,23 @@ function markAllTrialTasksCorrect(row) {
   const taskCount = Number(row.getAttribute("data-task-count")) || 0;
   for (let i = 0; i < taskCount; i++) {
     const taskRow = row.querySelector(`[data-trial-task-row="${i}"]`);
+    // Задания с окном ввода не трогаем — баллы вводятся вручную
+    if (isTrialTaskVariable(catalogSlug, i)) {
+      syncTrialTaskRowUi(taskRow, null);
+      continue;
+    }
     const max = getTrialTaskMaxPoints(catalogSlug, i);
     syncTrialTaskRowUi(taskRow, max);
+  }
+  updateTrialScoreField(row);
+}
+
+function clearAllTrialTasks(row) {
+  if (!row) return;
+  const taskCount = Number(row.getAttribute("data-task-count")) || 0;
+  for (let i = 0; i < taskCount; i++) {
+    const taskRow = row.querySelector(`[data-trial-task-row="${i}"]`);
+    syncTrialTaskRowUi(taskRow, null);
   }
   updateTrialScoreField(row);
 }
@@ -2775,6 +2818,12 @@ function renderTrialsEditor() {
       markAllTrialTasksCorrect(row);
     });
   });
+  root.querySelectorAll("[data-trial-clear-all]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const row = btn.closest(".trial-row");
+      clearAllTrialTasks(row);
+    });
+  });
 }
 
 // Вызывается при открытии вкладки «Ученики» или выборе ученика
@@ -2867,7 +2916,12 @@ function trialRowHtml(t, pos = t.order_index ?? 1) {
           <span class="trial-row__report-title">Отчёт по заданиям</span>
           <div class="trial-row__report-actions">
             ${taskCount ? `<span class="trial-row__report-meta">${taskCount} заданий · макс. ${maxPrimary}</span>` : ""}
-            ${taskCount ? `<button class="icon-btn" type="button" data-trial-all-correct="${escapeAttr(t.id)}">Все верно</button>` : ""}
+            ${
+              taskCount
+                ? `<button class="icon-btn" type="button" data-trial-all-correct="${escapeAttr(t.id)}">Все верно</button>
+            <button class="icon-btn" type="button" data-trial-clear-all="${escapeAttr(t.id)}">Очистить всё</button>`
+                : ""
+            }
           </div>
         </div>
         ${reportHtml}
@@ -3660,10 +3714,17 @@ async function openFileBrowser(row) {
   const modal = document.getElementById("fileBrowserModal");
   if (!modal) return;
   modal.hidden = false;
-  document.getElementById("fileBrowserSearch").value = "";
+  const search = document.getElementById("fileBrowserSearch");
+  if (search) {
+    search.value = "";
+    // Фокус сразу, чтобы можно было печатать без клика
+    requestAnimationFrame(() => search.focus({ preventScroll: true }));
+  }
   document.getElementById("fileBrowserList").innerHTML =
     '<p class="muted" style="padding:12px 16px">Загрузка…</p>';
   await loadStorageFiles();
+  // На случай если фокус сбросился после загрузки списка
+  search?.focus({ preventScroll: true });
 }
 
 function closeFileBrowser() {
