@@ -1179,55 +1179,238 @@ function renderTrialFilesSectionHtml(attachments) {
     }))
     .filter((a) => a.href);
 
-  return `<div class="section">
+  if (!fileLinks.length) return "";
+
+  return `<div class="section trial-bento__files">
     <div class="section__title">Файлы</div>
-    ${
-      fileLinks.length
-        ? `<div class="attachments-list">${fileLinks
-            .map((a) =>
-              renderAttachmentLinkHtml(
-                a.href,
-                a.label,
-                renderFileIconHtml(a.href, a.label),
-              ),
-            )
-            .join("")}</div>`
-        : `<div class="section__empty">Файлы не прикреплены</div>`
-    }
+    <div class="attachments-list trial-bento__files-list">${fileLinks
+      .map((a) =>
+        renderAttachmentLinkHtml(
+          a.href,
+          a.label,
+          renderFileIconHtml(a.href, a.label),
+        ),
+      )
+      .join("")}</div>
   </div>`;
 }
 
-function renderTrialResultSectionHtml(trial, catalogSlug) {
-  const score = trial.score ? String(trial.score).trim() : null;
-  const converted = score ? convertScore(score, catalogSlug) : null;
-  const gradeLabel = getTrialGradeLabel(catalogSlug);
-  const timeStr = trial.time ? String(trial.time).trim() : null;
-  const hasResult = Boolean(score || timeStr);
+function parseTrialTimeMinutes(raw) {
+  const s = String(raw || "")
+    .trim()
+    .toLowerCase()
+    .replace(/,/g, ".");
+  if (!s) return null;
 
-  if (!hasResult) {
-    return `<div class="section">
-      <div class="section__title">Результат</div>
-      <div class="section__empty">Результат пока не добавлен</div>
-    </div>`;
+  // 1:30 / 1.30 / 3:55
+  let m = s.match(/^(\d{1,2})\s*[:.]\s*(\d{1,2})$/);
+  if (m) return Number(m[1]) * 60 + Number(m[2]);
+
+  // 2ч 15м / 2 часа 15 минут / 90 мин
+  const hoursMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:ч|час[аов]?)/);
+  const minsMatch = s.match(/(\d+)\s*(?:м|мин(?:ут[ыа]?)?)/);
+  if (hoursMatch || minsMatch) {
+    const hours = hoursMatch ? Number(hoursMatch[1]) : 0;
+    const mins = minsMatch ? Number(minsMatch[1]) : 0;
+    const total = Math.round(hours * 60) + mins;
+    return total > 0 ? total : null;
   }
 
-  return `<div class="section">
-    <div class="section__title">Результат</div>
-    <div class="trial-card__stats trial-card__stats--modal">
-      <div class="trial-card__stat trial-card__stat--score ${score ? "" : "trial-card__stat--empty"}">
-        <div class="trial-card__stat-value">${score ? escapeHtml(score) : "—"}</div>
-        <div class="trial-card__stat-label">Первичный балл</div>
-      </div>
-      <div class="trial-card__stat ${converted ? `trial-card__stat--${converted.level}` : "trial-card__stat--empty"}">
-        <div class="trial-card__stat-value">${converted ? escapeHtml(converted.display) : "—"}</div>
-        <div class="trial-card__stat-label">${escapeHtml(gradeLabel)}</div>
-      </div>
-      <div class="trial-card__stat trial-card__stat--time ${timeStr ? "" : "trial-card__stat--empty"}">
-        <div class="trial-card__stat-value">${timeStr ? escapeHtml(timeStr) : "—"}</div>
-        <div class="trial-card__stat-label">Время выполнения</div>
+  // чистое число — минуты
+  if (/^\d+$/.test(s)) return Number(s);
+
+  return null;
+}
+
+function getTrialExamDurationMinutes(catalogSlug) {
+  const subject = getSelectedSubject();
+  const fromExam = Number(subject?.exam?.durationMinutes);
+  if (Number.isFinite(fromExam) && fromExam > 0) return fromExam;
+
+  // запасные значения по типу экзамена
+  const slug = String(catalogSlug || subject?.catalogSlug || "").toLowerCase();
+  if (slug.includes("oge")) return 235;
+  if (slug.includes("basic")) return 180;
+  return 235; // 3 ч 55 мин
+}
+
+function getMaxPrimaryScore(catalogSlug) {
+  const fromRules = getTrialMaxPrimaryFromRules(catalogSlug);
+  if (fromRules > 0) return fromRules;
+
+  const cfg = SCORE_CONVERSION[String(catalogSlug || "").toLowerCase()];
+  if (!cfg) return null;
+  if (cfg.type === "test" && Array.isArray(cfg.table) && cfg.table.length) {
+    return cfg.table.length - 1;
+  }
+  if (cfg.type === "grade" && Array.isArray(cfg.thresholds)) {
+    return cfg.thresholds.reduce(
+      (max, t) => Math.max(max, Number(t.max) || 0),
+      0,
+    );
+  }
+  return null;
+}
+
+function parsePrimaryScore(rawScoreStr) {
+  const s = String(rawScoreStr || "").trim();
+  if (!s) return null;
+  const nums = s.match(/\d+/g);
+  if (!nums?.length) return null;
+  const earned = parseInt(nums[0], 10);
+  const maxFromStr = nums.length > 1 ? parseInt(nums[1], 10) : null;
+  return {
+    earned: Number.isFinite(earned) ? earned : null,
+    maxFromStr:
+      Number.isFinite(maxFromStr) && maxFromStr > 0 ? maxFromStr : null,
+  };
+}
+
+function formatTrialClock(totalMinutes) {
+  const minutes = Math.max(0, Math.round(Number(totalMinutes) || 0));
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+}
+
+function trialStatVisualRatio(ratio) {
+  const clamped = Math.max(0, Math.min(1, Number(ratio) || 0));
+  if (clamped <= 0) return 0;
+  if (clamped >= 1) return 1;
+  // Масштабируем в диапазон [0 .. 1-gap]: пропорции сохраняются,
+  // а полный круг только при точном максимуме (иначе round caps «съедают» зазор)
+  const minGap = 0.08;
+  return clamped * (1 - minGap);
+}
+
+function renderTrialStatRingHtml(ratio) {
+  const r = 24;
+  const c = 2 * Math.PI * r;
+  const visual = trialStatVisualRatio(ratio);
+  const arc = visual * c;
+
+  return `<svg class="trial-stat__ring-svg" viewBox="0 0 64 64" aria-hidden="true">
+    <circle class="trial-stat__track" cx="32" cy="32" r="${r}"></circle>
+    <circle
+      class="trial-stat__progress"
+      cx="32"
+      cy="32"
+      r="${r}"
+      stroke-dasharray="${arc.toFixed(3)} ${c.toFixed(3)}"
+    ></circle>
+  </svg>`;
+}
+
+function renderTrialStatCardHtml({
+  label,
+  value,
+  goal,
+  ratio = 0,
+  mod = "",
+  aria = "",
+}) {
+  return `<div class="section trial-stat${mod ? ` ${mod}` : ""}"${aria ? ` aria-label="${escapeAttr(aria)}"` : ""}>
+    <div class="trial-stat__ring">${renderTrialStatRingHtml(ratio)}</div>
+    <div class="trial-stat__body">
+      <div class="trial-stat__label">${escapeHtml(label)}</div>
+      <div class="trial-stat__value-row">
+        <span class="trial-stat__value">${escapeHtml(String(value))}</span>
+        ${goal ? `<span class="trial-stat__goal">из ${escapeHtml(String(goal))}</span>` : ""}
       </div>
     </div>
   </div>`;
+}
+
+function getSecondaryScoreMax(catalogSlug) {
+  return String(catalogSlug || "")
+    .toLowerCase()
+    .startsWith("oge")
+    ? 5
+    : 100;
+}
+
+function renderTrialStatsRowHtml(trial, catalogSlug) {
+  const score = trial.score ? String(trial.score).trim() : null;
+  const timeStr = trial.time ? String(trial.time).trim() : null;
+  const cards = [];
+
+  if (score) {
+    const parsed = parsePrimaryScore(score);
+    const earned = parsed?.earned;
+    const maxPrimary =
+      parsed?.maxFromStr || getMaxPrimaryScore(catalogSlug) || null;
+    const converted = convertScore(score, catalogSlug);
+    const gradeLabel = getTrialGradeLabel(catalogSlug);
+    const secondaryMax = getSecondaryScoreMax(catalogSlug);
+
+    const levelMod = converted?.level ? `trial-stat--${converted.level}` : "";
+
+    if (earned != null) {
+      cards.push(
+        renderTrialStatCardHtml({
+          label: "Первичный балл",
+          value: earned,
+          goal: maxPrimary || "",
+          ratio: maxPrimary ? earned / maxPrimary : 0,
+          mod: `trial-stat--primary${levelMod ? ` ${levelMod}` : ""}`,
+          aria: `Первичный балл: ${earned}${maxPrimary ? ` из ${maxPrimary}` : ""}`,
+        }),
+      );
+    }
+
+    if (converted) {
+      const secondaryValue = Number(converted.display);
+      const secondaryRatio = Number.isFinite(secondaryValue)
+        ? secondaryValue / secondaryMax
+        : 0;
+      cards.push(
+        renderTrialStatCardHtml({
+          label: gradeLabel,
+          value: converted.display,
+          goal: secondaryMax,
+          ratio: secondaryRatio,
+          mod: `trial-stat--secondary ${levelMod}`,
+          aria: `${gradeLabel}: ${converted.display} из ${secondaryMax}`,
+        }),
+      );
+    }
+  }
+
+  // Время показываем вместе с баллами; если не засекли — карточка-заглушка
+  const showTimeCard = Boolean(score) || Boolean(timeStr);
+  if (showTimeCard) {
+    const limit = getTrialExamDurationMinutes(catalogSlug);
+    const limitLabel = formatDurationMinutes(limit);
+
+    if (timeStr) {
+      const spent = parseTrialTimeMinutes(timeStr);
+      const value = spent != null ? formatTrialClock(spent) : timeStr;
+      const ratio = spent != null ? Math.min(1, spent / limit) : 0;
+      cards.push(
+        renderTrialStatCardHtml({
+          label: "Время выполнения",
+          value,
+          goal: formatTrialClock(limit),
+          ratio,
+          mod: `trial-stat--time${spent != null && spent > limit ? " is-over" : ""}`,
+          aria: `Время выполнения: ${spent != null ? formatDurationMinutes(spent) : timeStr} из ${limitLabel}`,
+        }),
+      );
+    } else {
+      cards.push(
+        renderTrialStatCardHtml({
+          label: "Время выполнения",
+          value: "00:00",
+          goal: formatTrialClock(limit),
+          ratio: 0,
+          mod: "trial-stat--time trial-stat--unset",
+          aria: `Время выполнения не указано, лимит ${limitLabel}`,
+        }),
+      );
+    }
+  }
+
+  return cards.join("");
 }
 
 function openTrialModal(trialId, catalogSlug) {
@@ -1266,14 +1449,14 @@ function openTrialModal(trialId, catalogSlug) {
     els.modalFlag.className = "modal__flag";
   }
 
-  const filesHtml = renderTrialFilesSectionHtml(attachments);
-  const resultHtml = renderTrialResultSectionHtml(trial, catalogSlug);
+  const statsHtml = renderTrialStatsRowHtml(trial, catalogSlug);
   const reportHtml = renderTrialTaskResultsReadonly(trial, catalogSlug);
+  const filesHtml = renderTrialFilesSectionHtml(attachments);
+  const bodyHtml = [statsHtml, reportHtml, filesHtml].filter(Boolean).join("");
 
-  const html = `<div class="trial-modal__layout">
-    <div class="trial-modal__left">${filesHtml}${resultHtml}</div>
-    ${reportHtml}
-  </div>`;
+  const html = bodyHtml
+    ? `<div class="trial-modal__bento">${bodyHtml}</div>`
+    : renderTrialModalEmpty();
 
   els.modalContent.innerHTML = html;
   els.modal.classList.add("is-open");
@@ -1290,80 +1473,89 @@ const TRIAL_TASK_COUNTS = {
   oge_math: 25,
 };
 
+/** Максимумы баллов по заданиям (должны совпадать с admin.js) */
+const TRIAL_TASK_SCORING = {
+  oge_math: { maxPoints: (i) => (i < 19 ? 1 : 2) },
+  oge_info: {
+    maxPoints: (i) => {
+      if (i < 12) return 1;
+      if (i === 15) return 3;
+      return 2;
+    },
+  },
+  ege_info: { maxPoints: (i) => (i < 25 ? 1 : 2) },
+  ege_math: { maxPoints: (i) => (i < 12 ? 1 : 2) },
+  ege_math_basic: { maxPoints: () => 1 },
+};
+
 function getTrialTaskCount(catalogSlug) {
   return TRIAL_TASK_COUNTS[String(catalogSlug || "").toLowerCase()] || 0;
+}
+
+function getTrialMaxPrimaryFromRules(catalogSlug) {
+  const slug = String(catalogSlug || "").toLowerCase();
+  const rules = TRIAL_TASK_SCORING[slug];
+  const count = getTrialTaskCount(slug);
+  if (!rules || !count) return 0;
+  let sum = 0;
+  for (let i = 0; i < count; i++) {
+    sum += Math.max(1, Number(rules.maxPoints(i)) || 1);
+  }
+  return sum;
 }
 
 function normalizeTrialTaskResults(raw, count) {
   const src = Array.isArray(raw) ? raw : [];
   return Array.from({ length: count }, (_, i) => {
     const v = src[i];
-    if (v === true || v === "correct" || v === 1) return "correct";
-    if (v === false || v === "incorrect" || v === 0) return "incorrect";
+    if (v === true || v === "correct") return "correct";
+    if (v === false || v === "incorrect") return "incorrect";
+    // Числовые баллы из админки: >0 верно, 0 неверно
+    if (typeof v === "number" && Number.isFinite(v)) {
+      if (v > 0) return "correct";
+      if (v === 0) return "incorrect";
+    }
+    if (v === "1" || v === "2" || v === "3") return "correct";
+    if (v === "0") return "incorrect";
     return null;
   });
 }
 
-function trialTaskOkIcon() {
-  return `<svg class="trial-task-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`;
-}
-
-function trialTaskBadIcon() {
-  return `<svg class="trial-task-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>`;
-}
-
-function trialTaskResultsGridStyle(count, cols = 2) {
-  const rows = Math.ceil(count / cols) || 1;
-  return `grid-template-rows: repeat(${rows}, auto);`;
+function renderTrialModalEmpty() {
+  return `<div class="trials-empty tasks-empty trial-modal__empty">
+    <img class="trials-empty__icon" src="./icons/trial/trials_empty.svg" alt="" />
+    <div class="trials-empty__title">Пока ничего нет</div>
+    <div class="trials-empty__text">Пробный вариант скоро появится</div>
+  </div>`;
 }
 
 function renderTrialTaskResultsReadonly(trial, catalogSlug) {
   const taskCount = getTrialTaskCount(catalogSlug);
-  if (!taskCount) {
-    return `<div class="section trial-modal__report">
-      <div class="section__title">Отчёт по заданиям</div>
-      <div class="section__empty">Отчёт для этого экзамена пока недоступен</div>
-    </div>`;
-  }
+  if (!taskCount) return "";
 
   const results = normalizeTrialTaskResults(trial.task_results, taskCount);
   const hasAnyMark = results.some((r) => r === "correct" || r === "incorrect");
+  if (!hasAnyMark) return "";
 
-  if (!hasAnyMark) {
-    return `<div class="section trial-modal__report">
-      <div class="section__title">Отчёт по заданиям</div>
-      <div class="section__empty">Отчёт по заданиям пока не заполнен</div>
-    </div>`;
-  }
-
-  const correctCount = results.filter((r) => r === "correct").length;
-  const incorrectCount = results.filter((r) => r === "incorrect").length;
-  const cols = 2;
   const items = results
     .map((value, i) => {
-      let markHtml = `<span class="trial-task-icon trial-task-icon--dash">—</span>`;
-      let mod = "trial-task-row--unset";
+      const n = i + 1;
+      let mod = "trial-task-chip--unset";
+      let label = "не отмечено";
       if (value === "correct") {
-        markHtml = trialTaskOkIcon();
-        mod = "trial-task-row--ok";
+        mod = "trial-task-chip--ok";
+        label = "верно";
       } else if (value === "incorrect") {
-        markHtml = trialTaskBadIcon();
-        mod = "trial-task-row--bad";
+        mod = "trial-task-chip--bad";
+        label = "неверно";
       }
-      return `<div class="trial-task-row trial-task-row--readonly ${mod}">
-        <span class="trial-task-row__num">${i + 1}</span>
-        <span class="trial-task-row__mark" aria-label="${value === "correct" ? "Верно" : value === "incorrect" ? "Неверно" : "Не отмечено"}">${markHtml}</span>
-      </div>`;
+      return `<span class="trial-task-chip ${mod}" title="Задание ${n}: ${label}" aria-label="Задание ${n}: ${label}">${n}</span>`;
     })
     .join("");
-  return `<div class="section trial-modal__report">
+
+  return `<div class="section trial-bento__report">
     <div class="section__title">Отчёт по заданиям</div>
-    <div class="trial-task-summary">
-      <span class="trial-task-summary__ok">${correctCount} верно</span>
-      <span class="trial-task-summary__bad">${incorrectCount} неверно</span>
-      <span class="trial-task-summary__total">${taskCount} заданий</span>
-    </div>
-    <div class="trial-task-results trial-task-results--readonly" style="${trialTaskResultsGridStyle(taskCount, cols)}">${items}</div>
+    <div class="trial-task-chips">${items}</div>
   </div>`;
 }
 

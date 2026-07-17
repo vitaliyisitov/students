@@ -2392,6 +2392,34 @@ const TRIAL_TASK_COUNTS = {
   oge_math: 25,
 };
 
+/** Правила баллов: fixed / variable (окно ввода). i — 0-based индекс задания. */
+const TRIAL_TASK_SCORING = {
+  oge_math: {
+    maxPoints: (i) => (i < 19 ? 1 : 2),
+    variable: (i) => i >= 19,
+  },
+  oge_info: {
+    maxPoints: (i) => {
+      if (i < 12) return 1;
+      if (i === 15) return 3; // №16
+      return 2;
+    },
+    variable: (i) => i >= 12,
+  },
+  ege_info: {
+    maxPoints: (i) => (i < 25 ? 1 : 2),
+    variable: () => false,
+  },
+  ege_math: {
+    maxPoints: (i) => (i < 12 ? 1 : 2),
+    variable: (i) => i >= 12,
+  },
+  ege_math_basic: {
+    maxPoints: () => 1,
+    variable: () => false,
+  },
+};
+
 function getTrialTaskCount(catalogSlug) {
   return TRIAL_TASK_COUNTS[String(catalogSlug || "").toLowerCase()] || 0;
 }
@@ -2403,14 +2431,49 @@ function getSelectedTrialCatalogSlug() {
   return String(subject?.catalog_slug || subject?.slug || "").toLowerCase();
 }
 
-function normalizeTrialTaskResults(raw, count) {
+function getTrialScoringRules(catalogSlug) {
+  return TRIAL_TASK_SCORING[String(catalogSlug || "").toLowerCase()] || null;
+}
+
+function getTrialTaskMaxPoints(catalogSlug, index) {
+  const rules = getTrialScoringRules(catalogSlug);
+  if (!rules) return 1;
+  return Math.max(1, Number(rules.maxPoints(index)) || 1);
+}
+
+function isTrialTaskVariable(catalogSlug, index) {
+  const rules = getTrialScoringRules(catalogSlug);
+  return rules ? Boolean(rules.variable(index)) : false;
+}
+
+function getTrialMaxPrimaryScore(catalogSlug) {
+  const count = getTrialTaskCount(catalogSlug);
+  let sum = 0;
+  for (let i = 0; i < count; i++) sum += getTrialTaskMaxPoints(catalogSlug, i);
+  return sum;
+}
+
+/** Нормализует task_results в баллы: number | null */
+function normalizeTrialTaskPoints(raw, catalogSlug) {
+  const count = getTrialTaskCount(catalogSlug);
   const src = Array.isArray(raw) ? raw : [];
   return Array.from({ length: count }, (_, i) => {
     const v = src[i];
-    if (v === true || v === "correct" || v === 1) return "correct";
-    if (v === false || v === "incorrect" || v === 0) return "incorrect";
-    return null;
+    const max = getTrialTaskMaxPoints(catalogSlug, i);
+    if (v == null || v === "") return null;
+    if (v === true || v === "correct") return max;
+    if (v === false || v === "incorrect") return 0;
+    const n = Number(v);
+    if (!Number.isFinite(n)) return null;
+    return Math.max(0, Math.min(max, Math.round(n)));
   });
+}
+
+function sumTrialTaskPoints(points) {
+  return (points || []).reduce(
+    (sum, p) => sum + (p == null ? 0 : Number(p) || 0),
+    0,
+  );
 }
 
 function trialTaskOkIcon() {
@@ -2421,35 +2484,44 @@ function trialTaskBadIcon() {
   return `<svg class="trial-task-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>`;
 }
 
-function renderTrialTaskResultsEditor(results) {
-  const items = results
-    .map((value, i) => {
+function renderTrialTaskResultsEditor(points, catalogSlug) {
+  const items = points
+    .map((pts, i) => {
       const n = i + 1;
-      const okActive = value === "correct" ? " is-active" : "";
-      const badActive = value === "incorrect" ? " is-active" : "";
-      return `<div class="trial-task-row" data-trial-task-row="${i}">
+      const max = getTrialTaskMaxPoints(catalogSlug, i);
+      const variable = isTrialTaskVariable(catalogSlug, i);
+      const okActive = pts != null && pts > 0 ? " is-active" : "";
+      const badActive = pts === 0 ? " is-active" : "";
+      const pointsInput = variable
+        ? `<input class="trial-task-points" type="number" min="0" max="${max}" step="1" inputmode="numeric" data-trial-task-points="${i}" value="${pts != null ? escapeAttrAdmin(pts) : ""}" placeholder="0–${max}" title="Баллы за задание ${n} (0–${max})" aria-label="Баллы за задание ${n}" />`
+        : "";
+      return `<div class="trial-task-row${variable ? " trial-task-row--variable" : ""}" data-trial-task-row="${i}" data-task-max="${max}">
         <span class="trial-task-row__num">${n}</span>
         <button type="button" class="trial-task-btn trial-task-btn--ok${okActive}" data-trial-task-ok="${i}" aria-label="Задание ${n}: верно">${trialTaskOkIcon()}</button>
         <button type="button" class="trial-task-btn trial-task-btn--bad${badActive}" data-trial-task-no="${i}" aria-label="Задание ${n}: неверно">${trialTaskBadIcon()}</button>
+        ${pointsInput}
       </div>`;
     })
     .join("");
-  return `<div class="trial-task-results trial-task-results--admin">${items}</div>`;
+  return `<div class="trial-task-results trial-task-results--admin" data-catalog-slug="${escapeAttrAdmin(catalogSlug)}">${items}</div>`;
 }
 
 function buildTrialPayloadFromRow(row) {
   const trialId = row.getAttribute("data-trial-id");
   const attEditor = document.getElementById(`trial-files-${trialId}`);
+  const taskResults = readTrialTaskResultsFromRow(row);
+  const earned = sumTrialTaskPoints(taskResults);
+  const hasAnyMark = taskResults.some((p) => p != null);
   return {
     title: row.querySelector('[data-tf="title"]')?.value.trim() || "",
     date: row.querySelector('[data-tf="date"]')?.value || "",
-    score: row.querySelector('[data-tf="score"]')?.value.trim() || "",
+    score: hasAnyMark ? String(earned) : "",
     time: row.querySelector('[data-tf="time"]')?.value.trim() || "",
     attachments: readAttachmentsFromRow(attEditor),
     section_label:
       row.querySelector('[data-tf="section_label"]')?.value.trim() || "",
     is_homework: row.querySelector('[data-tf="is_homework"]')?.checked ?? false,
-    task_results: readTrialTaskResultsFromRow(row),
+    task_results: taskResults,
   };
 }
 
@@ -2475,6 +2547,8 @@ function scrollTrialRowIntoView(trialId) {
 
 function readTrialTaskResultsFromRow(row) {
   const taskCount = Number(row.getAttribute("data-task-count")) || 0;
+  const catalogSlug =
+    row.getAttribute("data-catalog-slug") || getSelectedTrialCatalogSlug();
   const results = [];
   for (let i = 0; i < taskCount; i++) {
     const taskRow = row.querySelector(`[data-trial-task-row="${i}"]`);
@@ -2482,10 +2556,25 @@ function readTrialTaskResultsFromRow(row) {
       results.push(null);
       continue;
     }
+    const max = Number(taskRow.getAttribute("data-task-max")) ||
+      getTrialTaskMaxPoints(catalogSlug, i);
+    const pointsInput = taskRow.querySelector("[data-trial-task-points]");
+    if (pointsInput) {
+      const raw = String(pointsInput.value ?? "").trim();
+      if (raw === "") {
+        results.push(null);
+      } else {
+        const n = Number(raw);
+        results.push(
+          Number.isFinite(n) ? Math.max(0, Math.min(max, Math.round(n))) : null,
+        );
+      }
+      continue;
+    }
     if (taskRow.querySelector(".trial-task-btn--ok.is-active")) {
-      results.push("correct");
+      results.push(max);
     } else if (taskRow.querySelector(".trial-task-btn--bad.is-active")) {
-      results.push("incorrect");
+      results.push(0);
     } else {
       results.push(null);
     }
@@ -2493,16 +2582,82 @@ function readTrialTaskResultsFromRow(row) {
   return results;
 }
 
+function syncTrialTaskRowUi(taskRow, points) {
+  if (!taskRow) return;
+  const okBtn = taskRow.querySelector("[data-trial-task-ok]");
+  const badBtn = taskRow.querySelector("[data-trial-task-no]");
+  const pointsInput = taskRow.querySelector("[data-trial-task-points]");
+  okBtn?.classList.toggle("is-active", points != null && points > 0);
+  badBtn?.classList.toggle("is-active", points === 0);
+  if (pointsInput && document.activeElement !== pointsInput) {
+    pointsInput.value = points == null ? "" : String(points);
+  }
+}
+
+function updateTrialScoreField(row) {
+  if (!row) return;
+  const catalogSlug =
+    row.getAttribute("data-catalog-slug") || getSelectedTrialCatalogSlug();
+  const points = readTrialTaskResultsFromRow(row);
+  const earned = sumTrialTaskPoints(points);
+  const max = getTrialMaxPrimaryScore(catalogSlug);
+  const hasAnyMark = points.some((p) => p != null);
+  const scoreInput = row.querySelector('[data-tf="score"]');
+  if (scoreInput) {
+    scoreInput.value = hasAnyMark ? String(earned) : "";
+  }
+  const scoreView = row.querySelector("[data-trial-score-view]");
+  if (scoreView) {
+    scoreView.textContent = hasAnyMark ? `${earned} из ${max}` : "—";
+  }
+}
+
 function toggleTrialTaskResult(btn, value) {
   const taskRow = btn.closest("[data-trial-task-row]");
+  const row = btn.closest(".trial-row");
   if (!taskRow) return;
+  const max = Number(taskRow.getAttribute("data-task-max")) || 1;
   const okBtn = taskRow.querySelector("[data-trial-task-ok]");
   const badBtn = taskRow.querySelector("[data-trial-task-no]");
   const target = value === "correct" ? okBtn : badBtn;
   const wasActive = target?.classList.contains("is-active");
-  okBtn?.classList.remove("is-active");
-  badBtn?.classList.remove("is-active");
-  if (!wasActive) target?.classList.add("is-active");
+  let points = null;
+  if (!wasActive) {
+    points = value === "correct" ? max : 0;
+  }
+  syncTrialTaskRowUi(taskRow, points);
+  updateTrialScoreField(row);
+}
+
+function onTrialTaskPointsInput(input) {
+  const taskRow = input.closest("[data-trial-task-row]");
+  const row = input.closest(".trial-row");
+  if (!taskRow) return;
+  const max = Number(taskRow.getAttribute("data-task-max")) || 1;
+  const raw = String(input.value ?? "").trim();
+  let points = null;
+  if (raw !== "") {
+    const n = Number(raw);
+    if (Number.isFinite(n)) {
+      points = Math.max(0, Math.min(max, Math.round(n)));
+      if (String(points) !== raw) input.value = String(points);
+    }
+  }
+  syncTrialTaskRowUi(taskRow, points);
+  updateTrialScoreField(row);
+}
+
+function markAllTrialTasksCorrect(row) {
+  if (!row) return;
+  const catalogSlug =
+    row.getAttribute("data-catalog-slug") || getSelectedTrialCatalogSlug();
+  const taskCount = Number(row.getAttribute("data-task-count")) || 0;
+  for (let i = 0; i < taskCount; i++) {
+    const taskRow = row.querySelector(`[data-trial-task-row="${i}"]`);
+    const max = getTrialTaskMaxPoints(catalogSlug, i);
+    syncTrialTaskRowUi(taskRow, max);
+  }
+  updateTrialScoreField(row);
 }
 
 function renderTrialsEditor() {
@@ -2610,6 +2765,16 @@ function renderTrialsEditor() {
       toggleTrialTaskResult(btn, "incorrect"),
     );
   });
+  root.querySelectorAll("[data-trial-task-points]").forEach((input) => {
+    input.addEventListener("input", () => onTrialTaskPointsInput(input));
+    input.addEventListener("change", () => onTrialTaskPointsInput(input));
+  });
+  root.querySelectorAll("[data-trial-all-correct]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const row = btn.closest(".trial-row");
+      markAllTrialTasksCorrect(row);
+    });
+  });
 }
 
 // Вызывается при открытии вкладки «Ученики» или выборе ученика
@@ -2625,7 +2790,12 @@ async function initTrialsEditorSubject() {
 function trialRowHtml(t, pos = t.order_index ?? 1) {
   const catalogSlug = getSelectedTrialCatalogSlug();
   const taskCount = getTrialTaskCount(catalogSlug);
-  const taskResults = normalizeTrialTaskResults(t.task_results, taskCount);
+  const taskPoints = normalizeTrialTaskPoints(t.task_results, catalogSlug);
+  const maxPrimary = getTrialMaxPrimaryScore(catalogSlug);
+  const earned = sumTrialTaskPoints(taskPoints);
+  const hasAnyMark = taskPoints.some((p) => p != null);
+  const scoreValue = hasAnyMark ? String(earned) : "";
+  const scoreView = hasAnyMark ? `${earned} из ${maxPrimary}` : "—";
   const hwChecked = t.is_homework ? "checked" : "";
   const existingAtts = Array.isArray(t.attachments) ? t.attachments : [];
   const attRowsHtml = existingAtts.length
@@ -2637,10 +2807,10 @@ function trialRowHtml(t, pos = t.order_index ?? 1) {
         .join("")
     : "";
   const reportHtml = taskCount
-    ? renderTrialTaskResultsEditor(taskResults)
+    ? renderTrialTaskResultsEditor(taskPoints, catalogSlug)
     : `<p class="muted trial-row__report-empty">Для этого предмета не задано число заданий.</p>`;
   return `
-    <div class="trial-row" data-trial-id="${t.id}" data-task-count="${taskCount}">
+    <div class="trial-row" data-trial-id="${t.id}" data-task-count="${taskCount}" data-catalog-slug="${escapeAttrAdmin(catalogSlug)}">
       <div class="trial-row__main">
       <div class="trial-row__fields">
         <label class="trial-field">
@@ -2652,8 +2822,11 @@ function trialRowHtml(t, pos = t.order_index ?? 1) {
           <input type="date" data-tf="date" value="${escapeAttrAdmin(t.date || "")}" />
         </label>
         <label class="trial-field">
-          <span>Результат</span>
-          <input type="text" data-tf="score" value="${escapeAttrAdmin(t.score || "")}" placeholder="18 / 25" />
+          <span>Результат (авто)</span>
+          <div class="trial-score-auto">
+            <span class="trial-score-auto__value" data-trial-score-view>${escapeHtml(scoreView)}</span>
+            <input type="hidden" data-tf="score" value="${escapeAttrAdmin(scoreValue)}" />
+          </div>
         </label>
         <label class="trial-field">
           <span>Время (чч:мм или мин)</span>
@@ -2692,7 +2865,10 @@ function trialRowHtml(t, pos = t.order_index ?? 1) {
       <div class="trial-row__report">
         <div class="trial-row__report-head">
           <span class="trial-row__report-title">Отчёт по заданиям</span>
-          ${taskCount ? `<span class="trial-row__report-meta">${taskCount} заданий</span>` : ""}
+          <div class="trial-row__report-actions">
+            ${taskCount ? `<span class="trial-row__report-meta">${taskCount} заданий · макс. ${maxPrimary}</span>` : ""}
+            ${taskCount ? `<button class="icon-btn" type="button" data-trial-all-correct="${escapeAttr(t.id)}">Все верно</button>` : ""}
+          </div>
         </div>
         ${reportHtml}
       </div>

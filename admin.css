@@ -72,10 +72,11 @@
 
 .trial-row__report-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .trial-row__report-title {
@@ -84,10 +85,59 @@
   color: var(--text);
 }
 
+.trial-row__report-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .trial-row__report-meta {
   font-size: 11px;
   color: var(--muted);
   white-space: nowrap;
+}
+
+.trial-score-auto {
+  display: flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.trial-score-auto__value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.trial-task-results--admin .trial-task-row--variable {
+  min-width: 56px;
+  gap: 5px;
+}
+
+.trial-task-points {
+  width: 100%;
+  max-width: 52px;
+  appearance: none;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 8px;
+  padding: 4px 4px;
+  background: rgba(255, 255, 255, 0.95);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text);
+}
+
+.trial-task-points:focus {
+  outline: none;
+  border-color: rgba(0, 122, 255, 0.45);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
 }
 
 .trial-row__report-empty {
