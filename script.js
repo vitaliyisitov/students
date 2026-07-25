@@ -87,6 +87,14 @@ let clockTimer = null;
 let countdownTimer = null;
 let lastFocusedBeforeModal = null;
 let subjectTabsBound = false;
+let openedTaskId = null;
+let isRefreshing = false;
+let lastRefreshAt = 0;
+let autoRefreshStarted = false;
+let autoRefreshTimer = null;
+
+const AUTO_REFRESH_MS = 60_000;
+const AUTO_REFRESH_COOLDOWN_MS = 5_000;
 
 const STATE_SCREEN_COPY = {
   paused: {
@@ -142,6 +150,7 @@ async function init() {
     renderAll();
     startClock();
     startCountdownTicker();
+    startAutoRefresh();
   } finally {
     setAppLoading(false);
   }
@@ -178,20 +187,20 @@ function getDashboardAccessTokenFromUrl() {
   }
 }
 
-async function loadDataFromFirebase() {
+async function loadDataFromFirebase({ softFail = false } = {}) {
   const token = DASHBOARD_ACCESS_TOKEN;
   const requirePersonalLink =
     window.FIREBASE_CONFIG?.requirePersonalLink !== false;
 
   if (requirePersonalLink && !token) {
     setDashboardGate("missing_token");
-    return;
+    return false;
   }
 
   if (!token) {
     setDashboardGate(null);
     showDashboardShell();
-    return;
+    return true;
   }
 
   try {
@@ -203,7 +212,7 @@ async function loadDataFromFirebase() {
 
     if (userSnap.empty) {
       setDashboardGate("invalid_token");
-      return;
+      return true;
     }
 
     const userDoc = userSnap.docs[0];
@@ -212,7 +221,7 @@ async function loadDataFromFirebase() {
 
     if (userRow.is_active === false) {
       setDashboardGate("invalid_token");
-      return;
+      return true;
     }
 
     const subjectsSnap = await window.db
@@ -267,10 +276,67 @@ async function loadDataFromFirebase() {
     data.trialsBySubjectId = trialsBySubjectId;
     setDashboardGate(null);
     void loadAndRenderTicker(userId);
+    return true;
   } catch (err) {
     console.error("Firebase load error:", err);
-    if (requirePersonalLink && token) setDashboardGate("invalid_token");
+    if (!softFail && requirePersonalLink && token) {
+      setDashboardGate("invalid_token");
+    }
+    return false;
   }
+}
+
+async function refreshDashboardData() {
+  if (isRefreshing || document.hidden) return;
+  const now = Date.now();
+  if (now - lastRefreshAt < AUTO_REFRESH_COOLDOWN_MS) return;
+
+  isRefreshing = true;
+  lastRefreshAt = now;
+  try {
+    const ok = await loadDataFromFirebase({ softFail: true });
+    if (!ok) return;
+    if (els.appState && !els.appState.hidden) return;
+
+    if (!state.selectedSubjectId) {
+      state.selectedSubjectId = data.subjects[0]?.id || null;
+    }
+    if (
+      state.selectedSubjectId &&
+      !data.subjects.some((s) => s.id === state.selectedSubjectId)
+    ) {
+      state.selectedSubjectId = data.subjects[0]?.id || null;
+    }
+
+    renderSubjectTabs();
+    renderAll();
+
+    if (isModalOpen() && openedTaskId) {
+      const freshTask = data.tasks.find((t) => t.id === openedTaskId);
+      if (freshTask) openModal(freshTask, { preserveFocus: true });
+      else closeModal();
+    }
+  } catch (err) {
+    console.error("Dashboard refresh error:", err);
+  } finally {
+    isRefreshing = false;
+  }
+}
+
+function startAutoRefresh() {
+  if (autoRefreshStarted) return;
+  autoRefreshStarted = true;
+  lastRefreshAt = Date.now();
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      void refreshDashboardData();
+    }
+  });
+
+  autoRefreshTimer = setInterval(() => {
+    if (!document.hidden) void refreshDashboardData();
+  }, AUTO_REFRESH_MS);
 }
 
 function setAppLoading(isLoading) {
@@ -465,7 +531,21 @@ function bindEvents() {
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && isModalOpen()) closeModal();
+    if (e.key === "Escape") setTopbarActionsOpen(false);
   });
+
+  const actionsToggle = document.getElementById("topbarActionsToggle");
+  const topbar = document.getElementById("topbar");
+  const actionsPanel = document.getElementById("topbarActionsPanel");
+  if (actionsToggle && topbar) {
+    actionsToggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      setTopbarActionsOpen(!topbar.classList.contains("is-links-open"));
+    });
+    actionsPanel?.addEventListener("click", (e) => {
+      if (e.target.closest(".topbar__action-btn")) setTopbarActionsOpen(false);
+    });
+  }
 }
 
 function renderAll() {
@@ -559,6 +639,29 @@ function renderServiceBtns() {
     user.callCustomIcon,
     "Звонок",
   );
+  syncTopbarActionsToggle();
+}
+
+function syncTopbarActionsToggle() {
+  const toggle = document.getElementById("topbarActionsToggle");
+  const topbar = document.getElementById("topbar");
+  if (!toggle || !topbar) return;
+  const boardBtn = document.getElementById("boardBtn");
+  const callBtn = document.getElementById("callBtn");
+  const hasLinks = Boolean(
+    (boardBtn && !boardBtn.hidden) || (callBtn && !callBtn.hidden),
+  );
+  toggle.hidden = !hasLinks;
+  if (!hasLinks) setTopbarActionsOpen(false);
+}
+
+function setTopbarActionsOpen(open) {
+  const toggle = document.getElementById("topbarActionsToggle");
+  const topbar = document.getElementById("topbar");
+  if (!toggle || !topbar) return;
+  topbar.classList.toggle("is-links-open", open);
+  toggle.setAttribute("aria-expanded", open ? "true" : "false");
+  toggle.setAttribute("aria-label", open ? "Закрыть ссылки" : "Ссылки");
 }
 
 function renderServiceBtn(
@@ -612,13 +715,80 @@ function renderSubjectTabs() {
     .join("");
 }
 
+let greetingTitleFitBound = false;
+
+function fitGreetingTitle() {
+  const title = els.greetingTitle;
+  if (!title) return;
+
+  title.style.fontSize = "";
+  const icon = title.querySelector(".greeting-icon");
+  if (icon) {
+    icon.style.width = "";
+    icon.style.height = "";
+  }
+
+  // На планшете (не мобилке) разрешаем перенос — без сжатия в одну линию
+  if (
+    window.matchMedia("(max-width: 980px) and (min-width: 641px)").matches
+  ) {
+    return;
+  }
+
+  const header = title.closest(".card__header");
+  let available = 0;
+  if (header) {
+    const cs = getComputedStyle(header);
+    available =
+      header.clientWidth -
+      (parseFloat(cs.paddingLeft) || 0) -
+      (parseFloat(cs.paddingRight) || 0);
+  }
+  if (!available) available = title.parentElement?.clientWidth || 0;
+  if (!available) return;
+
+  const baseSize = parseFloat(getComputedStyle(title).fontSize) || 32;
+  const baseIconSize = icon
+    ? parseFloat(getComputedStyle(icon).width) || 28
+    : 28;
+  const minSize = 15;
+  const minIconSize = 14;
+  const iconRatio = baseIconSize / baseSize;
+  let size = baseSize;
+
+  while (size > minSize && title.scrollWidth > available + 0.5) {
+    size -= 0.5;
+    title.style.fontSize = `${size}px`;
+    if (icon) {
+      const iconSize = Math.max(minIconSize, Math.round(size * iconRatio));
+      icon.style.width = `${iconSize}px`;
+      icon.style.height = `${iconSize}px`;
+    }
+  }
+}
+
+function ensureGreetingTitleFit() {
+  fitGreetingTitle();
+  if (greetingTitleFitBound) return;
+  greetingTitleFitBound = true;
+  const target =
+    els.greetingTitle?.closest(".card__header") ||
+    els.greetingTitle?.parentElement;
+  if (target && typeof ResizeObserver !== "undefined") {
+    const ro = new ResizeObserver(() => fitGreetingTitle());
+    ro.observe(target);
+    return;
+  }
+  window.addEventListener("resize", () => fitGreetingTitle());
+}
+
 function renderGreeting() {
   const subject = getSelectedSubject();
   const name = data.user?.name || "Ученик";
   const greeting = getGreeting();
 
   els.greetingEyebrow.textContent = greeting.subtitle;
-  els.greetingTitle.innerHTML = `${escapeHtml(greeting.title)}, ${escapeHtml(name)} <img src="./icons/wave.png" alt="" aria-hidden="true" class="greeting-icon" width="36" height="36" />`;
+  els.greetingTitle.innerHTML = `${escapeHtml(greeting.title)}, <span class="greeting-name">${escapeHtml(name)}<img src="./icons/wave.png" alt="" aria-hidden="true" class="greeting-icon" width="28" height="28" /></span>`;
   if (els.subjectPillText) {
     els.subjectPillText.innerHTML = subject
       ? renderSubjectTitleHtml(subject.title)
@@ -645,6 +815,8 @@ function renderGreeting() {
   els.heroNotStarted.textContent = String(counts.not_started || 0);
   els.progressMetaLeft.textContent = `${done} из ${total} заданий пройдено`;
   els.progressFill.style.width = `${pct}%`;
+
+  ensureGreetingTitleFit();
 }
 
 function renderExam() {
@@ -881,8 +1053,11 @@ function renderTasks() {
   });
 }
 
-function openModal(task) {
-  lastFocusedBeforeModal = document.activeElement;
+function openModal(task, { preserveFocus = false } = {}) {
+  if (!preserveFocus) {
+    lastFocusedBeforeModal = document.activeElement;
+  }
+  openedTaskId = task.id;
   els.modalTitle.textContent = task.title;
   els.modalSubtitle.textContent = task.description || "";
   renderModalTaskBadges(task);
@@ -926,11 +1101,14 @@ function openModal(task) {
   els.modal.classList.add("is-open");
   els.modal.setAttribute("aria-hidden", "false");
   document.body.style.overflow = "hidden";
-  setTimeout(() => els.modalClose.focus(), 0);
+  if (!preserveFocus) {
+    setTimeout(() => els.modalClose.focus(), 0);
+  }
 }
 
 function closeModal() {
   if (!isModalOpen()) return;
+  openedTaskId = null;
   els.modal.classList.remove("is-open");
   els.modal.setAttribute("aria-hidden", "true");
   document.body.style.overflow = "";
@@ -1882,7 +2060,7 @@ function renderAttachmentLinkHtml(href, label, iconHtml) {
   const compactClass = iconHtml ? "" : " attachment-link--compact";
   return `<a class="attachment-link${compactClass}" href="${escapeAttr(href)}" target="_blank" rel="noreferrer">
           ${iconPart}<span class="attachment-link__label">${escapeHtml(label)}</span>
-          <span class="attachment-link__open" aria-hidden="true">↗</span>
+          <span class="attachment-link__open" aria-hidden="true"></span>
         </a>`;
 }
 
@@ -2065,12 +2243,14 @@ function startClock() {
   if (!els.nowDate || !els.nowTime) return;
   const tick = () => {
     const now = new Date();
-    els.nowDate.textContent = now.toLocaleDateString(undefined, {
-      weekday: "short",
-      month: "short",
-      day: "2-digit",
-    });
-    els.nowTime.textContent = now.toLocaleTimeString(undefined, {
+    const isCompact = window.matchMedia("(max-width: 640px)").matches;
+    els.nowDate.textContent = now.toLocaleDateString(
+      "ru-RU",
+      isCompact
+        ? { day: "numeric", month: "short" }
+        : { weekday: "short", month: "short", day: "2-digit" },
+    );
+    els.nowTime.textContent = now.toLocaleTimeString("ru-RU", {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -2261,7 +2441,7 @@ function renderScoreBar(catalogSlug) {
         );
       })
       .join("");
-    return `<div class="score-bar"><div class="score-bar__track">${segsHtml}</div></div>`;
+    return `<div class="score-bar score-bar--zones"><div class="score-bar__track">${segsHtml}</div></div>`;
   }
 
   if (cfg.type === "test") {
