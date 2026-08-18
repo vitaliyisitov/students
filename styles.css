@@ -2656,6 +2656,38 @@ html[data-theme="dark"] .badge--trial-high {
   box-shadow: var(--shadow-soft), var(--ring);
 }
 
+.task.is-deny {
+  animation: task-deny 420ms ease;
+}
+
+@keyframes task-deny {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  16% {
+    transform: translateX(-7px);
+  }
+  32% {
+    transform: translateX(7px);
+  }
+  48% {
+    transform: translateX(-5px);
+  }
+  64% {
+    transform: translateX(5px);
+  }
+  80% {
+    transform: translateX(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task.is-deny {
+    animation: none;
+  }
+}
+
 .task__top {
   min-width: 0;
 }

@@ -18,8 +18,6 @@ const STORAGE_KEY = DASHBOARD_ACCESS_TOKEN
   : "student_dashboard_v1";
 
 const THEME_STORAGE_KEY = "student_cabinet_theme";
-// Переключатель темы временно выключен. Чтобы вернуть — поставь true
-// и убери hidden у .theme-switcher в index.html
 const THEME_SWITCHER_ENABLED = false;
 
 const state = loadState() || {
@@ -313,8 +311,11 @@ async function refreshDashboardData() {
 
     if (isModalOpen() && openedTaskId) {
       const freshTask = data.tasks.find((t) => t.id === openedTaskId);
-      if (freshTask) openModal(freshTask, { preserveFocus: true });
-      else closeModal();
+      if (freshTask && isTaskOpenable(freshTask)) {
+        openModal(freshTask, { preserveFocus: true });
+      } else {
+        closeModal();
+      }
     }
   } catch (err) {
     console.error("Dashboard refresh error:", err);
@@ -1048,12 +1049,34 @@ function renderTasks() {
   els.tasksGrid.querySelectorAll("[data-task]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const task = tasks.find((x) => x.id === btn.getAttribute("data-task"));
-      if (task) openModal(task);
+      if (!task) return;
+      if (!isTaskOpenable(task)) {
+        shakeTaskCard(btn);
+        return;
+      }
+      openModal(task);
     });
   });
 }
 
+function shakeTaskCard(el) {
+  if (!el) return;
+  el.classList.remove("is-deny");
+  void el.offsetWidth;
+  el.classList.add("is-deny");
+  el.addEventListener(
+    "animationend",
+    () => el.classList.remove("is-deny"),
+    { once: true },
+  );
+}
+
+function isTaskOpenable(task) {
+  return (task?.status || "not_started") !== "not_started";
+}
+
 function openModal(task, { preserveFocus = false } = {}) {
+  if (!isTaskOpenable(task)) return;
   if (!preserveFocus) {
     lastFocusedBeforeModal = document.activeElement;
   }
