@@ -3,447 +3,190 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Личный кабинет</title>
+    <title>Кабинет переехал</title>
     <meta
       name="description"
-      content="Личный кабинет для подготовки к экзаменам — задания, прогресс, пробные варианты."
+      content="Личный кабинет переехал на cabinet.isitov.ru"
     />
-
-    <!-- Open Graph — превью в Телеграме, ВКонтакте, мессенджерах -->
-    <meta property="og:type" content="website" />
-    <meta
-      property="og:title"
-      content="Личный кабинет для подготовки к экзаменам"
-    />
+    <meta name="robots" content="noindex" />
+    <meta property="og:title" content="Кабинет переехал" />
     <meta
       property="og:description"
-      content="Задания, прогресс, пробные варианты"
+      content="Откройте личный кабинет на новом адресе: cabinet.isitov.ru"
     />
-    <meta
-      property="og:image"
-      content="https://storage.yandexcloud.net/cabinet-files/untitled/photo/og-preview.png"
-    />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:locale" content="ru_RU" />
-
-    <!-- Twitter / другие платформы -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta
-      name="twitter:title"
-      content="Личный кабинет для подготовки к экзаменам"
-    />
-    <meta
-      name="twitter:description"
-      content="Задания, прогресс, пробные варианты"
-    />
-    <meta
-      name="twitter:image"
-      content="https://storage.yandexcloud.net/cabinet-files/untitled/photo/og-preview.png"
-    />
-
-    <!-- Цвет панели браузера на мобильных -->
     <meta name="theme-color" content="#007aff" />
-
-    <script>
-      (function () {
-        try {
-          document.documentElement.dataset.theme = "light";
-          document.documentElement.dataset.themePref = "light";
-        } catch (e) {}
-      })();
-    </script>
-
-    <link rel="stylesheet" href="./styles.css?v=105" />
     <link rel="icon" href="favicon.png" type="image/png" />
     <style>
-      body.is-app-loading #appShell,
-      body.is-app-loading #appState {
-        display: none !important;
+      :root {
+        --bg: #f2f2f7;
+        --text: #1c1c1e;
+        --ink-soft: rgba(18, 20, 23, 0.76);
+        --ink-faint: rgba(18, 20, 23, 0.45);
+        --blue: #007aff;
+        --glow-1: rgba(0, 122, 255, 0.14);
+        --glow-2: rgba(124, 58, 237, 0.14);
+        --font:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+
+      body {
+        min-height: 100dvh;
+        position: relative;
+        font-family: var(--font);
+        color: var(--text);
+        background: var(--bg);
+        display: grid;
+        place-items: center;
+        padding: 32px 20px;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        background:
+          radial-gradient(1200px 1100px at 18% 8%, var(--glow-1), transparent 58%),
+          radial-gradient(1000px 1000px at 84% 10%, var(--glow-2), transparent 58%);
+      }
+
+      .card {
+        width: min(100%, 480px);
+        text-align: center;
+        animation: fadeUp 560ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .icon-wrap {
+        width: min(100%, 280px);
+        aspect-ratio: 936 / 552;
+        margin: 0 auto 4px;
+      }
+
+      .icon-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+        transform-origin: 50% 80%;
+        animation: rock 3.2s ease-in-out infinite;
+      }
+
+      @keyframes rock {
+        0%,
+        100% {
+          transform: rotate(-4deg);
+        }
+        50% {
+          transform: rotate(4deg);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .icon-wrap img {
+          animation: none;
+        }
+      }
+
+      h1 {
+        margin: 0 0 22px;
+        font-size: clamp(28px, 5vw, 40px);
+        font-weight: 750;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+      }
+
+      .btn {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        min-width: 260px;
+        min-height: 64px;
+        padding: 12px 22px;
+        border-radius: 14px;
+        background: var(--blue);
+        color: #fff;
+        font: inherit;
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 1.2;
+        text-align: center;
+        text-decoration: none;
+        box-shadow: 0 8px 24px rgba(0, 122, 255, 0.28);
+      }
+
+      .btn:hover {
+        filter: brightness(1.06);
+      }
+
+      .btn__timer {
+        font-size: 13px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.78);
+      }
+
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
       }
     </style>
   </head>
-  <body class="is-app-loading">
-    <a class="skip-link" href="#main">Перейти к содержимому</a>
-
-    <div
-      class="narrow-gate"
-      role="alertdialog"
-      aria-modal="true"
-      aria-labelledby="narrowGateTitle"
-      aria-describedby="narrowGateText"
-    >
-      <div class="narrow-gate__card">
-        <div class="narrow-gate__icon" aria-hidden="true">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <rect x="7" y="2.5" width="10" height="19" rx="2" />
-            <path d="M11 18.5h2" />
-            <path d="M3.5 8.5h3M17.5 8.5h3M2 12h4.5M17.5 12H22" />
-          </svg>
-        </div>
-        <h2 class="narrow-gate__title" id="narrowGateTitle">
-          Экран слишком маленький
-        </h2>
-        <p class="narrow-gate__text" id="narrowGateText">
-          Перейдите на устройство с большей шириной экрана
-        </p>
+  <body>
+    <main class="card">
+      <div class="icon-wrap" aria-hidden="true">
+        <img src="./migrate-icon.png" alt="" width="280" height="165" />
       </div>
-    </div>
-
-    <div class="topbar-wrap">
-      <header class="topbar" id="topbar">
-        <div class="topbar__inner">
-          <div class="topbar__lead">
-            <div class="brand">
-              <div class="brand__mark" aria-hidden="true">
-                <dotlottie-wc
-                  src="https://lottie.host/c9f73cc6-1648-4bea-97bb-1f10770c81b2/Zja4zojMY8.lottie"
-                  style="width: 300px; height: 300px"
-                  autoplay
-                  loop
-                ></dotlottie-wc>
-              </div>
-              <div class="brand__text">
-                <div class="brand__title">Кабинет ученика</div>
-                <div class="brand__subtitle">Подготовка к экзаменам</div>
-              </div>
-            </div>
-
-            <div class="topbar__actions-panel" id="topbarActionsPanel">
-              <a
-                id="boardBtn"
-                class="topbar__action-btn"
-                href="https://miro.com/"
-                target="_blank"
-                rel="noreferrer"
-                title="Открыть доску"
-                hidden
-              >
-                <img
-                  src="./icons/header/miro.webp"
-                  width="18"
-                  height="18"
-                  style="border-radius: 5px"
-                  alt="Доска"
-                />
-                <span>Доска</span>
-              </a>
-              <a
-                id="callBtn"
-                class="topbar__action-btn"
-                href="https://3wu9oqfv.ktalk.ru/cah2j43sov5f"
-                target="_blank"
-                rel="noreferrer"
-                title="Войти в звонок"
-                hidden
-              >
-                <img
-                  src="./icons/header/call.webp"
-                  width="18"
-                  height="18"
-                  style="border-radius: 5px"
-                  alt="Звонок"
-                />
-                <span>Звонок</span>
-              </a>
-            </div>
-          </div>
-
-          <div class="topbar__right">
-            <button
-              type="button"
-              class="topbar__actions-toggle"
-              id="topbarActionsToggle"
-              aria-expanded="false"
-              aria-controls="topbarActionsPanel"
-              aria-label="Ссылки"
-              hidden
-            >
-              <svg
-                class="topbar__actions-icon topbar__actions-icon--links"
-                viewBox="0 0 24 24"
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path
-                  d="M10 13a5 5 0 0 0 7.54.54l1.92-1.92a5 5 0 0 0-7.07-7.07L11 6"
-                />
-                <path
-                  d="M14 11a5 5 0 0 0-7.54-.54L4.54 12.38a5 5 0 0 0 7.07 7.07L13 18"
-                />
-              </svg>
-              <svg
-                class="topbar__actions-icon topbar__actions-icon--close"
-                viewBox="0 0 24 24"
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                aria-hidden="true"
-              >
-                <path d="M6 6l12 12M18 6L6 18" />
-              </svg>
-            </button>
-            <div class="clock" aria-label="Текущие дата и время">
-              <div class="clock__date" id="nowDate"></div>
-              <div class="clock__time" id="nowTime"></div>
-            </div>
-          </div>
-        </div>
-      </header>
-    </div>
-
-    <div id="tickerBar" class="ticker-bar" hidden>
-      <div class="ticker__track" id="tickerTrack">
-        <!-- rendered by JS: two copies of content for seamless loop -->
-      </div>
-    </div>
-
-    <main class="container" id="main">
-      <div class="state-stage" id="stateStage">
-        <div class="app-loader state-screen" id="appLoader" aria-live="polite">
-          <div class="state-screen__content">
-            <div class="state-screen__icon-wrap">
-              <div class="app-loader__spinner" aria-hidden="true"></div>
-            </div>
-            <h2 class="state-screen__title">Данные загружаются</h2>
-            <p class="state-screen__text">Пожалуйста, подождите</p>
-          </div>
-        </div>
-
-        <section class="state-screen" id="appState" hidden aria-live="polite">
-          <div class="state-screen__content">
-            <div class="state-screen__icon-wrap">
-              <div class="state-screen__icon-glow" aria-hidden="true"></div>
-              <div
-                class="state-screen__icon"
-                id="appStateIcon"
-                aria-hidden="true"
-              ></div>
-            </div>
-            <div class="state-screen__eyebrow" id="appStateEyebrow"></div>
-            <h2 class="state-screen__title" id="appStateTitle"></h2>
-            <p class="state-screen__text" id="appStateText"></p>
-            <p class="state-screen__hint muted" id="appStateHint" hidden></p>
-          </div>
-        </section>
-      </div>
-
-      <div id="appShell" hidden>
-        <div
-          class="tabs"
-          id="subjectTabs"
-          aria-label="Переключение предмета"
-        ></div>
-
-        <section class="bento" id="dashboardPanel" aria-label="Панель ученика">
-          <article class="card card--hero" id="cardGreeting">
-            <div class="card__header">
-              <div>
-                <div class="eyebrow" id="greetingEyebrow">Дашборд</div>
-                <h1 class="h1" id="greetingTitle">Привет —</h1>
-              </div>
-              <div class="pill" id="subjectPill" title="Выбранный предмет">
-                <img
-                  src="./icons/subjects/subject.png"
-                  alt=""
-                  aria-hidden="true"
-                  class="pill-icon"
-                  id="subjectPillIcon"
-                  width="16"
-                  height="16"
-                />
-                <span id="subjectPillText">—</span>
-              </div>
-            </div>
-
-            <div class="hero__body">
-              <div class="hero-grid">
-                <div class="hero-progress">
-                  <div class="hero-progress__label">Прогресс</div>
-                  <div class="hero-progress__value" id="progressValue">—</div>
-                  <div
-                    class="progress__bar"
-                    role="progressbar"
-                    aria-valuemin="0"
-                    aria-valuemax="100"
-                  >
-                    <div
-                      class="progress__fill"
-                      id="progressFill"
-                      style="width: 0%"
-                    ></div>
-                  </div>
-                  <div class="hero-progress__meta">
-                    <span id="progressMetaLeft">—</span>
-                    <span class="muted" id="progressMetaRight"></span>
-                  </div>
-                </div>
-
-                <div class="hero-summary">
-                  <div class="kpi kpi--completed">
-                    <div class="kpi__label">Пройдено</div>
-                    <div class="kpi__value" id="heroCompleted">—</div>
-                  </div>
-                  <div class="kpi kpi--in_progress">
-                    <div class="kpi__label">В процессе</div>
-                    <div class="kpi__value" id="heroInProgress">—</div>
-                  </div>
-                  <div class="kpi kpi--homework">
-                    <div class="kpi__label">Сделать ДЗ</div>
-                    <div class="kpi__value" id="heroHomework">—</div>
-                  </div>
-                  <div class="kpi kpi--not_started">
-                    <div class="kpi__label">Не начато</div>
-                    <div class="kpi__value" id="heroNotStarted">—</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <article class="card card--exam" id="cardExam">
-            <div class="card__header">
-              <div>
-                <div class="eyebrow">Информация</div>
-                <h2 class="h2">Об экзамене</h2>
-              </div>
-            </div>
-
-            <div class="exam">
-              <div class="exam__row">
-                <div class="exam__label">Дата проведения</div>
-                <div class="exam__value" id="examDate">—</div>
-              </div>
-              <div class="exam__row">
-                <div class="exam__label">Осталось</div>
-                <div class="exam__value">
-                  <span class="countdown" id="examCountdown">—</span>
-                  <span class="muted" id="examCountdownSub">дней</span>
-                </div>
-              </div>
-              <div class="exam__row">
-                <div class="exam__label">Длительность экзамена</div>
-                <div class="exam__value" id="examDuration">—</div>
-              </div>
-              <div class="exam__row">
-                <div class="exam__label">Количество заданий</div>
-                <div class="exam__value" id="examTaskCount">—</div>
-              </div>
-            </div>
-          </article>
-
-          <article class="card card--tasks" id="cardTasks">
-            <div class="card__header">
-              <div>
-                <div class="eyebrow">План подготовки</div>
-                <div
-                  class="section-switcher"
-                  role="tablist"
-                  aria-label="Раздел"
-                >
-                  <button
-                    class="section-tab is-active"
-                    type="button"
-                    data-section="tasks"
-                    role="tab"
-                  >
-                    Задания
-                  </button>
-                  <button
-                    class="section-tab"
-                    type="button"
-                    data-section="trials"
-                    role="tab"
-                  >
-                    Пробные варианты
-                  </button>
-                </div>
-              </div>
-              <div
-                class="filters"
-                id="taskFilters"
-                aria-label="Фильтры заданий"
-              ></div>
-            </div>
-
-            <div
-              class="tasks-grid"
-              id="tasksGrid"
-              aria-label="Карточки заданий"
-            >
-              <!-- rendered by JS -->
-            </div>
-
-            <div class="trials-panel" id="trialsPanel" hidden></div>
-          </article>
-        </section>
-      </div>
+      <h1>Сайт переехал</h1>
+      <a class="btn" id="goLink" href="https://cabinet.isitov.ru/">
+        <span>Перейти на новую версию</span>
+        <span class="btn__timer" id="countdown"></span>
+      </a>
     </main>
+    <script>
+      (function () {
+        var NEW_ORIGIN = "https://cabinet.isitov.ru";
+        var DELAY_MS = 5000;
 
-    <div class="modal" id="modal" aria-hidden="true">
-      <div class="modal__overlay" data-close="true"></div>
-      <div
-        class="modal__dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modalTitle"
-      >
-        <div class="modal__header">
-          <div>
-            <div class="modal__badges" id="modalBadges">
-              <div class="modal__badge" id="modalBadge">—</div>
-              <div class="modal__flag" id="modalFlag" hidden></div>
-            </div>
-            <h3 class="modal__title" id="modalTitle">—</h3>
-            <div class="modal__subtitle" id="modalSubtitle">—</div>
-          </div>
-          <button
-            class="modal__close"
-            type="button"
-            id="modalClose"
-            aria-label="Закрыть окно"
-          >
-            <img src="./icons/modal/close.svg" alt="" aria-hidden="true" />
-          </button>
-        </div>
+        var file = (location.pathname.split("/").pop() || "").toLowerCase();
+        var path = file === "admin.html" ? "/admin.html" : "/";
+        var next = NEW_ORIGIN + path + location.search + location.hash;
 
-        <div class="modal__content" id="modalContent">
-          <!-- rendered by JS -->
-        </div>
-      </div>
-    </div>
+        var link = document.getElementById("goLink");
+        var hint = document.getElementById("countdown");
+        link.href = next;
 
-    <!-- <footer class="footer">
-      <div class="footer__inner">
-        <span class="muted">Личный кабинет</span>
-        <span class="muted">Разработано • 2026</span>
-      </div>
-    </footer> -->
+        var left = Math.round(DELAY_MS / 1000);
+        hint.textContent = "Переход через " + left + " с";
 
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-    <script src="./firebase.config.js?v=2"></script>
-    <script src="./firebase.config.js?v=3"></script>
-    <script src="./script.js?v=80" defer></script>
-    <script
-      src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.14/dist/dotlottie-wc.js"
-      type="module"
-    ></script>
+        var timer = setInterval(function () {
+          left -= 1;
+          if (left <= 0) {
+            clearInterval(timer);
+            location.replace(next);
+            return;
+          }
+          hint.textContent = "Переход через " + left + " с";
+        }, 1000);
+      })();
+    </script>
   </body>
 </html>
